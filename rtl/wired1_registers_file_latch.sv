@@ -1,6 +1,6 @@
 `include "wired0_defines"
 
-module wired_registers_file_ff #(
+module wired_registers_file_latch #(
     parameter int unsigned DATA_WIDTH = 32,
     parameter int unsigned DEPTH = 32,
     parameter bit NEED_RESET = 0,
@@ -20,7 +20,7 @@ module wired_registers_file_ff #(
 
   // 全局时钟使能
   wire clk_int;
-  wired1_clock_gate gclock_gate (
+  wired_clock_gate gclock_gate (
     .clk_i(clk_i),
     .en_i(we_i || (NEED_RESET && !rst_n)),
     .clk_o(clk_int)
@@ -41,7 +41,7 @@ module wired_registers_file_ff #(
   // latch 时钟生成
   wire [DEPTH - 1 : 0] mem_clock;
   for(genvar i = 0 ; i < DEPTH ; i++) begin
-    wired1_clock_gate iclock_gate (
+    wired_clock_gate iclock_gate (
       .clk_i(clk_int),
       .en_i(addr_decode[i[$clog2(DEPTH)-1:0]]),
       .clk_o(mem_clock[i[$clog2(DEPTH)-1:0]])

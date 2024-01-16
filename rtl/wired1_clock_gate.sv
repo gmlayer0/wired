@@ -1,6 +1,6 @@
 `include "wired0_defines"
 
-module wired1_clock_gate (
+module wired_clock_gate (
     `_WIRED_GENERAL_DEFINE
     input  en_i,
     output clk_o
