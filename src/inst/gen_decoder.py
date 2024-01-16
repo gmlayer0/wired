@@ -1,3 +1,4 @@
+#!/bin/python3
 from functools import cmp_to_key
 import json
 import os
@@ -69,6 +70,7 @@ class decoder_parser:
             f = open(json_file_path) # -> with open
             file_info = json.load(f)
             self.parse_single_file(file_info)
+            f.close()
     
     def gen_sv_header(self):
         str_builder = "`ifndef _DECODE_HEADER\n`define _DECODE_HEADER\n\n"
