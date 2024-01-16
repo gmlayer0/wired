@@ -22,7 +22,7 @@ module wired_registers_file #(
 
     wire [DEPTH-1:0][DATA_WIDTH-1:0] regfiles;
     if(REGISTERS_FILE_TYPE == "ff") begin
-        wired1_registers_file_ff #(
+        wired_registers_file_ff #(
             .DATA_WIDTH,
             .DEPTH,
             .NEED_RESET,
@@ -36,7 +36,7 @@ module wired_registers_file #(
             .regfiles_o(regfiles)
         );
     end else if(REGISTERS_FILE_TYPE == "latch") begin
-        wired1_registers_file_latch #(
+        wired_registers_file_latch #(
             .DATA_WIDTH,
             .DEPTH,
             .NEED_RESET,
