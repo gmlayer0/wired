@@ -38,7 +38,7 @@
         "_FUSEL_WB_NONE": "1'd0",
         "_FUSEL_WB_DIV": "1'd1"
     },
-    "stage_order": ["is","ex","m1","m2","wb"],
+    "stage_order": ["d","r",{"p" : ["alu","lsu","mdu"]},"c"],
     "signal": {
         "debug_inst": {
             "length": 32,
