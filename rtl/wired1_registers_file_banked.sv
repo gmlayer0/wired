@@ -21,7 +21,7 @@ module wired_registers_file_banked #(
     output T [R_PORT_COUNT-1:0]                 rdata_o,
 
     input    [W_PORT_COUNT-1:0][ADDR_DEPTH-1:0] waddr_i,
-    input                                       we_i,
+    input    [W_PORT_COUNT-1:0]                 we_i,
     input  T [W_PORT_COUNT-1:0]                 wdata_i
 );
 
@@ -64,7 +64,7 @@ module wired_registers_file_banked #(
             .waddr_i(waddr),
             .we_i(we)
             .wdata_i(wdata)
-        )
+        );
     end
 
 endmodule
