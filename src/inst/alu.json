@@ -1,53 +1,46 @@
 {
     "const": {
         "_ALU_GTYPE_BW": "2'd0",
-        "_ALU_GTYPE_INT": "2'd1",
         "_ALU_GTYPE_LI": "2'd1",
-        "_ALU_GTYPE_SFT": "2'd2",
-        "_ALU_GTYPE_CMP": "2'd3",
-        "_ALU_GTYPE_MUL": "2'd3",
+        "_ALU_GTYPE_INT": "2'd2",
+        "_ALU_GTYPE_SFT": "2'd3",
 
         "_ALU_STYPE_NOR": "2'b00",
         "_ALU_STYPE_AND": "2'b01",
         "_ALU_STYPE_OR": "2'b10",
         "_ALU_STYPE_XOR": "2'b11",
 
-        "_ALU_STYPE_ADD": "2'b00",
-        "_ALU_STYPE_LIEMPTYSLOT": "2'b00",
-        "_ALU_STYPE_SUB": "2'b10",
         "_ALU_STYPE_PCPLUS4": "2'b10",
-        "_ALU_STYPE_INTEMPTYSLOT0": "2'b00",
-        "_ALU_STYPE_LUI": "2'b01",
-        "_ALU_STYPE_INTEMPTYSLOT1": "2'b10",
         "_ALU_STYPE_PCADDUI": "2'b11",
+        "_ALU_STYPE_LUI": "2'b01",
+
+        "_ALU_STYPE_ADD": "2'b00",
+        "_ALU_STYPE_SUB": "2'b01",
+        "_ALU_STYPE_SLT": "2'b10",
+        "_ALU_STYPE_SLTU": "2'b11",
 
         "_ALU_STYPE_SRA": "2'b00",
         "_ALU_STYPE_SLL": "2'b10",
         "_ALU_STYPE_SRL": "2'b11",
 
-        "_ALU_STYPE_SLT": "2'b00",
-        "_ALU_STYPE_SLTU": "2'b01",
+        "_MDU_TYPE_MULL": "3'b000",
+        "_MDU_TYPE_MULH": "3'b001",
+        "_MDU_TYPE_MULHU": "3'b010",
 
-        "_MUL_TYPE_MULL": "2'b00",
-        "_MUL_TYPE_MULH": "2'b01",
-        "_MUL_TYPE_MULHU": "2'b10",
-
-        "_DIV_TYPE_DIV": "2'b00",
-        "_DIV_TYPE_DIVU": "2'b01",
-        "_DIV_TYPE_MOD": "2'b10",
-        "_DIV_TYPE_MODU": "2'b11",
-
-        "_LINK_TYPE_PCPLUS4": "2'b00"
+        "_MDU_TYPE_DIV": "3'b100",
+        "_MDU_TYPE_DIVU": "3'b101",
+        "_MDU_TYPE_MOD": "3'b110",
+        "_MDU_TYPE_MODU": "3'b111"
     },
     "signal": {
         "alu_grand_op": {
             "length": 2,
-            "stage": "m2",
+            "stage": "alu",
             "default_value": 0
         },
         "alu_op": {
             "length": 2,
-            "stage": "m2",
+            "stage": "alu",
             "default_value": 0
         }
     },
@@ -59,9 +52,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m1": 1,
-            "latest_r1_m1": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU"
+            "alu_inst": 1
         },
         "sub.w": {
             "opcode": "00000000000100010",
@@ -70,31 +61,25 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m1": 1,
-            "latest_r1_m1": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU"
+            "alu_inst": 1
         },
         "slt": {
             "opcode": "00000000000100100",
-            "alu_grand_op":"`_ALU_GTYPE_CMP",
+            "alu_grand_op":"`_ALU_GTYPE_INT",
             "alu_op":"`_ALU_STYPE_SLT",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m1": 1,
-            "latest_r1_m1": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU"
+            "alu_inst": 1
         }, 
         "sltu": {
             "opcode": "00000000000100101",
-            "alu_grand_op":"`_ALU_GTYPE_CMP",
+            "alu_grand_op":"`_ALU_GTYPE_INT",
             "alu_op":"`_ALU_STYPE_SLTU",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m1": 1,
-            "latest_r1_m1": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU"
+            "alu_inst": 1
         }, 
         "nor": {
             "opcode": "00000000000101000",
@@ -103,11 +88,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU",
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "and": {
             "opcode": "00000000000101001",
@@ -116,11 +97,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU",
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "or": {
             "opcode": "00000000000101010",
@@ -129,11 +106,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU",
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "xor": {
             "opcode": "00000000000101011",
@@ -142,11 +115,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU",
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "sll.w": {
             "opcode": "00000000000101110",
@@ -155,10 +124,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "srl.w": {
             "opcode": "00000000000101111",
@@ -167,10 +133,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "sra.w": {
             "opcode": "00000000000110000",
@@ -179,10 +142,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "mul.w": {
             "opcode": "00000000000111000",
@@ -192,9 +152,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_ex": 1,
-            "latest_r1_ex": 1,
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "mdu_inst": 1
         },
         "mulh.w": {
             "opcode": "00000000000111001",
@@ -204,9 +162,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_ex": 1,
-            "latest_r1_ex": 1,
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "mdu_inst": 1
         },
         "mulh.wu": {
             "opcode": "00000000000111010",
@@ -216,9 +172,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_ex": 1,
-            "latest_r1_ex": 1,
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "mdu_inst": 1
         },
         "div.w": {
             "opcode": "00000000001000000",
@@ -227,9 +181,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_wb": "`_FUSEL_WB_DIV"
+            "mdu_inst": 1
         },
         "mod.w": {
             "opcode": "00000000001000001",
@@ -238,9 +190,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_wb": "`_FUSEL_WB_DIV"
+            "mdu_inst": 1
         },
         "div.wu": {
             "opcode": "00000000001000010",
@@ -249,9 +199,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_wb": "`_FUSEL_WB_DIV"
+            "mdu_inst": 1
         },
         "mod.wu": {
             "opcode": "00000000001000011",
@@ -260,9 +208,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_wb": "`_FUSEL_WB_DIV"
+            "mdu_inst": 1
         },
         "slli.w": {
             "opcode": "00000000010000001",
@@ -272,10 +218,7 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U5",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "srli.w": {
             "opcode": "00000000010001001",
@@ -285,10 +228,7 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U5",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "srai.w": {
             "opcode": "00000000010010001",
@@ -298,34 +238,27 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U5",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "slti": {
             "opcode": "0000001000",
-            "alu_grand_op":"`_ALU_GTYPE_CMP",
+            "alu_grand_op":"`_ALU_GTYPE_INT",
             "alu_op":"`_ALU_STYPE_SLT",
             "reg_type_r0": "`_REG_R0_IMM",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S12",
-            "latest_r0_m1": 1,
-            "latest_r1_m1": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU"
+            "alu_inst": 1
         },
         "sltui": {
             "opcode": "0000001001",
-            "alu_grand_op":"`_ALU_GTYPE_CMP",
+            "alu_grand_op":"`_ALU_GTYPE_INT",
             "alu_op":"`_ALU_STYPE_SLTU",
             "reg_type_r0": "`_REG_R0_IMM",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S12",
-            "latest_r0_m1": 1,
-            "latest_r1_m1": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU"
+            "alu_inst": 1
         },
         "addi.w": {
             "opcode": "0000001010",
@@ -335,9 +268,7 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S12",
-            "latest_r0_m1": 1,
-            "latest_r1_m1": 1,
-            "fu_sel_m1": "`_FUSEL_M1_ALU"
+            "alu_inst": 1
         },
         "andi": {
             "opcode": "0000001101",
@@ -347,11 +278,7 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U12",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU",
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "ori": {
             "opcode": "0000001110",
@@ -361,11 +288,7 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U12",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU",
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "xori": {
             "opcode": "0000001111",
@@ -375,11 +298,7 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U12",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU",
-            "fu_sel_m1": "`_FUSEL_M1_ALU",
-            "fu_sel_m2": "`_FUSEL_M2_ALU"
+            "alu_inst": 1
         },
         "lu12i.w": {
             "opcode": "0001010",
@@ -389,9 +308,7 @@
             "reg_type_r1": "`_REG_R1_NONE",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S20",
-            "latest_r0_ex": 1,
-            "latest_r1_ex": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU"
+            "alu_inst": 1
         },
         "pcaddu12i": {
             "opcode": "0001110",
@@ -401,9 +318,7 @@
             "reg_type_r1": "`_REG_R1_NONE",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S20",
-            "latest_r0_ex": 1,
-            "latest_r1_ex": 1,
-            "fu_sel_ex": "`_FUSEL_EX_ALU"
+            "alu_inst": 1
         }
     }
 }
