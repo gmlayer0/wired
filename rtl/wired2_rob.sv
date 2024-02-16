@@ -1,7 +1,6 @@
 `include "wired0_defines"
 
 // Fuction module for Wired project
-// This module take two inst register infomation as input(combinational)
 module wired_rob #(
     parameter int INST_PAYLOAD_SIZE = 128
 )(
@@ -10,22 +9,21 @@ module wired_rob #(
     // 连接到 DISPATCH(P) 级别的端口
 
     // Part 1: ROB 读端口
-    input rob_rid_t [3:0]       p_rrrid_i,
     // ROB 中读取到的数据
-    output    logic [3:0]       p_rob_valid_o, // PRF 中存储的值是有效的
-    output    logic [3:0][31:0] p_rrdata_o,
+    input  rob_rid_t        [3:0] p_rrrid_i,
+    output logic            [3:0] p_rob_valid_o, // PRF 中存储的值是有效的
+    output rob_entry_data_t [3:0] p_rrdata_o,
 
     // Part 2: ROB 写端口（P级）
-    input     logic [1:0] p_dispatch_i,
-    input arch_rid_t[1:0] p_warid_i,
-    output rob_rid_t[1:0] r_wrrid_o,
-    output    logic [1:0] r_tier_id_o,   // 提交时使用的 tier id
+    input logic              [1:0] p_valid_i,
+    input rob_rid_t          [1:0] p_wrrid_i,
+    input rob_entry_static_t [1:0] p_winfo_i,
 
-    // 连接到 COMMIT 级别的端口
-    input     logic [1:0] c_commit_i,
-    input arch_rid_t[1:0] c_warid_i,
-    input  rob_rid_t[1:0] c_wrrid_i,
-    input     logic [1:0] c_tier_id_i,
+    // Part 3: ROB 写端口（CDB）
+    input pipeline_cdb_t [1:0] cdb_i,
+
+    // Part 4: ROB 读端口（C级）
+    
 
     // 注意，在后端需要撤销时，由 commit 端口对 ROB 中的指令全部执行一次提交，以恢复重命名表的状态
     // 即 RENAME 模块对后端撤销情况并不知情

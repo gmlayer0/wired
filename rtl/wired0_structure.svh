@@ -97,17 +97,6 @@ typedef struct packed{
   static_excp_t   excp;
 } pipeline_ctrl_p_t;
 
-// 从 disPatch 写入到 ROB 的指令静态信息（提交级使用）
-typedef struct packed{
-  decode_info_rob_t decode_info; // 指令控制信息
-  reg_ctrl_t        wreg;
-  logic[4:0]        op_code;       // CSR 控制信息
-  logic[13:0]       csr_id;
-  logic[31:0]       pc;
-  bpu_predict_t     bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
-  static_excp_t     excp_flow;
-} pipeline_ctrl_rob_t;
-
 // 从 CDB 写入 ROB 的指令数据信息
 typedef struct packed {
   // 控制流相关
@@ -126,28 +115,41 @@ typedef struct packed {
   logic       valid;
 } pipeline_cdb_t;
 
+typedef struct packed {
+  logic     valid;
+  rob_rid_t wid;
+  word_t    wdata;
+} pipeline_cdb_data_t;
+
 typedef struct packed{
   logic [1:0] valid;
   reg_ctrl_t [1:0] rreg;
   word_t [1:0] rdata;
+} pipeline_p_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
+
+typedef struct packed{
+  logic [1:0] valid;
+  rob_rid_t [1:0] rreg;
+  word_t [1:0] rdata;
 } pipeline_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
+
 
 // ROB 存储表项定义
 // Static 表项，双写口双读口，在 disPatch 时写入，保持不变
+// 也是从 disPatch 写入到 ROB 的指令静态信息（提交级使用）
 typedef struct packed {
   decode_info_rob_t decode_info; // 指令控制信息
-  reg_ctrl_t        wreg;
+  arch_rid_t        wreg;
+  logic             wtier;       // 写寄存器 tier id
   logic[4:0]        op_code;       // CSR 控制信息
   logic[13:0]       csr_id;
   logic[31:0]       pc;
   bpu_predict_t     bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
-  static_excp_t     excp_flow;
+  static_excp_t     excp;
 } rob_entry_static_t;
 
 // Valid 表项，四写口六读口，disPatch 及 CDB 均需要写入
-typedef struct packed {
-  logic valid;
-} rob_entry_valid_t;
+typedef logic rob_entry_valid_t;
 
 // Data 表项，双写口，六读口，CDB 写入
 
@@ -168,5 +170,60 @@ typedef struct packed {
 
 // 提交级流水
 // 提交级控制实际 ARF 写回，控制 Rename 表项回收，保证 ROB 永远不会出现 Overflow 的情况
+
+typedef struct packed {
+  logic valid;
+
+  decode_info_rob_t decode_info; // 指令控制信息
+  arch_rid_t        wreg;
+  logic             wtier;       // 写寄存器 tier id
+  logic[4:0]        op_code;       // CSR 控制信息
+  logic[13:0]       csr_id;
+  logic[31:0]       pc;
+  bpu_predict_t     bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
+  static_excp_t     static_excp;
+
+  // 控制流相关
+  lsu_excp_t  lsu_excp;
+  logic       need_jump;
+  logic[31:0] jump_target;
+
+  // 访存流相关
+  logic uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
+                           // Uncached 指令占用 Request_buffer (仅有一个表项，占用时不再进行后续指令执行)
+  logic store_buffer;      // 提交一条 Store_buffer 中的写请求
+  logic store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
+
+  // 写回 ARF 的数据
+  word_t wdata;
+} rob_entry_t; // 聚合
+
+function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry_dynamic_t dynamic_i, rob_entry_data_t data_i, rob_entry_valid_t valid_i);
+  rob_entry_t ret;
+  ret.valid = valid_i;
+  ret.decode_info = static_i.decode_info; // 指令控制信息
+  ret.wreg = static_i.wreg;
+  ret.wtier = static_i.wtier;       // 写寄存器 tier id
+  ret.op_code = static_i.op_code;       // CSR 控制信息
+  ret.csr_id = static_i.csr_id;
+  ret.pc = static_i.pc;
+  ret.bpu_predict = static_i.bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
+  ret.static_excp = static_i.excp;
+  // 控制流相关
+  ret.lsu_excp = dynamic_i.excp;
+  ret.need_jump = dynamic_i.need_jump;
+  ret.jump_target = dynamic_i.jump_target;
+  // 访存流相关
+  ret.uncached = dynamic_i.uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
+  ret.store_buffer = dynamic_i.store_buffer;      // 提交一条 Store_buffer 中的写请求
+  ret.store_conditional = dynamic_i.store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
+  // 写回 ARF 的数据
+  ret.wdata = data_i;
+endfunction
+
+// Issue Queue Entry
+typedef struct packed {
+  
+} iq_alu_static_t;
 
 `endif
