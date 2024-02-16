@@ -173,17 +173,19 @@ class design_parser:
             str_builder += 'typedef struct packed {\n'
             for signal_name in self.node_signal[node]:
                 str_builder += '    ' + signal_name + '_t ' + signal_name + ';\n'
-            str_builder += '} ' + node + '_t;\n\n'
+            str_builder += '} decode_info_' + node + '_t;\n\n'
 
         # convert function defination
         for relation in self.node_relations:
             from_stage = relation[0]
             to_stage   = relation[1]
-            str_builder += 'function automatic ' + to_stage + '_t '
+            if from_stage == 'Entry':
+                continue
+            str_builder += 'function automatic decode_info_' + to_stage + '_t '
             # [name]([type] [value])
-            str_builder += 'get_' + to_stage + '_from_' + from_stage + '(input ' + from_stage + '_t ' + from_stage + ');\n' 
+            str_builder += 'get_' + to_stage + '_from_' + from_stage + '(input decode_info_' + from_stage + '_t ' + from_stage + ');\n' 
             # <statement>
-            str_builder += '    ' + to_stage + '_t ' + 'ret;\n'
+            str_builder += '    decode_info_' + to_stage + '_t ' + 'ret;\n'
             for signal_name in self.node_signal[to_stage]:
                 str_builder += '    ret.' + signal_name + ' = ' + from_stage + '.' + signal_name + ';\n'
             str_builder += '    return ret;\n'

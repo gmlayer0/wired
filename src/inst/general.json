@@ -1,11 +1,13 @@
 {
     "node_relations": [
-        ["mdu", "c"],
-        ["lsu", "c"],
-        ["alu", "c"],
+        ["mdu", "common"],
+        ["lsu", "common"],
+        ["alu", "common"],
+        ["rob", "common"],
         ["p", "mdu"],
         ["p", "lsu"],
         ["p", "alu"],
+        ["p", "rob"],
         ["r", "p"],
         ["d", "r"],
         ["Entry", "d"]

@@ -60,44 +60,37 @@ typedef logic [1 : 0] alu_grand_op_t;
 typedef logic [1 : 0] alu_op_t;
 
 typedef struct packed {
-    inst_t inst;
-} c_t;
+} decode_info_common_t;
 
 typedef struct packed {
-    inst_t inst;
-} mdu_t;
+} decode_info_mdu_t;
 
 typedef struct packed {
-    inst_t inst;
-} lsu_t;
+} decode_info_lsu_t;
 
 typedef struct packed {
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
-    inst_t inst;
-} alu_t;
+} decode_info_alu_t;
+
+typedef struct packed {
+} decode_info_rob_t;
 
 typedef struct packed {
     alu_inst_t alu_inst;
     mdu_inst_t mdu_inst;
     lsu_inst_t lsu_inst;
-    inst_t inst;
-    inst_t inst;
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
-    inst_t inst;
-} p_t;
+} decode_info_p_t;
 
 typedef struct packed {
     alu_inst_t alu_inst;
     mdu_inst_t mdu_inst;
     lsu_inst_t lsu_inst;
-    inst_t inst;
-    inst_t inst;
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
-    inst_t inst;
-} r_t;
+} decode_info_r_t;
 
 typedef struct packed {
     reg_type_r0_t reg_type_r0;
@@ -108,92 +101,69 @@ typedef struct packed {
     alu_inst_t alu_inst;
     mdu_inst_t mdu_inst;
     lsu_inst_t lsu_inst;
-    inst_t inst;
-    inst_t inst;
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
-    inst_t inst;
-} d_t;
+} decode_info_d_t;
 
-function automatic c_t get_c_from_mdu(input mdu_t mdu);
-    c_t ret;
-    ret.inst = mdu.inst;
+function automatic decode_info_common_t get_common_from_mdu(input decode_info_mdu_t mdu);
+    decode_info_common_t ret;
     return ret;
 endfunction
 
-function automatic c_t get_c_from_lsu(input lsu_t lsu);
-    c_t ret;
-    ret.inst = lsu.inst;
+function automatic decode_info_common_t get_common_from_lsu(input decode_info_lsu_t lsu);
+    decode_info_common_t ret;
     return ret;
 endfunction
 
-function automatic c_t get_c_from_alu(input alu_t alu);
-    c_t ret;
-    ret.inst = alu.inst;
+function automatic decode_info_common_t get_common_from_alu(input decode_info_alu_t alu);
+    decode_info_common_t ret;
     return ret;
 endfunction
 
-function automatic mdu_t get_mdu_from_p(input p_t p);
-    mdu_t ret;
-    ret.inst = p.inst;
+function automatic decode_info_common_t get_common_from_rob(input decode_info_rob_t rob);
+    decode_info_common_t ret;
     return ret;
 endfunction
 
-function automatic lsu_t get_lsu_from_p(input p_t p);
-    lsu_t ret;
-    ret.inst = p.inst;
+function automatic decode_info_mdu_t get_mdu_from_p(input decode_info_p_t p);
+    decode_info_mdu_t ret;
     return ret;
 endfunction
 
-function automatic alu_t get_alu_from_p(input p_t p);
-    alu_t ret;
+function automatic decode_info_lsu_t get_lsu_from_p(input decode_info_p_t p);
+    decode_info_lsu_t ret;
+    return ret;
+endfunction
+
+function automatic decode_info_alu_t get_alu_from_p(input decode_info_p_t p);
+    decode_info_alu_t ret;
     ret.alu_grand_op = p.alu_grand_op;
     ret.alu_op = p.alu_op;
-    ret.inst = p.inst;
     return ret;
 endfunction
 
-function automatic p_t get_p_from_r(input r_t r);
-    p_t ret;
+function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
+    decode_info_rob_t ret;
+    return ret;
+endfunction
+
+function automatic decode_info_p_t get_p_from_r(input decode_info_r_t r);
+    decode_info_p_t ret;
     ret.alu_inst = r.alu_inst;
     ret.mdu_inst = r.mdu_inst;
     ret.lsu_inst = r.lsu_inst;
-    ret.inst = r.inst;
-    ret.inst = r.inst;
     ret.alu_grand_op = r.alu_grand_op;
     ret.alu_op = r.alu_op;
-    ret.inst = r.inst;
     return ret;
 endfunction
 
-function automatic r_t get_r_from_d(input d_t d);
-    r_t ret;
+function automatic decode_info_r_t get_r_from_d(input decode_info_d_t d);
+    decode_info_r_t ret;
     ret.alu_inst = d.alu_inst;
     ret.mdu_inst = d.mdu_inst;
     ret.lsu_inst = d.lsu_inst;
-    ret.inst = d.inst;
-    ret.inst = d.inst;
     ret.alu_grand_op = d.alu_grand_op;
     ret.alu_op = d.alu_op;
-    ret.inst = d.inst;
-    return ret;
-endfunction
-
-function automatic d_t get_d_from_Entry(input Entry_t Entry);
-    d_t ret;
-    ret.reg_type_r0 = Entry.reg_type_r0;
-    ret.reg_type_r1 = Entry.reg_type_r1;
-    ret.reg_type_w = Entry.reg_type_w;
-    ret.imm_type = Entry.imm_type;
-    ret.addr_imm_type = Entry.addr_imm_type;
-    ret.alu_inst = Entry.alu_inst;
-    ret.mdu_inst = Entry.mdu_inst;
-    ret.lsu_inst = Entry.lsu_inst;
-    ret.inst = Entry.inst;
-    ret.inst = Entry.inst;
-    ret.alu_grand_op = Entry.alu_grand_op;
-    ret.alu_op = Entry.alu_op;
-    ret.inst = Entry.inst;
     return ret;
 endfunction
 
