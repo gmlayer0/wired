@@ -5,7 +5,168 @@
 
 `include "decoder.svh"
 
+typedef logic[31:0] word_t;
+
+// Frontend Begin
+typedef struct packed {
+    logic taken;
+    // logic pc_off;
+    logic [                31:0]           predict_pc ;
+    logic [                 1:0]           lphr       ;
+    logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history    ;
+    logic [                 1:0]           target_type;
+    logic                                  dir_type   ;
+    logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0] ras_ptr;
+} bpu_predict_t;
+typedef struct packed {
+  logic interrupt[9:0]; // ALL Interrupt including software Interruption
+  logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to become an nop.
+  logic adef;           // Address translation failure will force this instruction to become an nop.
+  logic tlbr;
+  logic pif ;
+  logic ppi ;
+} fetch_excp_t;
+typedef struct packed {
+  // FRONTEND
+  logic interrupt[9:0]; // ALL Interrupt including software Interruption
+  logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+  logic adef ;
+  logic tlbr;
+  logic pif  ;
+  logic ppi ;
+
+  // DECODE
+  logic ine  ;
+  logic ipe  ;
+  logic sys  ;
+  logic brk  ;
+} static_excp_t;
+
+typedef struct packed {
+  logic pil  ;
+  logic pis  ;
+  logic pme  ;
+  logic ppi  ;
+  logic adem ;
+  logic ale  ;
+  logic tlbr ;
+} lsu_excp_t;
+// 输入到 Decode 级的指令流
+typedef struct packed {
+    logic[31:0]   inst;
+    logic[31:0]   pc;
+    bpu_predict_t bpu_predict;
+    fetch_excp_t  fetch_excp ;
+} pipeline_ctrl_d_t;
+
+// Backend Begin
+// 解码出来的寄存器信息
+
 typedef logic[`_WIRED_PARAM_PRF_LEN-1:0] arch_rid_t; // 架构寄存器号
 typedef logic[`_WIRED_PARAM_ROB_LEN-1:0] rob_rid_t;  // 重命名后寄存器号 == {}
+
+typedef struct packed{
+    arch_rid_t [1:0] r_reg; // 0 for rk, 1 for rj
+    arch_rid_t       w_reg;
+} reg_info_t;
+
+// 输入到 Rename 级的指令流
+typedef struct packed {
+  decode_info_r_t decode_info;
+  logic[25:0]     imm_domain;
+  reg_info_t      reg_info   ;
+  logic[31:0]     pc;
+  bpu_predict_t   bpu_predict;
+  static_excp_t   excp ;
+} pipeline_ctrl_r_t;
+
+typedef struct packed {
+    arch_rid_t arch_id;
+    rob_rid_t  rob_id;
+} reg_ctrl_t; // Rename 级产生
+
+// 输入到 disPatch(P) 级的指令流
+typedef struct packed{
+  decode_info_p_t decode_info; // 指令控制信息
+  reg_ctrl_t      wreg;
+  logic           wtier;       // 写寄存器 tier id
+  logic[27:0]     addr_imm;    // 传入 LSU，用于计算 vaddr 或者计算 csr_id（给 ALU）
+  logic[4:0]      op_code;     // 用于 Commit 级的 TLB 操作
+  logic[31:0]     pc;
+  bpu_predict_t   bpu_predict;
+  static_excp_t   excp;
+} pipeline_ctrl_p_t;
+
+// 从 disPatch 写入到 ROB 的指令静态信息（提交级使用）
+typedef struct packed{
+  decode_info_rob_t decode_info; // 指令控制信息
+  reg_ctrl_t        wreg;
+  logic[4:0]        op_code;       // CSR 控制信息
+  logic[13:0]       csr_id;
+  logic[31:0]       pc;
+  bpu_predict_t     bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
+  static_excp_t     excp_flow;
+} pipeline_ctrl_rob_t;
+
+// 从 CDB 写入 ROB 的指令数据信息
+typedef struct packed {
+  // 控制流相关
+  lsu_excp_t  excp;
+  logic       need_jump;
+  logic[31:0] jump_target;
+
+  // 访存流相关
+  logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
+  logic       store_buffer;      // 提交一条 Store_buffer 中的写请求
+  logic       store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
+  word_t      wdata;
+  rob_rid_t   wid;
+
+  // 有效性
+  logic       valid;
+} pipeline_cdb_t;
+
+typedef struct packed{
+  logic [1:0] valid;
+  reg_ctrl_t [1:0] rreg;
+  word_t [1:0] rdata;
+} pipeline_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
+
+// ROB 存储表项定义
+// Static 表项，双写口双读口，在 disPatch 时写入，保持不变
+typedef struct packed {
+  decode_info_rob_t decode_info; // 指令控制信息
+  reg_ctrl_t        wreg;
+  logic[4:0]        op_code;       // CSR 控制信息
+  logic[13:0]       csr_id;
+  logic[31:0]       pc;
+  bpu_predict_t     bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
+  static_excp_t     excp_flow;
+} rob_entry_static_t;
+
+// Valid 表项，四写口六读口，disPatch 及 CDB 均需要写入
+typedef struct packed {
+  logic valid;
+} rob_entry_valid_t;
+
+// Data 表项，双写口，六读口，CDB 写入
+
+typedef word_t rob_entry_data_t;
+
+// Dynamic 表项，双写口双读口，CDB 写入
+typedef struct packed {
+  // 控制流相关
+  lsu_excp_t  excp;
+  logic       need_jump;
+  logic[31:0] jump_target;
+
+  // 访存流相关
+  logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
+  logic       store_buffer;      // 提交一条 Store_buffer 中的写请求
+  logic       store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
+} rob_entry_dynamic_t;
+
+// 提交级流水
+// 提交级控制实际 ARF 写回，控制 Rename 表项回收，保证 ROB 永远不会出现 Overflow 的情况
 
 `endif

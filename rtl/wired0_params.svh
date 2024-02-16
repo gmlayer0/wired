@@ -2,7 +2,13 @@
 `define _WIRED_PARAMS_HEADER
 
 // 定义 Wired 处理器核心规模
-`define _WIRED_PARAM_ENABLE_FPU
+
+// Frontend
+`define _WIRED_PARAM_RAS_ADDR_LEN 3
+`define _WIRED_PARAM_BHT_DATA_LEN 5
+
+// Backend
+// `define _WIRED_PARAM_ENABLE_FPU
 
 `ifdef _WIRED_PARAM_ENABLE_FPU
 `define _WIRED_PARAM_PRF_LEN 5
@@ -11,7 +17,6 @@
 `endif //_WIRED_PARAM_ENABLE_FPU
 
 `define _WIRED_PARAM_ROB_LEN 6
-`define _WIRED_PARAM_ROB_BANK 2
 
 `define _WIRED_PARAM_INT_IQ_DEPTH 8
 `define _WIRED_PARAM_MDU_IQ_DEPTH 4

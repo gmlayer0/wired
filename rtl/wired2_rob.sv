@@ -2,25 +2,22 @@
 
 // Fuction module for Wired project
 // This module take two inst register infomation as input(combinational)
-// And generate all register id after rename.
-module wired_rename #(
-    parameter int unsigned DATA_WIDTH = 32,
-    parameter int unsigned DEPTH = 32,
-
-    // DO NOT MODIFY
-    parameter type T = logic[DATA_WIDTH - 1 : 0],
-    parameter int unsigned ADDR_DEPTH   = (DEPTH > 1) ? $clog2(DEPTH) : 1
+module wired_rob #(
+    parameter int INST_PAYLOAD_SIZE = 128
 )(
     `_WIRED_GENERAL_DEFINE,
 
-    // 连接到 RENAME 级别的端口
-    input arch_rid_t[3:0] r_rarid_i,
-    output rob_rid_t[3:0] r_rrrid_o,
-    output    logic [3:0] r_prf_valid_o, // PRF 中存储的值是有效的
+    // 连接到 DISPATCH(P) 级别的端口
 
-    input     logic [1:0] r_issue_i,
-    output    logic       r_ready_o,     // 发射就绪，注意，发射条件为 指令到达 P 级时，保证依然有两个 ROB 表项可用
-    input arch_rid_t[1:0] r_warid_i,
+    // Part 1: ROB 读端口
+    input rob_rid_t [3:0]       p_rrrid_i,
+    // ROB 中读取到的数据
+    output    logic [3:0]       p_rob_valid_o, // PRF 中存储的值是有效的
+    output    logic [3:0][31:0] p_rrdata_o,
+
+    // Part 2: ROB 写端口（P级）
+    input     logic [1:0] p_dispatch_i,
+    input arch_rid_t[1:0] p_warid_i,
     output rob_rid_t[1:0] r_wrrid_o,
     output    logic [1:0] r_tier_id_o,   // 提交时使用的 tier id
 
@@ -32,57 +29,7 @@ module wired_rename #(
 
     // 注意，在后端需要撤销时，由 commit 端口对 ROB 中的指令全部执行一次提交，以恢复重命名表的状态
     // 即 RENAME 模块对后端撤销情况并不知情
-    input     logic       c_flush_i,     // 正在清空管线中的指令并恢复 rename_table 状态
-    output    logic       empty_o        // ROB 清空信号
 );
-    logic[1:0] r_issue; // 指令实际发射
-    assign r_issue = {r_ready_o, r_ready_o} & r_issue_i;
-
-    // ROB 计数逻辑
-    // 注意 ROB 共计 64 项目，SKIDBUF 中可能存储两条指令
-    // ROB 中占用表项小于等于 62 为发射的前提条件
-    // 打一拍，占用表项小于等于 60 为下一拍可以发射的前提条件
-    logic[`_WIRED_PARAM_ROB_LEN:0] rob_count_q, rob_count;
-    logic[`_WIRED_PARAM_ROB_LEN:0] rob_diff;
-    always_comb begin
-        rob_diff = r_issue[0] + r_issue[1] - c_commit_i[0] - c_commit_i[1];
-    end
-    always_comb begin
-        rob_count = rob_diff + rob_count_q;
-    end
-    always_ff @(posedge clk) begin
-        if(~rst_n) begin
-            rob_count_q <= '0;
-        end else begin
-            rob_count_q <= rob_count;
-        end
-    end
-
-    // r_ready_o 生成逻辑
-    always_ff @(posedge clk) begin
-        if(~rst_n) begin
-            r_ready_o <= '1;
-        end else begin
-            r_ready_o <= rob_count_q <= 7'd60 && (!c_flush_i);
-        end
-    end
-
-    // empty_o 生成逻辑
-    always_ff @(posedge clk) begin
-        if(~rst_n) begin
-            empty_o <= '1;
-        end else begin
-            if(empty_o) begin
-                if(r_issue) begin
-                    empty_o <= '0;
-                end
-            end else begin
-                if(rob_count == '0) begin
-                    empty_o <= '1;
-                end
-            end
-        end
-    end
 
     typedef struct packed {
         logic tier_id;
@@ -107,8 +54,8 @@ module wired_rename #(
             free_rob_q <= '0;
             free_rob_p1_q <= `_WIRED_PARAM_ROB_LEN'd1;
         end else begin
-            free_rob_q <= free_rob_q + r_issue[0] + r_issue[1];
-            free_rob_p1_q <= free_rob_p1_q + r_issue[0] + r_issue[1];
+            free_rob_q <= free_rob_q + r_issue_i[0] + r_issue_i[1];
+            free_rob_p1_q <= free_rob_p1_q + r_issue_i[0] + r_issue_i[1];
         end
     end
     assign r_rename_new[0].rob_id = free_rob_q;
@@ -139,7 +86,7 @@ module wired_rename #(
         .raddr_i(r_rarid_i),
         .rdata_o(r_rename_result),
         .waddr_i(r_warid_i),
-        .we_i(r_issue),
+        .we_i(r_issue_i),
         .wdata_i(r_rename_new)
     );
     // Commit 级别表
