@@ -5,6 +5,24 @@
 
 // 全局简写使用
 
+// 独热码生成
+`define _WIRED_REVERSE(IN, OUT, WIDTH) \
+  for(genvar _GEN_I = 0 ; _GEN_I < WIDTH ; _GEN_I+=1) begin : OUT``_REVERSEGEN \
+    assign OUT``[_GEN_I] = IN``[WIDTH - 1 - _GEN_I]; \
+  end
+
+`define _WIRED_GET_ONEHOT(IN, OUT, WIDTH) \
+  assign OUT``[0] = IN``[0]; \
+  for(genvar _GEN_I = 1 ; _GEN_I < WIDTH ; _GEN_I+=1) begin : OUT``_ONEHOTGEN \
+    assign OUT``[_GEN_I] = (|OUT``[_GEN_I-1:0]) ? '0 : IN``[_GEN_I]; \
+  end
+
+`define _WIRED_GET_ONEHOT_REVERSE(IN, OUT, WIDTH) \
+  assign OUT``[WIDTH-1] = IN``[WIDTH-1]; \
+  for(genvar _GEN_I = WIDTH-2 ; _GEN_I >= 0 ; _GEN_I -= 1) begin : OUT``_ONEHOTGEN \
+    assign OUT``[_GEN_I] = (|OUT``[_GEN_I+1:WIDTH-1]) ? '0 : IN``[_GEN_I]; \
+  end
+
 // 通用全局时钟及复位信号
 `define _WIRED_GENERAL_DEFINE \
 input wire clk, \

@@ -19,9 +19,9 @@
         "_ALU_STYPE_SLT": "2'b10",
         "_ALU_STYPE_SLTU": "2'b11",
 
-        "_ALU_STYPE_SRA": "2'b00",
-        "_ALU_STYPE_SLL": "2'b10",
-        "_ALU_STYPE_SRL": "2'b11",
+        "_ALU_STYPE_SRL": "2'b00",
+        "_ALU_STYPE_SLL": "2'b01",
+        "_ALU_STYPE_SRA": "2'b10",
 
         "_MDU_TYPE_MULL": "3'b000",
         "_MDU_TYPE_MULH": "3'b001",

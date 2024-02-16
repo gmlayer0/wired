@@ -1,7 +1,7 @@
 `include "wired0_defines"
 
 // Fuction module for Wired project
-// Single issue queue entry implementation
+// Single issue queue entry CDB_FORWARDINGtion
 
 module wired_iq_entry #(
     parameter int CDB_COUNT = 2,
@@ -25,7 +25,7 @@ module wired_iq_entry #(
 
     // 背靠背唤醒数据源
     output logic  [1:0][FORWARD_COUNT-1:0] forward_o, // Onehot Encoding
-    output logic  [1:0][CDB_COUNT-1:0] cdb_forward_o,
+    // output logic  [1:0][CDB_COUNT-1:0] cdb_forward_o,
     output word_t [1:0] data_o
 );
 
@@ -56,14 +56,10 @@ module wired_iq_entry #(
         // 前递逻辑
         logic [CDB_COUNT-1:0] cdb_hit;
         for(genvar j = 0 ; j < CDB_COUNT ; j++) begin
-            assign cdb_hit[j] = cdb_i[j].valid && cdb_i[j].wid == (updata_i ? data_i.rreg[i] : rid_q[i]);
+            assign cdb_hit[j] = cdb_i[j].valid && cdb_i[j].wid == rid_q[i];
         end
         wire cdb_forward = |cdb_hit;
         word_t cdb_result;
-        logic [FORWARD_COUNT-1:0] forward_hit;
-        for(genvar j = 0 ; j < FORWARD_COUNT ; j++) begin
-            assign forward_hit[j] = forward_valid_i[j] && forward_rid_i[j] == rid_q[i];
-        end
         always_comb begin
             cdb_result = '0;
             for(integer j = 0 ; j < CDB_COUNT ; j+=1) begin
@@ -71,15 +67,20 @@ module wired_iq_entry #(
             end
         end
 
+        logic [FORWARD_COUNT-1:0] forward_hit;
+        for(genvar j = 0 ; j < FORWARD_COUNT ; j++) begin
+            assign forward_hit[j] = forward_valid_i[j] && forward_rid_i[j] == rid_q[i];
+        end
+
         // 更新逻辑
         always_ff @(posedge clk) begin
-            if(cdb_forward) begin
-                data_q[i] <= cdb_result;
-                valid_q[i] <= '1;
-            end
-            else if(updata_i) begin
+            if(updata_i) begin
                 data_q[i] <= data_i.rdata[i];
                 valid_q[i] <= data_i.valid[i];
+            end
+            else if(cdb_forward) begin
+                data_q[i] <= cdb_result;
+                valid_q[i] <= '1;
             end
         end
         always_ff @(posedge clk) begin
@@ -89,17 +90,21 @@ module wired_iq_entry #(
         end
 
         // 输出逻辑
-        assign cdb_forward_o[i] = cdb_hit;
+        // assign cdb_forward_o[i] = cdb_hit;
         assign forward_o[i] = forward_hit;
 
         always_comb begin
             valid[i] = valid_q[i];
-            if(((|cdb_hit) && CDB_FORWARDING) || (|forward_hit)) valid[i] |= '1;
+            if((cdb_forward && CDB_FORWARDING) || (|forward_hit)) valid[i] |= '1;
+        end
+        // 数据输出，可配置的 CDB 前递使能
+        if(CDB_FORWARDING) begin
+            assign data_o[i] = cdb_forward ? cdb_result : data_q[i];
+        end else begin
+            assign data_o[i] = data_q[i];
         end
     end
 
-    // 数据输出，不做 CDB 的前递
-    assign data_o = data_q;
     assign ready_o = &valid && valid_inst;
 
 endmodule
