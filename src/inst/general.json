@@ -35,12 +35,12 @@
         },
         "reg_type_r0": {
             "length": 2,
-            "stage": "d",
+            "stage": "r",
             "default_value": "`_REG_R0_NONE"
         },
         "reg_type_r1": {
             "length": 1,
-            "stage": "d",
+            "stage": "r",
             "default_value": "`_REG_R1_NONE"
         },
         "reg_type_w": {
@@ -50,12 +50,12 @@
         },
         "imm_type": {
             "length": 3,
-            "stage": "d",
+            "stage": "r",
             "default_value": "`_IMM_U5"
         },
         "addr_imm_type": {
             "length": 2,
-            "stage": "d",
+            "stage": "r",
             "default_value": "`_ADDR_IMM_S26"
         }
     },

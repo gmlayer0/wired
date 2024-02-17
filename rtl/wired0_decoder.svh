@@ -36,9 +36,9 @@
 `define _ALU_STYPE_SUB (2'b01)
 `define _ALU_STYPE_SLT (2'b10)
 `define _ALU_STYPE_SLTU (2'b11)
-`define _ALU_STYPE_SRA (2'b00)
-`define _ALU_STYPE_SLL (2'b10)
-`define _ALU_STYPE_SRL (2'b11)
+`define _ALU_STYPE_SRL (2'b00)
+`define _ALU_STYPE_SLL (2'b01)
+`define _ALU_STYPE_SRA (2'b10)
 `define _MDU_TYPE_MULL (3'b000)
 `define _MDU_TYPE_MULH (3'b001)
 `define _MDU_TYPE_MULHU (3'b010)
@@ -46,6 +46,17 @@
 `define _MDU_TYPE_DIVU (3'b101)
 `define _MDU_TYPE_MOD (3'b110)
 `define _MDU_TYPE_MODU (3'b111)
+`define _TARGET_REL (1'b0)
+`define _TARGET_ABS (1'b1)
+`define _CMP_NOCONDITION (4'b1110)
+`define _CMP_E (4'b0100)
+`define _CMP_NE (4'b1010)
+`define _CMP_LE (4'b1101)
+`define _CMP_GT (4'b0011)
+`define _CMP_LT (4'b1001)
+`define _CMP_GE (4'b0111)
+`define _CMP_LTU (4'b1000)
+`define _CMP_GEU (4'b0110)
 
 typedef logic [31 : 0] inst_t;
 typedef logic [0 : 0] alu_inst_t;
@@ -58,6 +69,9 @@ typedef logic [2 : 0] imm_type_t;
 typedef logic [1 : 0] addr_imm_type_t;
 typedef logic [1 : 0] alu_grand_op_t;
 typedef logic [1 : 0] alu_op_t;
+typedef logic [0 : 0] target_type_t;
+typedef logic [3 : 0] cmp_type_t;
+typedef logic [0 : 0] jump_inst_t;
 
 typedef struct packed {
 } decode_info_common_t;
@@ -71,9 +85,12 @@ typedef struct packed {
 typedef struct packed {
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
+    target_type_t target_type;
+    cmp_type_t cmp_type;
 } decode_info_alu_t;
 
 typedef struct packed {
+    jump_inst_t jump_inst;
 } decode_info_rob_t;
 
 typedef struct packed {
@@ -82,20 +99,14 @@ typedef struct packed {
     lsu_inst_t lsu_inst;
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
+    target_type_t target_type;
+    cmp_type_t cmp_type;
+    jump_inst_t jump_inst;
 } decode_info_p_t;
-
-typedef struct packed {
-    alu_inst_t alu_inst;
-    mdu_inst_t mdu_inst;
-    lsu_inst_t lsu_inst;
-    alu_grand_op_t alu_grand_op;
-    alu_op_t alu_op;
-} decode_info_r_t;
 
 typedef struct packed {
     reg_type_r0_t reg_type_r0;
     reg_type_r1_t reg_type_r1;
-    reg_type_w_t reg_type_w;
     imm_type_t imm_type;
     addr_imm_type_t addr_imm_type;
     alu_inst_t alu_inst;
@@ -103,6 +114,25 @@ typedef struct packed {
     lsu_inst_t lsu_inst;
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
+    target_type_t target_type;
+    cmp_type_t cmp_type;
+    jump_inst_t jump_inst;
+} decode_info_r_t;
+
+typedef struct packed {
+    reg_type_w_t reg_type_w;
+    reg_type_r0_t reg_type_r0;
+    reg_type_r1_t reg_type_r1;
+    imm_type_t imm_type;
+    addr_imm_type_t addr_imm_type;
+    alu_inst_t alu_inst;
+    mdu_inst_t mdu_inst;
+    lsu_inst_t lsu_inst;
+    alu_grand_op_t alu_grand_op;
+    alu_op_t alu_op;
+    target_type_t target_type;
+    cmp_type_t cmp_type;
+    jump_inst_t jump_inst;
 } decode_info_d_t;
 
 function automatic decode_info_common_t get_common_from_mdu(input decode_info_mdu_t mdu);
@@ -139,11 +169,14 @@ function automatic decode_info_alu_t get_alu_from_p(input decode_info_p_t p);
     decode_info_alu_t ret;
     ret.alu_grand_op = p.alu_grand_op;
     ret.alu_op = p.alu_op;
+    ret.target_type = p.target_type;
+    ret.cmp_type = p.cmp_type;
     return ret;
 endfunction
 
 function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
     decode_info_rob_t ret;
+    ret.jump_inst = p.jump_inst;
     return ret;
 endfunction
 
@@ -154,16 +187,26 @@ function automatic decode_info_p_t get_p_from_r(input decode_info_r_t r);
     ret.lsu_inst = r.lsu_inst;
     ret.alu_grand_op = r.alu_grand_op;
     ret.alu_op = r.alu_op;
+    ret.target_type = r.target_type;
+    ret.cmp_type = r.cmp_type;
+    ret.jump_inst = r.jump_inst;
     return ret;
 endfunction
 
 function automatic decode_info_r_t get_r_from_d(input decode_info_d_t d);
     decode_info_r_t ret;
+    ret.reg_type_r0 = d.reg_type_r0;
+    ret.reg_type_r1 = d.reg_type_r1;
+    ret.imm_type = d.imm_type;
+    ret.addr_imm_type = d.addr_imm_type;
     ret.alu_inst = d.alu_inst;
     ret.mdu_inst = d.mdu_inst;
     ret.lsu_inst = d.lsu_inst;
     ret.alu_grand_op = d.alu_grand_op;
     ret.alu_op = d.alu_op;
+    ret.target_type = d.target_type;
+    ret.cmp_type = d.cmp_type;
+    ret.jump_inst = d.jump_inst;
     return ret;
 endfunction
 

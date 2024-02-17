@@ -1,12 +1,12 @@
 `include "wired0_defines"
 
 // Fuction module for Wired project
-module wired_alu (
+module wired_jump (
     input   logic [31:0] r0_i,
     input   logic [31:0] r1_i,
     input   logic [31:0] pc_i,
-    input   logic [1:0] grand_op_i,
-    input   logic [1:0] op_i,
+    input   logic [1:0]  target_type_i, // 0 for no branch, 1 for call, 2 for return, 3 for immediate
+    input   logic [3:0]  cmp_type_i,
 
     output  logic [31:0] res_o
   );

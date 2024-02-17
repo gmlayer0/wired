@@ -19,7 +19,113 @@ module wired_decoder(
         is_o.addr_imm_type = `_ADDR_IMM_S26;
         is_o.alu_grand_op = 2'd0;
         is_o.alu_op = 2'd0;
+        is_o.target_type = 1'd0;
+        is_o.cmp_type = 4'd0;
+        is_o.jump_inst = 1'd0;
         unique casez(inst_i)
+            32'b010011??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_NONE;
+                is_o.reg_type_r1 = `_REG_R1_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.addr_imm_type = `_ADDR_IMM_S16;
+                is_o.alu_grand_op = `_ALU_GTYPE_LI;
+                is_o.alu_op = `_ALU_STYPE_PCPLUS4;
+                is_o.target_type = `_TARGET_ABS;
+                is_o.cmp_type = `_CMP_NOCONDITION;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b010100??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_NONE;
+                is_o.reg_type_r1 = `_REG_R1_NONE;
+                is_o.reg_type_w = `_REG_W_NONE;
+                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_NOCONDITION;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b010101??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_NONE;
+                is_o.reg_type_r1 = `_REG_R1_NONE;
+                is_o.reg_type_w = `_REG_W_BL1;
+                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_grand_op = `_ALU_GTYPE_LI;
+                is_o.alu_op = `_ALU_STYPE_PCPLUS4;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_NOCONDITION;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b010110??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_RD;
+                is_o.reg_type_r1 = `_REG_R1_RJ;
+                is_o.reg_type_w = `_REG_W_NONE;
+                is_o.addr_imm_type = `_ADDR_IMM_S16;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_E;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b010111??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_RD;
+                is_o.reg_type_r1 = `_REG_R1_RJ;
+                is_o.reg_type_w = `_REG_W_NONE;
+                is_o.addr_imm_type = `_ADDR_IMM_S16;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_NE;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b011000??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_RD;
+                is_o.reg_type_r1 = `_REG_R1_RJ;
+                is_o.reg_type_w = `_REG_W_NONE;
+                is_o.addr_imm_type = `_ADDR_IMM_S16;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_LT;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b011001??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_RD;
+                is_o.reg_type_r1 = `_REG_R1_RJ;
+                is_o.reg_type_w = `_REG_W_NONE;
+                is_o.addr_imm_type = `_ADDR_IMM_S16;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_GE;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b011010??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_RD;
+                is_o.reg_type_r1 = `_REG_R1_RJ;
+                is_o.reg_type_w = `_REG_W_NONE;
+                is_o.addr_imm_type = `_ADDR_IMM_S16;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_LTU;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b011011??????????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_R0_RD;
+                is_o.reg_type_r1 = `_REG_R1_RJ;
+                is_o.reg_type_w = `_REG_W_NONE;
+                is_o.addr_imm_type = `_ADDR_IMM_S16;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_GEU;
+                is_o.jump_inst = 1'd1;
+            end
             32'b0001010?????????????????????????: begin
                 decode_err_o = 1'b0;
                 is_o.alu_inst = 1'd1;

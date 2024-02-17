@@ -5,6 +5,7 @@
 
 module wired_iq_entry #(
     parameter int CDB_COUNT = 2,
+    parameter int PAYLOAD_SIZE = 32,
     parameter int FORWARD_COUNT = 2,
     parameter bit CDB_FORWARDING = 0
 )(
@@ -12,7 +13,8 @@ module wired_iq_entry #(
 
     input logic sel_i,     // 指令被发射标记
     input logic updata_i,  // 新的指令加入标记
-    input pipeline_data_t data_i,
+    input pipeline_data_t data_i,            // 新指令的输入数据
+    input logic [PAYLOAD_SIZE-1:0] payload_i, // 新指令的控制数据
 
     // 背靠背唤醒
     input logic     [FORWARD_COUNT-1:0] forward_valid_i,
@@ -26,7 +28,8 @@ module wired_iq_entry #(
     // 背靠背唤醒数据源
     output logic  [1:0][FORWARD_COUNT-1:0] forward_o, // Onehot Encoding
     // output logic  [1:0][CDB_COUNT-1:0] cdb_forward_o,
-    output word_t [1:0] data_o
+    output word_t [1:0] data_o,
+    output logic [PAYLOAD_SIZE-1:0] payload_o
 );
 
     // 标记 IQ Entry 中存储的是一条有效的指令
@@ -51,6 +54,8 @@ module wired_iq_entry #(
     word_t [1:0] data_q;
     // 记录 IQ Entry 中的数据源，便于捕获 CDB 中的写回数据
     rob_rid_t [1:0] rid_q;
+    // Payload，存储诸如指令解码信息之类的东西
+    logic [PAYLOAD_SIZE-1:0] payload_q;
 
     for(genvar i = 0 ; i < 2 ; i+=1) begin : each_reg
         // 前递逻辑
@@ -86,6 +91,7 @@ module wired_iq_entry #(
         always_ff @(posedge clk) begin
             if(updata_i) begin
                 rid_q[i] <= data_i.rreg[i];
+                payload_q <= payload_i;
             end
         end
 
@@ -106,5 +112,6 @@ module wired_iq_entry #(
     end
 
     assign ready_o = &valid && valid_inst;
+    assign payload_o = payload_q;
 
 endmodule

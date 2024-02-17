@@ -227,8 +227,8 @@ if __name__ == '__main__':
         op = sys.argv[1]
         if op == '-m' or op == '--move':
             cur_file_path = os.path.split(os.path.realpath(__file__))[0]
-            tar_path = os.path.join(cur_file_path, '../../rtl/decoder/')
-            os.system("cp decoder.sv " + tar_path)
-            print("cp decoder.sv " + tar_path)
-            os.system("cp decoder.svh "+ tar_path)
-            print("cp decoder.svh "+ tar_path)
+            tar_path = os.path.join(cur_file_path, '../../rtl/')
+            os.system("cp wired2_decoder.sv " + tar_path)
+            print("cp wired2_decoder.sv " + tar_path)
+            os.system("cp wired0_decoder.svh "+ tar_path)
+            print("cp wired0_decoder.svh "+ tar_path)
