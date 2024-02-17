@@ -86,6 +86,25 @@ typedef struct packed {
 } reg_ctrl_t; // Rename 级产生
 
 // 输入到 disPatch(P) 级的指令流
+
+function automatic logic[27:0] mkimm_addr(input logic[1:0] addr_imm_type, input logic[25:0] raw_imm);
+case (addr_imm_type)
+  default : /*`_ADDR_IMM_S12:*/
+    begin
+      mkimm_addr = {{16{raw_imm[21]}},raw_imm[21:10]};
+    end
+  `_ADDR_IMM_S14 : begin
+    mkimm_addr = {{12{raw_imm[23]}},raw_imm[23:10],2'b00};
+  end
+  `_ADDR_IMM_S16 : begin
+    mkimm_addr = {{10{raw_imm[25]}},raw_imm[25:10],2'b00};
+  end
+  `_ADDR_IMM_S26 : begin
+    mkimm_addr = {raw_imm[9:0],raw_imm[25:10],2'b00};
+  end
+endcase
+endfunction
+
 typedef struct packed{
   decode_info_p_t decode_info; // 指令控制信息
   reg_ctrl_t      wreg;
