@@ -53,7 +53,7 @@ module wired_alu_iq #(
     // 输入给 IQ 的 static 信息
     iq_static_t [1:0] p_static;
 
-    // IQ 中存储的信息s
+    // IQ 中存储的信息
     word_t      [IQ_SIZE-1:0][1:0] iq_data;
     iq_static_t [IQ_SIZE-1:0] iq_static;
     logic [IQ_SIZE-1:0][1:0][1:0][1:0] forward_src; // IQ_INDEX REG_INDEX SRC_INDEX
@@ -96,12 +96,17 @@ module wired_alu_iq #(
 
     iq_static_t [1:0] sel_static_q, sel_static;
     logic [1:0][1:0] sel_forward_q, sel_forward;
+    logic [1:0][IQ_SIZE-1:0] ready_sel_q;
     rob_rid_t [1:0] sel_rid_q, sel_rob;
     word_t [1:0] sel_data_q, sel_data, alu_data;
 
     // 选择两个用于 ALU 输入的 data 和 static
 
-    // 例化两个 ALU
+    // 握手控制，主要与 CDB 有关
+    logic [1:0] excute_valid; // 标记 Excute 级的两个执行槽是否有效
+    logic excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令
+
+    // 例化两个 ALU 和 jump 模块 用于处理所有计算指令以及分支指令
     for(genvar i = 0 ; i < 2 ; i += 1) begin
         wired_alu  wired_alu_inst (
             .r0_i(),
@@ -111,6 +116,19 @@ module wired_alu_iq #(
             .op_i(),
             .res_o()
         );
+        wired_jump  wired_jump_inst (
+            .r0_i(r0_i),
+            .r1_i(r1_i),
+            .pc_i(pc_i),
+            .addr_imm_i(addr_imm_i),
+            .target_type_i(target_type_i),
+            .cmp_type_i(cmp_type_i),
+            .jump_o(jump_o),
+            .jump_target_o(jump_target_o)
+        );
     end
+
+    // 连接到 CDB 的两个非透传 FIFO
+    // 仅有两个表项
 
 endmodule

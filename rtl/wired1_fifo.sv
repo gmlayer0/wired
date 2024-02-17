@@ -24,8 +24,8 @@ module wired_fifo #(
     wire [ADDR_DEPTH:0] cnt;
 
     // 指针更新
-    `_WIRED_FF_RSTABLE_EN(wpr, '0, push)
-    `_WIRED_FF_RSTABLE_EN(rpr, '0, pop)
+    `_WIRED_FF_RSTABLE_EN(wptr, '0, push)
+    `_WIRED_FF_RSTABLE_EN(rptr, '0, pop)
     `_WIRED_FF_RSTABLE_EN(cnt, '0, push | pop)
     assign wptr = (wptr_q == DEPTH - 1) ? '0 : (wptr_q + 1'd1);
     assign rptr = (rptr_q == DEPTH - 1) ? '0 : (rptr_q + 1'd1);
@@ -33,8 +33,8 @@ module wired_fifo #(
 
     // 握手信号
     wire ready, valid;
-    assign ready = cnt_q < DEPTH - 1; // 牺牲容量换取速度，隐含一个 skid-buf
-    assign valid = cnt_q > (pop ? 1'd1 : 1'd0);
+    assign ready = cnt_q < ((push & ~pop) ? (DEPTH - 1) : DEPTH;
+    assign valid = cnt_q > ((pop & ~push) ? 1'd1 : 1'd0);
     `_WIRED_FF_RSTABLE(ready, '1)
     `_WIRED_FF_RSTABLE(valid, '0)
 
