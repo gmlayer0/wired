@@ -30,19 +30,40 @@ module wired_alu_iq #(
     logic [IQ_SIZE-1:0] ready_q;  // 标识 IQ ENTRY 可发射
     // Todo: AGE-MAP BASED OPTIMIZATION
 
-    // IQ 分配逻辑，固定优先级调度，从队首 / 队尾两个方向分别寻找 leading zero
-    logic [1:0][IQ_SIZE-1:0] empty_sel;
-    `_WIRED_GET_ONEHOT(empty_q, empty_sel[0], IQ_SIZE)
-    `_WIRED_GET_ONEHOT_REVERSE(empty_q, empty_sel[1], IQ_SIZE)
+    // IQ 有一个比较奇特的设计，整体 IQ 为 8 项，但其中仅有4项是两个 ALU 均可以发射的，其余4项则是独占的
+    // 对于填入，优先级倒置
 
-    // IQ 选择逻辑，固定优先级调度，从队首 / 队尾两个方向分别寻找 leading one
-    // 若两个寻找到的结果一致，则单发射，否之双发射成功
-    logic [1:0][IQ_SIZE-1:0] ready_sel;
-    `_WIRED_GET_ONEHOT(ready_q, ready_sel[0], IQ_SIZE)
-    `_WIRED_GET_ONEHOT_REVERSE(ready_q, ready_sel[1], IQ_SIZE)
+    // 如示例：
+    // IQ:   0 1 2 3 4 5 6 7
+    // ALU0: 0 1 2 3 4 5
+    // ALU1:     5 4 3 2 1 0
+    // UPD0: 3 2 1 0 7 6 5 4
+    // UPD1: 4 5 6 7 0 1 2 3
 
-    // CDB 接口上的 FIFO 队列， FIFO 不满的时候可以发射指令到 FU 执行，一旦有一个 FIFO 满，就阻止指令发射。
+    // 也就是每个 ALU 可以执行的直接数据源是 6 项目
+    // 仅需要 2 x LUT6 + MUX2 即可完成一个数据源的选择，逻辑深度为3
+
+    // UPD 逻辑
+    // IQ:   0 1 2 3 4 5 6 7
+    // UPD0: 3 2 1 0 7 6 5 4
+    // UPD1: 4 5 6 7 0 1 2 3
+    logic [1:0][IQ_SIZE-1:0] upd_sel_oh;
+    parameter integer UPDPIO [7:0] = {4,5,6,7,0,1,2,3};
+    for(genvar i = 0 ; i < 2 ; i += 1) begin
+        assign upd_sel_oh[i][i == 0 ? (UPDPIO[0]) : (7-UPDPIO[0])] = empty_q[i == 0 ? (UPDPIO[0]) : (7-UPDPIO[0])];
+        assign upd_sel_oh[i][i == 0 ? (UPDPIO[1]) : (7-UPDPIO[1])] = empty_q[i == 0 ? (UPDPIO[1]) : (7-UPDPIO[1])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[0]) : (7-UPDPIO[0])];
+        assign upd_sel_oh[i][i == 0 ? (UPDPIO[2]) : (7-UPDPIO[2])] = empty_q[i == 0 ? (UPDPIO[2]) : (7-UPDPIO[2])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[1]) : (7-UPDPIO[1])];
+        assign upd_sel_oh[i][i == 0 ? (UPDPIO[3]) : (7-UPDPIO[3])] = empty_q[i == 0 ? (UPDPIO[3]) : (7-UPDPIO[3])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[2]) : (7-UPDPIO[2])];
+        assign upd_sel_oh[i][i == 0 ? (UPDPIO[4]) : (7-UPDPIO[4])] = empty_q[i == 0 ? (UPDPIO[4]) : (7-UPDPIO[4])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[3]) : (7-UPDPIO[3])];
+        assign upd_sel_oh[i][i == 0 ? (UPDPIO[5]) : (7-UPDPIO[5])] = empty_q[i == 0 ? (UPDPIO[5]) : (7-UPDPIO[5])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[4]) : (7-UPDPIO[4])];
+        assign upd_sel_oh[i][i == 0 ? (UPDPIO[6]) : (7-UPDPIO[6])] = empty_q[i == 0 ? (UPDPIO[6]) : (7-UPDPIO[6])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[5]) : (7-UPDPIO[5])];
+        assign upd_sel_oh[i][i == 0 ? (UPDPIO[7]) : (7-UPDPIO[7])] = empty_q[i == 0 ? (UPDPIO[7]) : (7-UPDPIO[7])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[6]) : (7-UPDPIO[6])];
+    end
+
+    // CDB 接口上的 FIFO 队列， 不满的时候才可以以发射指令到 FU 执行，一旦有一个 FIFO 满，就阻止指令发射。
     // 这样保证在 ALU 中的两条指令起步走，转发的两个源头也是齐步走的
+    logic free_cnt_q;
+    // fixme: finish free_cnt_q logic
 
     // Reserve station static entry 定义
     typedef struct packed {
@@ -104,7 +125,7 @@ module wired_alu_iq #(
 
     // 握手控制，主要与 CDB 有关
     logic [1:0] excute_valid; // 标记 Excute 级的两个执行槽是否有效
-    logic excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令
+    logic [1:0] excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令
 
     // 例化两个 ALU 和 jump 模块 用于处理所有计算指令以及分支指令
     for(genvar i = 0 ; i < 2 ; i += 1) begin
@@ -117,14 +138,14 @@ module wired_alu_iq #(
             .res_o()
         );
         wired_jump  wired_jump_inst (
-            .r0_i(r0_i),
-            .r1_i(r1_i),
-            .pc_i(pc_i),
-            .addr_imm_i(addr_imm_i),
-            .target_type_i(target_type_i),
-            .cmp_type_i(cmp_type_i),
-            .jump_o(jump_o),
-            .jump_target_o(jump_target_o)
+            .r0_i(),
+            .r1_i(),
+            .pc_i(),
+            .addr_imm_i(),
+            .target_type_i(),
+            .cmp_type_i(),
+            .jump_o(),
+            .jump_target_o()
         );
     end
 
