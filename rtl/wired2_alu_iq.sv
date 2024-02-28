@@ -27,7 +27,7 @@ module wired_alu_iq #(
     input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
 );
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
-    logic [IQ_SIZE-1:0] ready_q;  // 标识 IQ ENTRY 可发射
+    logic [IQ_SIZE-1:0] issue_rdy_q;  // 标识 IQ ENTRY 可发射
     // Todo: AGE-MAP BASED OPTIMIZATION
 
     // IQ 有一个比较奇特的设计，整体 IQ 为 8 项，但其中仅有4项是两个 ALU 均可以发射的，其余4项则是独占的
@@ -77,8 +77,9 @@ module wired_alu_iq #(
     // IQ 中存储的信息
     word_t      [IQ_SIZE-1:0][1:0] iq_data;
     iq_static_t [IQ_SIZE-1:0] iq_static;
-    logic [IQ_SIZE-1:0][1:0][1:0][1:0] forward_src; // IQ_INDEX REG_INDEX SRC_INDEX
-    
+    logic [IQ_SIZE-1:0][1:0][1:0] b2b_src; // IQ_INDEX REG_INDEX SRC_INDEX
+
+    // 解包信息
     for(genvar i = 0 ; i < 2 ; i += 1) begin
         always_comb begin
             p_static[i].gop = p_ctrl_i[i].decode_info.alu_grand_op;
@@ -91,13 +92,12 @@ module wired_alu_iq #(
     for(genvar i = 0 ; i < IQ_SIZE ; i += 1) begin
         wire [1:0] update_by;
         for(genvar j = 0 ; j < IQ_SIZE ; j += 1) begin
-            assign update_by[j] = empty_sel[j][i] & p_valid_i[j];
+            assign update_by[j] = upd_sel_oh[j][i] & p_valid_i[j];
         end
         wired_iq_entry # (
             .CDB_COUNT(2),
-            .FORWARD_COUNT(2),
-            .CDB_FORWARDING(0),
-            .PAYLOAD_SIZE($bits(iq_static_t))
+            .PAYLOAD_SIZE($bits(iq_static_t)),
+            .FORWARD_COUNT(2)
         )
         wired_iq_entry_inst (
             `_WIRED_GENERAL_CONN,
@@ -105,11 +105,12 @@ module wired_alu_iq #(
             .updata_i(|update_by),
             .data_i(update_by[1] ? p_data_i[1] : p_data_i[0]),
             .payload_i(update_by[0] ? p_static[0] : p_static[1]),
-            .forward_valid_i(),
-            .forward_rid_i(),
+            .b2b_valid_i(),
+            .b2b_rid_i(),
             .cdb_i(cdb_i),
-            .ready_o(ready_q[i]),
-            .forward_o(forward_src[i]),
+            .empty_o(empty_q[i]),
+            .ready_o(issue_rdy_q[i]),
+            .b2b_sel_o(b2b_src[i]),
             .data_o(iq_data[i]),
             .payload_o(iq_static[i])
         );
@@ -117,7 +118,6 @@ module wired_alu_iq #(
 
     iq_static_t [1:0] sel_static_q, sel_static;
     logic [1:0][1:0] sel_forward_q, sel_forward;
-    logic [1:0][IQ_SIZE-1:0] ready_sel_q;
     rob_rid_t [1:0] sel_rid_q, sel_rob;
     word_t [1:0] sel_data_q, sel_data, alu_data;
 
@@ -149,7 +149,6 @@ module wired_alu_iq #(
         );
     end
 
-    // 连接到 CDB 的两个非透传 FIFO
-    // 仅有两个表项
+    // 连接到 CDB 的两个 skid buf
 
 endmodule
