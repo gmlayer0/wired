@@ -76,6 +76,12 @@ class design_parser:
     def gen_blank(self, times):
         return '    ' * times
 
+    def add_str_to_ret(self, s):
+        b = self.gen_blank(3) + 'ret = {ret, "'
+        b += s
+        b += '"};\n'
+        return b
+
     def dict_order_cmp(self,a,b):
         str_a = self.inst_list[a]['opcode']
         str_b = self.inst_list[b]['opcode']
@@ -97,7 +103,7 @@ class design_parser:
         # main combine logic
         depth = 1
         inst_list_dict_order = [inst_name for inst_name in self.inst_list]
-        print(inst_list_dict_order)
+        # print(inst_list_dict_order)
         inst_list_dict_order.sort(key=cmp_to_key(self.dict_order_cmp))
         print(inst_list_dict_order)
         str_builder += self.gen_blank(depth) + "always_comb begin\n"
@@ -191,6 +197,32 @@ class design_parser:
             str_builder += '    return ret;\n'
             # endfunction
             str_builder += 'endfunction\n\n'
+
+        # generate disassembler
+        str_builder += 'function automatic string wired_disassembler(input logic [31:0] inst_i);\n'
+        str_builder += '    string ret = "";\n'
+
+        inst_list_dict_order = [inst_name for inst_name in self.inst_list]
+        inst_list_dict_order.sort(key=cmp_to_key(self.dict_order_cmp))
+        str_builder += "    unique casez(inst_i)\n"
+        opcode_len = 0
+        while len(inst_list_dict_order) != 0 and opcode_len != 32:
+            if len(inst_list_dict_order) != 0 and len(self.inst_list[inst_list_dict_order[0]]['opcode']) > opcode_len:
+                opcode_len += 1
+                continue
+            while len(inst_list_dict_order) != 0 and len(self.inst_list[inst_list_dict_order[0]]['opcode']) == opcode_len:
+                inst = inst_list_dict_order[0]
+                inst_list_dict_order.remove(inst)
+                str_builder += "        32'b" + self.inst_list[inst]['opcode'].replace('x','?') + (32 - opcode_len) * '?' + ': begin\n'
+                # inst name
+                str_builder += self.add_str_to_ret(inst + " ")
+                # r0 name
+                # r1 name
+                # 
+                str_builder += "        end\n"
+        str_builder += "    endcase\n"
+        str_builder += '    return ret;\n'
+        str_builder += 'endfunction\n'
         str_builder += "`endif\n"
         return str_builder
 
