@@ -52,7 +52,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "sub.w": {
             "opcode": "00000000000100010",
@@ -61,7 +62,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "slt": {
             "opcode": "00000000000100100",
@@ -70,7 +72,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         }, 
         "sltu": {
             "opcode": "00000000000100101",
@@ -79,7 +82,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         }, 
         "nor": {
             "opcode": "00000000000101000",
@@ -88,7 +92,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "and": {
             "opcode": "00000000000101001",
@@ -97,7 +102,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "or": {
             "opcode": "00000000000101010",
@@ -106,7 +112,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "xor": {
             "opcode": "00000000000101011",
@@ -115,7 +122,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "sll.w": {
             "opcode": "00000000000101110",
@@ -124,7 +132,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "srl.w": {
             "opcode": "00000000000101111",
@@ -133,7 +142,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "sra.w": {
             "opcode": "00000000000110000",
@@ -142,7 +152,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mul.w": {
             "opcode": "00000000000111000",
@@ -152,7 +163,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1
+            "mdu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mulh.w": {
             "opcode": "00000000000111001",
@@ -162,7 +174,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1
+            "mdu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mulh.wu": {
             "opcode": "00000000000111010",
@@ -172,7 +185,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1
+            "mdu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "div.w": {
             "opcode": "00000000001000000",
@@ -181,7 +195,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1
+            "mdu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mod.w": {
             "opcode": "00000000001000001",
@@ -190,7 +205,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1
+            "mdu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "div.wu": {
             "opcode": "00000000001000010",
@@ -199,7 +215,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1
+            "mdu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mod.wu": {
             "opcode": "00000000001000011",
@@ -208,7 +225,8 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1
+            "mdu_inst": 1,
+            "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "slli.w": {
             "opcode": "00000000010000001",
@@ -218,7 +236,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U5",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %02x\",rd, rj, rk"
         },
         "srli.w": {
             "opcode": "00000000010001001",
@@ -228,7 +247,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U5",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %02x\",rd, rj, rk"
         },
         "srai.w": {
             "opcode": "00000000010010001",
@@ -238,7 +258,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U5",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %02x\",rd, rj, rk"
         },
         "slti": {
             "opcode": "0000001000",
@@ -248,7 +269,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S12",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\",rd, rj, I12, $signed(I12)"
         },
         "sltui": {
             "opcode": "0000001001",
@@ -258,7 +280,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S12",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\",rd, rj, I12, $signed(I12)"
         },
         "addi.w": {
             "opcode": "0000001010",
@@ -268,7 +291,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S12",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\",rd, rj, I12, $signed(I12)"
         },
         "andi": {
             "opcode": "0000001101",
@@ -278,7 +302,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U12",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x\",rd, rj, I12"
         },
         "ori": {
             "opcode": "0000001110",
@@ -288,7 +313,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U12",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x\",rd, rj, I12"
         },
         "xori": {
             "opcode": "0000001111",
@@ -298,7 +324,8 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_U12",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x\",rd, rj, I12"
         },
         "lu12i.w": {
             "opcode": "0001010",
@@ -308,7 +335,8 @@
             "reg_type_r1": "`_REG_R1_NONE",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S20",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, %08x=%d\",rd, I20 << 12, $signed(I20 << 12)"
         },
         "pcaddu12i": {
             "opcode": "0001110",
@@ -318,7 +346,8 @@
             "reg_type_r1": "`_REG_R1_NONE",
             "reg_type_w": "`_REG_W_RD",
             "imm_type": "`_IMM_S20",
-            "alu_inst": 1
+            "alu_inst": 1,
+            "das": "\"$r%02x, %08x=%d\",rd, I20 << 12, $signed(I20 << 12)"
         }
     }
 }

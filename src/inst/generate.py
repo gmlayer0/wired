@@ -76,12 +76,6 @@ class design_parser:
     def gen_blank(self, times):
         return '    ' * times
 
-    def add_str_to_ret(self, s):
-        b = self.gen_blank(3) + 'ret = {ret, "'
-        b += s
-        b += '"};\n'
-        return b
-
     def dict_order_cmp(self,a,b):
         str_a = self.inst_list[a]['opcode']
         str_b = self.inst_list[b]['opcode']
@@ -200,7 +194,18 @@ class design_parser:
 
         # generate disassembler
         str_builder += 'function automatic string wired_disassembler(input logic [31:0] inst_i);\n'
-        str_builder += '    string ret = "";\n'
+        str_builder += '''    string ret;
+    logic[25:0] I26 = {inst_i[9:0], inst_i[25:10]};
+    logic[20:0] I21 = {inst_i[4:0], inst_i[25:10]};
+    logic[15:0] I16 = inst_i[25:10];
+    logic[13:0] I14 = inst_i[23:10];
+    logic[11:0] I12 = inst_i[21:10];
+    logic[7:0] I8  = inst_i[21:10];
+    logic[4:0] ra  = inst_i[21:10];
+    logic[4:0] rk  = inst_i[21:10];
+    logic[4:0] rj  = inst_i[21:10];
+    logic[4:0] rd  = inst_i[21:10];
+'''
 
         inst_list_dict_order = [inst_name for inst_name in self.inst_list]
         inst_list_dict_order.sort(key=cmp_to_key(self.dict_order_cmp))
@@ -213,13 +218,15 @@ class design_parser:
             while len(inst_list_dict_order) != 0 and len(self.inst_list[inst_list_dict_order[0]]['opcode']) == opcode_len:
                 inst = inst_list_dict_order[0]
                 inst_list_dict_order.remove(inst)
-                str_builder += "        32'b" + self.inst_list[inst]['opcode'].replace('x','?') + (32 - opcode_len) * '?' + ': begin\n'
+                str_builder += "        32'b" + self.inst_list[inst]['opcode'].replace('x','?') + (32 - opcode_len) * '?' + ':'
                 # inst name
-                str_builder += self.add_str_to_ret(inst + " ")
-                # r0 name
-                # r1 name
-                # 
-                str_builder += "        end\n"
+                str_builder += ' ret = {ret, "'
+                str_builder += inst
+                if(self.inst_list[inst].get('das') == None):
+                    str_builder += ' ", $sformatf({})'.format('"Not Defined"')
+                else:
+                    str_builder += ' ", $sformatf({})'.format(self.inst_list[inst]['das'])
+                str_builder += "};\n"
         str_builder += "    endcase\n"
         str_builder += '    return ret;\n'
         str_builder += 'endfunction\n'
