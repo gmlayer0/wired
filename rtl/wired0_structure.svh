@@ -262,7 +262,8 @@ typedef struct packed {
   logic valid;
 
   logic uncached_load_req;
-  logic uncached_store_req;
+  logic uncached_store_req; // 对于 Uncached 的请求，暂存在 LSU 中，
+                            // 并阻塞后续所有请求开始以保持 TSO
   logic refill_store_req;   // Store miss, 申请权限
 
   // 以上均需要 valid 及 ready 系统握手

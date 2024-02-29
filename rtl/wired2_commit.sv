@@ -55,6 +55,7 @@ module wired_commit #(
     end
     reg f_skid_ready_q;
     rob_entry_t [1:0] f_skid_entry_q;
+    rob_rid_t [1:0] f_skid_wrrid_q;
     wire slot1_bank_conflict = c_rob_entry_i[1].wreg[0] == c_rob_entry_i[0].wreg[0];
     wire slot1_cannot_fire = c_rob_entry_i[1].decode_info.slot0 || slot1_bank_conflict1;
     wire [1:0] f_valid = c_rob_valid_i & {~slot1_cannot_fire, 1'd1};
@@ -63,6 +64,7 @@ module wired_commit #(
     always_ff @(posedge clk) begin
         if(f_skid_ready_q) begin
             f_skid_entry_q <= c_rob_entry_i;
+            f_skid_wrrid_q <= {f_rob_ptr1_q, f_rob_ptr0_q};
         end
     end
 
@@ -70,7 +72,9 @@ module wired_commit #(
     wire h_ready;    // H 级准备好接受来自 F 级别的数据
     reg [1:0] f_skid_valid_q;
     rob_entry_t [1:0] h_entry;
+    rob_rid_t [1:0] h_wrrid;
     assign h_entry = f_skid_ready_q ? c_rob_entry_i : f_skid_entry_q;
+    assign h_wrrid = f_skid_ready_q ? {f_rob_ptr1_q, f_rob_ptr0_q} : f_skid_wrrid_q;
     wire [1:0] h_valid = f_skid_ready_q ? f_valid : f_skid_valid_q;
     always_ff @(posedge clk) begin
         if(~rst_n) begin
@@ -91,10 +95,13 @@ module wired_commit #(
 
     // 第二级流水（实质是一个状态机）
     rob_entry_t [1:0] h_entry_q;
+    rob_rid_t [1:0] h_wrrid_q;
     logic [1:0]  h_valid_inst_q;
+    rob_rid_t [1:0] h_wrrid_q;
     always_ff @(posedge clk) begin
         if(h_ready) begin
             h_entry_q <= h_entry;
+            h_wrrid_q <= h_wrrid;
         end
     end
     always_ff @(posedge clk) begin
@@ -113,7 +120,8 @@ module wired_commit #(
     // （注意， Uncached Load 及 Uncached Store 均需要立即发出请求，且均需要刷新流水线）
     // 2. Store 请求，等待 Cache 重填后再执行（暂停等待）
     // 3. Store Conditional 请求，不再等待 Cache 重填，如果不可执行，则直接刷新流水线
-    // 4. CSRWR/CSRRD 指令，直接刷新管线
+    // 4. Branch 类型指令，预测错误时跳转并更新 BPU
+    // 5. CSRWR/CSRRD 指令，直接刷新管线
     // （注意， Store Conditional 请求需要检查 store buffer 中的情况）
     // 经过之前的约束，所有可能造成暂停的指令（Uncache load/store | Missed Store）均一定在槽一
     // 可能产生流水线刷新的指令也是同样的情况
@@ -164,8 +172,8 @@ module wired_commit #(
     `define __FSM_BIT_LEN 5
     typedef logic[`__FSM_BIT_LEN-1:0] commit_fsm_t;
     parameter commit_fsm_t S_NORMAL      = `__FSM_BIT_LEN'd0;
-    parameter commit_fsm_t S_WAIT_ULOAD  = `__FSM_BIT_LEN'd1; // 这个要刷流水线
-    parameter commit_fsm_t S_WAIT_USTORE = `__FSM_BIT_LEN'd2; // 这个要刷流水线，还要修改写入 ARF 的数据
+    parameter commit_fsm_t S_WAIT_ULOAD  = `__FSM_BIT_LEN'd1; // 这个要刷流水线，还要修改写入 ARF 的数据
+    parameter commit_fsm_t S_WAIT_USTORE = `__FSM_BIT_LEN'd2; // 这个不用刷流水线
     parameter commit_fsm_t S_WAIT_MSTORE = `__FSM_BIT_LEN'd3; // 这个不用刷流水线
     parameter commit_fsm_t S_WAIT_FLUSH  = `__FSM_BIT_LEN'd4; // 这个是用来刷流水线的
     commit_fsm_t fsm_q;
@@ -189,10 +197,33 @@ module wired_commit #(
         l_warid = 'x;
         l_wrrid = 'x;
         l_tier_id = 'x;
-        f_upd = 'x;
-        f_upd.true_taken = '0;
-        f_upd.miss = '0;
-        f_upd.pc = '0;
+        f_upd = '0;
+        case (fsm_q)
+            S_NORMAL: begin
+                l_flush = '0;
+                l_retire = h_valid_inst_q;
+                l_commit = h_valid_inst_q;
+                for(integer i = 0 ; i < 2 ; i+=1) begin
+                    l_data[i] = h_entry_q[i].wdata;
+                    l_warid[i] = h_entry_q[i].wreg;
+                    l_wrrid[i] = h_wrrid_q[i];
+                    l_tier_id[i] = h_entry_q[i].wtier;
+                end
+                // 对 slot0 的 inst 做 judge
+            end
+            S_WAIT_ULOAD: begin
+                
+            end
+            S_WAIT_USTORE: begin
+                
+            end
+            S_WAIT_MSTORE: begin
+                
+            end
+            S_WAIT_FLUSH: begin
+                
+            end
+        endcase
     end
 
 endmodule
