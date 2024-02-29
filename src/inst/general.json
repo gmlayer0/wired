@@ -3,7 +3,8 @@
         ["mdu", "common"],
         ["lsu", "common"],
         ["alu", "common"],
-        ["rob", "common"],
+        ["c", "common"],
+        ["rob", "c"],
         ["p", "mdu"],
         ["p", "lsu"],
         ["p", "alu"],
@@ -57,6 +58,11 @@
             "length": 2,
             "stage": "r",
             "default_value": "`_ADDR_IMM_S26"
+        },
+        "slot0": {
+            "length": 1,
+            "stage": "rob",
+            "default_value": 0
         }
     },
     "const": {

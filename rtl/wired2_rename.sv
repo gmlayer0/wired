@@ -25,7 +25,7 @@ module wired_rename #(
     output    logic [1:0] r_tier_id_o,   // 提交时使用的 tier id
 
     // 连接到 COMMIT 级别的端口
-    input     logic [1:0] c_commit_i,
+    input     logic [1:0] c_retire_i,
     input arch_rid_t[1:0] c_warid_i,
     input  rob_rid_t[1:0] c_wrrid_i,
     input     logic [1:0] c_tier_id_i,
@@ -45,7 +45,7 @@ module wired_rename #(
     logic[`_WIRED_PARAM_ROB_LEN:0] rob_count_q, rob_count;
     logic[`_WIRED_PARAM_ROB_LEN:0] rob_diff;
     always_comb begin
-        rob_diff = r_issue[0] + r_issue[1] - c_commit_i[0] - c_commit_i[1];
+        rob_diff = r_issue[0] + r_issue[1] - c_retire_i[0] - c_retire_i[1];
     end
     always_comb begin
         rob_count = rob_diff + rob_count_q;
@@ -156,7 +156,7 @@ module wired_rename #(
         .raddr_i({r_rarid_i,r_warid_i}),
         .rdata_o({cr_rename_result, cw_rename_result}),
         .waddr_i(c_warid_i),
-        .we_i(c_commit_i),
+        .we_i(c_retire_i),
         .wdata_i(c_rename_new)
     );
 

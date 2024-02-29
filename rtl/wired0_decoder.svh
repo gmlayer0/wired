@@ -67,6 +67,7 @@ typedef logic [0 : 0] reg_type_r1_t;
 typedef logic [1 : 0] reg_type_w_t;
 typedef logic [2 : 0] imm_type_t;
 typedef logic [1 : 0] addr_imm_type_t;
+typedef logic [0 : 0] slot0_t;
 typedef logic [1 : 0] alu_grand_op_t;
 typedef logic [1 : 0] alu_op_t;
 typedef logic [0 : 0] target_type_t;
@@ -75,6 +76,10 @@ typedef logic [0 : 0] jump_inst_t;
 
 typedef struct packed {
 } decode_info_common_t;
+
+typedef struct packed {
+    inst_t inst;
+} decode_info_c_t;
 
 typedef struct packed {
 } decode_info_mdu_t;
@@ -90,7 +95,9 @@ typedef struct packed {
 } decode_info_alu_t;
 
 typedef struct packed {
+    slot0_t slot0;
     jump_inst_t jump_inst;
+    inst_t inst;
 } decode_info_rob_t;
 
 typedef struct packed {
@@ -101,7 +108,9 @@ typedef struct packed {
     alu_op_t alu_op;
     target_type_t target_type;
     cmp_type_t cmp_type;
+    slot0_t slot0;
     jump_inst_t jump_inst;
+    inst_t inst;
 } decode_info_p_t;
 
 typedef struct packed {
@@ -116,7 +125,9 @@ typedef struct packed {
     alu_op_t alu_op;
     target_type_t target_type;
     cmp_type_t cmp_type;
+    slot0_t slot0;
     jump_inst_t jump_inst;
+    inst_t inst;
 } decode_info_r_t;
 
 typedef struct packed {
@@ -132,7 +143,9 @@ typedef struct packed {
     alu_op_t alu_op;
     target_type_t target_type;
     cmp_type_t cmp_type;
+    slot0_t slot0;
     jump_inst_t jump_inst;
+    inst_t inst;
 } decode_info_d_t;
 
 function automatic decode_info_common_t get_common_from_mdu(input decode_info_mdu_t mdu);
@@ -150,8 +163,14 @@ function automatic decode_info_common_t get_common_from_alu(input decode_info_al
     return ret;
 endfunction
 
-function automatic decode_info_common_t get_common_from_rob(input decode_info_rob_t rob);
+function automatic decode_info_common_t get_common_from_c(input decode_info_c_t c);
     decode_info_common_t ret;
+    return ret;
+endfunction
+
+function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
+    decode_info_c_t ret;
+    ret.inst = rob.inst;
     return ret;
 endfunction
 
@@ -176,7 +195,9 @@ endfunction
 
 function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
     decode_info_rob_t ret;
+    ret.slot0 = p.slot0;
     ret.jump_inst = p.jump_inst;
+    ret.inst = p.inst;
     return ret;
 endfunction
 
@@ -189,7 +210,9 @@ function automatic decode_info_p_t get_p_from_r(input decode_info_r_t r);
     ret.alu_op = r.alu_op;
     ret.target_type = r.target_type;
     ret.cmp_type = r.cmp_type;
+    ret.slot0 = r.slot0;
     ret.jump_inst = r.jump_inst;
+    ret.inst = r.inst;
     return ret;
 endfunction
 
@@ -206,7 +229,9 @@ function automatic decode_info_r_t get_r_from_d(input decode_info_d_t d);
     ret.alu_op = d.alu_op;
     ret.target_type = d.target_type;
     ret.cmp_type = d.cmp_type;
+    ret.slot0 = d.slot0;
     ret.jump_inst = d.jump_inst;
+    ret.inst = d.inst;
     return ret;
 endfunction
 

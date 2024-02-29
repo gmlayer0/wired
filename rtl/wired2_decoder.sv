@@ -17,6 +17,7 @@ module wired_decoder(
         is_o.reg_type_w = `_REG_W_NONE;
         is_o.imm_type = `_IMM_U5;
         is_o.addr_imm_type = `_ADDR_IMM_S26;
+        is_o.slot0 = 1'd0;
         is_o.alu_grand_op = 2'd0;
         is_o.alu_op = 2'd0;
         is_o.target_type = 1'd0;

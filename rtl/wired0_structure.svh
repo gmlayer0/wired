@@ -19,6 +19,19 @@ typedef struct packed {
     logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0] ras_ptr;
 } bpu_predict_t;
 typedef struct packed {
+    logic                                  true_taken ;
+    logic                                  miss       ;
+    logic [31:0]                           pc         ;
+    logic [31:0]                           true_target;
+    logic [1:0]                            lphr       ;
+    logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history    ;
+    logic [1:0]                       true_target_type;
+    logic                         true_conditional_jmp;
+    logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0]     ras_ptr;
+    logic need_update;
+    logic ras_miss_type;
+} bpu_correct_t;
+typedef struct packed {
   logic interrupt[9:0]; // ALL Interrupt including software Interruption
   logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to become an nop.
   logic adef;           // Address translation failure will force this instruction to become an nop.
@@ -243,5 +256,24 @@ endfunction
 typedef struct packed {
   
 } iq_alu_static_t;
+
+// CPU 提交级到 LSU 的请求
+typedef struct packed {
+  logic valid;
+
+  logic uncached_load_req;
+  logic uncached_store_req;
+  logic refill_store_req;   // Store miss, 申请权限
+
+  // 以上均需要 valid 及 ready 系统握手
+  logic storebuf_commit;    // 流水线化，不需要握手
+} commit_lsu_req_t;
+
+typedef struct packed {
+  logic ready;
+  logic storebuf_hit;       // storebuf 顶元素命中
+
+  logic [31:0] uncached_load_resp;
+} commit_lsu_resp_t;
 
 `endif
