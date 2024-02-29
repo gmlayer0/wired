@@ -47,7 +47,6 @@ typedef struct packed {
   logic pis  ;
   logic pme  ;
   logic ppi  ;
-  logic adem ;
   logic ale  ;
   logic tlbr ;
 } lsu_excp_t;
