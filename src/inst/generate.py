@@ -200,11 +200,11 @@ class design_parser:
     logic[15:0] I16 = inst_i[25:10];
     logic[13:0] I14 = inst_i[23:10];
     logic[11:0] I12 = inst_i[21:10];
-    logic[7:0] I8  = inst_i[21:10];
-    logic[4:0] ra  = inst_i[21:10];
-    logic[4:0] rk  = inst_i[21:10];
-    logic[4:0] rj  = inst_i[21:10];
-    logic[4:0] rd  = inst_i[21:10];
+    logic[7:0] I8  = inst_i[17:10];
+    logic[4:0] ra  = inst_i[19:15];
+    logic[4:0] rk  = inst_i[14:10];
+    logic[4:0] rj  = inst_i[ 9: 5];
+    logic[4:0] rd  = inst_i[ 4: 0];
 '''
 
         inst_list_dict_order = [inst_name for inst_name in self.inst_list]
@@ -220,10 +220,10 @@ class design_parser:
                 inst_list_dict_order.remove(inst)
                 str_builder += "        32'b" + self.inst_list[inst]['opcode'].replace('x','?') + (32 - opcode_len) * '?' + ':'
                 # inst name
-                str_builder += ' ret = {ret, "'
+                str_builder += ' ret = {"'
                 str_builder += inst
                 if(self.inst_list[inst].get('das') == None):
-                    str_builder += ' ", $sformatf({})'.format('"Not Defined"')
+                    str_builder += ' ", $sformatf({})'.format('" "')
                 else:
                     str_builder += ' ", $sformatf({})'.format(self.inst_list[inst]['das'])
                 str_builder += "};\n"

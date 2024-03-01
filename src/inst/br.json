@@ -42,7 +42,8 @@
             "reg_type_w": "`_REG_W_RD",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %05x=%d\",rd, rj, I16<<2, $signed(I16)"
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rd, rj, I16<<2, $signed(I16)",
+            "slot0": 1
         },
         "b": {
             "opcode": "010100",
@@ -54,7 +55,8 @@
             "reg_type_w": "`_REG_W_NONE",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"%07x\",I26<<2"
+            "das": "\"%07x\",I26<<2",
+            "slot0": 1
         },
         "bl": {
             "opcode": "010101",
@@ -68,7 +70,8 @@
             "reg_type_w": "`_REG_W_BL1",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"%07x\",I26<<2"
+            "das": "\"%07x\",I26<<2",
+            "slot0": 1
         },
         "beq": {
             "opcode": "010110",
@@ -80,7 +83,8 @@
             "reg_type_w": "`_REG_W_NONE",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)"
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
+            "slot0": 1
         },
         "bne": {
             "opcode": "010111",
@@ -92,7 +96,8 @@
             "reg_type_w": "`_REG_W_NONE",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)"
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
+            "slot0": 1
         },
         "blt": {
             "opcode": "011000",
@@ -104,7 +109,8 @@
             "reg_type_w": "`_REG_W_NONE",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)"
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
+            "slot0": 1
         },
         "bge": {
             "opcode": "011001",
@@ -116,7 +122,8 @@
             "reg_type_w": "`_REG_W_NONE",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)"
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
+            "slot0": 1
         },
         "bltu": {
             "opcode": "011010",
@@ -128,7 +135,8 @@
             "reg_type_w": "`_REG_W_NONE",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)"
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
+            "slot0": 1
         },
         "bgeu": {
             "opcode": "011011",
@@ -140,7 +148,8 @@
             "reg_type_w": "`_REG_W_NONE",
             "jump_inst": 1,
             "alu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)"
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
+            "slot0": 1
         }
     }
 }

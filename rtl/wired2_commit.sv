@@ -191,6 +191,8 @@ module wired_commit #(
     for(genvar i = 0 ; i < 2 ; i += 1) begin
         assign excp[i] = gather_excp(h_entry_q[i].static_excp, h_entry_q[i].lsu_excp);
     end
+    // SUPER SUPER HUGE LOGIC BEGIN !
+    // MAIN PROCESSOR STATES ARE MAINTAINED HERE !
     always_comb begin
         c_lsu_req_o = '0;
         csr = csr_q;
@@ -373,6 +375,7 @@ module wired_commit #(
                     // 不存在异常的部分
                     // 0. 恢复 DBAR
                     if(h_entry_q[0].decode_info.dbarrier) begin
+                        // 可能进入这里的，一定不会暂停
                         c_lsu_req_o.dbarrier_unlock = '1;
                     end
                     // 访存部分处理
@@ -411,11 +414,16 @@ module wired_commit #(
                             end
                         end
                     end
+                    // 跳转指令处理，注意刷新管线
+                    if(h_entry_q[0].jump_inst) begin
+                        // 更新预测器逻辑（无论是否命中）
+                        // 特殊处理未命中情况，刷新流水线，重定向控制流
+                    end
+                    
+                    // CSR 指令处理，注意刷新管线
+                    if()
                 end
 
-                // 跳转指令处理
-                
-                // CSR 指令处理，注意刷新管线
             end
             S_WAIT_ULOAD: begin
                 h_ready = '0;
@@ -427,6 +435,7 @@ module wired_commit #(
                     l_commit = 2'b01;
                     l_data[0] = c_lsu_resp_i.uncached_load_resp;
                     fsm = S_WAIT_FLUSH; // 对于 Uncached load ，需要 refresh 流水线
+                    // 由于流水线被刷新，对于 uncache load，不一定设置 dbar，更不需要解除 dbar
                 end
             end
             S_WAIT_USTORE: begin
@@ -437,8 +446,8 @@ module wired_commit #(
                     h_ready = '1;
                     l_retire = h_valid_inst_q;
                     l_commit = h_valid_inst_q;
-                    c_lsu_req_o.storebuf_commit = '1;
-                    fsm = S_NORMAL; // 对于 Uncached load ，需要 refresh 流水线
+                    fsm = S_NORMAL; // 对于 Uncached store ，不需要 refresh 流水线
+                    c_lsu_req_o.dbarrier_unlock = '1; // 但是需要解除 dbar
                 end
             end
             S_WAIT_MSTORE: begin
