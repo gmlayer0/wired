@@ -223,21 +223,148 @@ module wired_commit #(
                                 // 对于 0 一定可以修改，对于1，一定在 0 无异常时可以修改
                                 // 先更新 ecode
                                 case(1'b1)
-                                    excp[i].fetch_int:      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
-                                    excp[i].adef:
-                                    excp[i].itlbr:
-                                    excp[i].pif:
-                                    excp[i].ippi:
-                                    excp[i].ine:
-                                    excp[i].ipe:
-                                    excp[i].sys:
-                                    excp[i].brk:
-                                    excp[i].ale:
-                                    excp[i].tlbr:
-                                    excp[i].pis:
-                                    excp[i].pil:
-                                    excp[i].ppi:
-                                    excp[i].pme:
+                                    excp[i].fetch_int: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h00;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                    end      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+                                    excp[i].adef: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h08;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].pc;
+                                    end
+                                    excp[i].itlbr: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h3f;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.crmd[`_CRMD_DA] = 1'b0;
+                                        csr.crmd[`_CRMD_PG] = 1'b1;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].pc;
+                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                    end
+                                    excp[i].pif: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h03;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].pc;
+                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                    end
+                                    excp[i].ippi: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h07;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].pc;
+                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                    end
+                                    excp[i].ine: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h0d;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                    end
+                                    excp[i].ipe: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h0e;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                    end
+                                    excp[i].sys: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h0b;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                    end
+                                    excp[i].brk: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h0c;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                    end
+                                    excp[i].ale: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h09;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].target_addr;
+                                    end
+                                    excp[i].tlbr: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h3f;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.crmd[`_CRMD_DA] = 1'b0;
+                                        csr.crmd[`_CRMD_PG] = 1'b1;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].target_addr;
+                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                    end
+                                    excp[i].pis: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h02;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].target_addr;
+                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                    end
+                                    excp[i].pil: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h01;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].target_addr;
+                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                    end
+                                    excp[i].ppi: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h07;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].target_addr;
+                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                    end
+                                    excp[i].pme: begin
+                                        csr.estat[`_ESTAT_ECODE] = 6'h04;
+                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
+                                        csr.era = h_entry_q[i].pc;
+                                        csr.crmd[`_CRMD_PLV] = 2'b0;
+                                        csr.crmd[`_CRMD_IE] = 1'b0;
+                                        csr.prmd[2:0] = csr_q.crmd[2:0];
+                                        csr.badv = h_entry_q[i].target_addr;
+                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                    end
                                 endcase
                             end
                         end

@@ -154,7 +154,7 @@ typedef struct packed {
   // 控制流相关
   lsu_excp_t  excp;
   logic       need_jump;
-  logic[31:0] jump_target;
+  logic[31:0] target_addr;       // FOR LSU: VADDR, FOR ALU: TARGET_ADDR
 
   // 访存流相关
   logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
@@ -212,7 +212,7 @@ typedef struct packed {
   // 控制流相关
   lsu_excp_t  excp;
   logic       need_jump;
-  logic[31:0] jump_target;
+  logic[31:0] target_addr;
 
   // 访存流相关
   logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
@@ -239,7 +239,7 @@ typedef struct packed {
   lsu_excp_t  lsu_excp;
   logic       excp_found;
   logic       need_jump;
-  logic[31:0] jump_target;
+  logic[31:0] target_addr;
 
   // 访存流相关
   logic uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
@@ -265,7 +265,7 @@ function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry
   // 控制流相关
   ret.lsu_excp = dynamic_i.excp;
   ret.need_jump = dynamic_i.need_jump;
-  ret.jump_target = dynamic_i.jump_target;
+  ret.target_addr = dynamic_i.target_addr;
   // 访存流相关
   ret.uncached = dynamic_i.uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
   ret.store_buffer = dynamic_i.store_buffer;      // 提交一条 Store_buffer 中的写请求
