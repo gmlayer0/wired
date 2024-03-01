@@ -173,9 +173,10 @@ module wired_commit #(
     typedef logic[`__FSM_BIT_LEN-1:0] commit_fsm_t;
     parameter commit_fsm_t S_NORMAL      = `__FSM_BIT_LEN'd0;
     parameter commit_fsm_t S_WAIT_ULOAD  = `__FSM_BIT_LEN'd1; // 这个要刷流水线，还要修改写入 ARF 的数据
-    parameter commit_fsm_t S_WAIT_USTORE = `__FSM_BIT_LEN'd2; // 这个不用刷流水线
+    parameter commit_fsm_t S_WAIT_USTORE = `__FSM_BIT_LEN'd2; // 这个不用刷流水线，但需要解除 dbar（uncached 会设置 barrier）
     parameter commit_fsm_t S_WAIT_MSTORE = `__FSM_BIT_LEN'd3; // 这个不用刷流水线
     parameter commit_fsm_t S_WAIT_FLUSH  = `__FSM_BIT_LEN'd4; // 这个是用来刷流水线的
+    `undef __FSM_BIT_LEN
     commit_fsm_t fsm_q;
     commit_fsm_t fsm;
     always_ff @(posedge clk) begin
