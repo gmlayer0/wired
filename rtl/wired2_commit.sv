@@ -151,7 +151,7 @@ module wired_commit #(
     // 注意从此开始不再需要握手，因为之后的流水线一路通畅。
     logic            l_flush;  // 流水线需要冲刷
     logic      [1:0] l_retire; // 标识指令的信息需要进入 Rename，注意，所有进入 ROB 的指令无论实际是否执行一定需要 retire。
-    logic      [1:0] l_commit; // 标识指令的结果需要进入 CSR / 写入 ARF
+    logic      [1:0] l_commit; // 标识指令的结果需要写入 ARF
     word_t     [1:0] l_data;
     arch_rid_t [1:0] l_warid;
     rob_rid_t  [1:0] l_wrrid;
@@ -187,6 +187,10 @@ module wired_commit #(
     end
 
     // 主状态机组合逻辑
+    excp_t [1:0] excp;
+    for(genvar i = 0 ; i < 2 ; i += 1) begin
+        assign excp[i] = gather_excp(h_entry_q[i].static_excp, h_entry_q[i].lsu_excp);
+    end
     always_comb begin
         c_lsu_req_o = '0;
         csr = csr_q;
@@ -207,21 +211,84 @@ module wired_commit #(
                 l_flush = '0;
                 l_retire = h_valid_inst_q;
                 l_commit = h_valid_inst_q;
-                // 对 slot0 的 inst 做 judge
-                // 1. Uncached 请求（向 LSU 发出请求，等待 Uncached 读数据 / 写完成）
-                // （注意， Uncached Load 及 Uncached Store 均需要立即发出请求，且 Uncached Load 需要刷新流水线）
-                if(h_entry_q[0].uncached) begin
-                    h_ready = '0;
-                    if(h_entry_q[0].decode_info.mem_write) begin
-                        fsm = S_WAIT_USTORE;
-                    end else begin
-                        fsm = S_WAIT_ULOAD;
+                // 对 inst 的中断异常情况做 judge
+                if(h_valid_inst_q[0] && |excp[0] || h_valid_inst_q[1] && |excp[1]) begin
+                    for(integer i = 1 ; i >= 0 ; i --) begin
+                        if(h_valid_inst_q[i] && |excp[i]) begin
+                            // 第 i 条指令有问题
+                            l_commit[1] = '0;
+                            l_commit[i] = '0;
+                            fsm = S_WAIT_FLUSH;
+                            if(i != 1 || (!|excp[0])) begin
+                                // 对于 0 一定可以修改，对于1，一定在 0 无异常时可以修改
+                                // 先更新 ecode
+                                case(1'b1)
+                                    excp[i].fetch_int:      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+                                    excp[i].adef:
+                                    excp[i].itlbr:
+                                    excp[i].pif:
+                                    excp[i].ippi:
+                                    excp[i].ine:
+                                    excp[i].ipe:
+                                    excp[i].sys:
+                                    excp[i].brk:
+                                    excp[i].ale:
+                                    excp[i].tlbr:
+                                    excp[i].pis:
+                                    excp[i].pil:
+                                    excp[i].ppi:
+                                    excp[i].pme:
+                                endcase
+                            end
+                        end
+                    end
+                end else begin
+                    // 不存在异常的部分
+                    // 0. 恢复 DBAR
+                    if(h_entry_q[0].decode_info.dbarrier) begin
+                        c_lsu_req_o.dbarrier_unlock = '1;
+                    end
+                    // 访存部分处理
+                    if(h_entry_q[0].lsu_inst) begin
+                        if(h_entry_q[0].uncached) begin
+                            // 1. Uncached 请求（向 LSU 发出请求，等待 Uncached 读数据 / 写完成）
+                            // （注意， Uncached Load 及 Uncached Store 均需要立即发出请求，且 Uncached Load 需要刷新流水线）
+                            h_ready = '0;
+                            if(h_entry_q[0].decode_info.mem_write) begin
+                                fsm = S_WAIT_USTORE;
+                            end else begin
+                                fsm = S_WAIT_ULOAD;
+                            end
+                        end else begin
+                            if(h_entry_q[0].decode_info.mem_write) begin
+                                // 3. Store Conditional 请求，不再等待 Cache 重填，如果不可执行，则直接刷新流水线
+                                if(h_entry_q[0].decode_info.llsc_inst) begin
+                                    if((!c_lsu_resp_i.storebuf_hit) || (!csr_q.llbit)) begin // 其它 Cache Coherent Master probe 了这行，不再原子
+                                        l_commit = 2'b01;
+                                        l_data[0] = 32'd0;
+                                        fsm = S_WAIT_FLUSH; // 对于失败的 SC ，需要 refresh 流水线
+                                    end else begin
+                                        // 成功的 SC，弹栈
+                                        c_lsu_req_o.storebuf_commit = '1;
+                                    end
+                                    csr.llbit = '0; // 下周期清理 llbit
+                                end else begin
+                                    // 2. 非 SC 的 Store 请求 MISS ，等待 Cache 重填后再执行（暂停等待）
+                                    if(!c_lsu_resp_i.storebuf_hit) begin
+                                        h_ready = '0;
+                                        fsm = S_WAIT_USTORE;
+                                    end else begin
+                                        c_lsu_req_o.storebuf_commit = '1;
+                                    end
+                                end
+                            end
+                        end
                     end
                 end
-                // 2. Store 请求，等待 Cache 重填后再执行（暂停等待）
-                // 3. Store Conditional 请求，不再等待 Cache 重填，如果不可执行，则直接刷新流水线
-                // 4. Branch 类型指令，预测错误时跳转并更新 BPU
-                // 5. CSRWR/CSRRD 指令，直接刷新管线
+
+                // 跳转指令处理
+                
+                // CSR 指令处理，注意刷新管线
             end
             S_WAIT_ULOAD: begin
                 h_ready = '0;
@@ -243,6 +310,7 @@ module wired_commit #(
                     h_ready = '1;
                     l_retire = h_valid_inst_q;
                     l_commit = h_valid_inst_q;
+                    c_lsu_req_o.storebuf_commit = '1;
                     fsm = S_NORMAL; // 对于 Uncached load ，需要 refresh 流水线
                 end
             end

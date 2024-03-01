@@ -63,6 +63,27 @@ typedef struct packed {
   logic ale  ;
   logic tlbr ;
 } lsu_excp_t;
+
+typedef struct packed {
+  logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+  logic adef ;
+  logic itlbr;
+  logic pif  ;
+  logic ippi ;
+  // DECODE
+  logic ine  ;
+  logic ipe  ;
+  logic sys  ;
+  logic brk  ;
+  // LSU
+  logic pil  ;
+  logic pis  ;
+  logic pme  ;
+  logic ppi  ;
+  logic ale  ;
+  logic tlbr ;
+} excp_t;
+
 // 输入到 Decode 级的指令流
 typedef struct packed {
     logic[31:0]   inst;
@@ -216,6 +237,7 @@ typedef struct packed {
 
   // 控制流相关
   lsu_excp_t  lsu_excp;
+  logic       excp_found;
   logic       need_jump;
   logic[31:0] jump_target;
 
@@ -251,6 +273,25 @@ function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry
   // 写回 ARF 的数据
   ret.wdata = data_i;
 endfunction
+
+function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i) begin
+  excp_t ret;
+  ret.fetch_int = static_i.fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+  ret.adef = static_i.adef;
+  ret.itlbr = static_i.tlb;
+  ret.pif = static_i.pif ;
+  ret.ippi = static_i.ppi;
+  ret.ine = static_i.ine ;
+  ret.ipe = static_i.ipe ;
+  ret.sys = static_i.sys ;
+  ret.brk = static_i.brk ;
+  ret.pil = lsu_i.pil;
+  ret.pis = lsu_i.pis;
+  ret.pme = lsu_i.pme;
+  ret.ppi = lsu_i.ppi;
+  ret.ale = lsu_i.ale;
+  ret.tlbr = lsu_i.tlbr;
+end
 
 // Issue Queue Entry
 typedef struct packed {
