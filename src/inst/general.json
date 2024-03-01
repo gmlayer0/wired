@@ -63,6 +63,11 @@
             "length": 1,
             "stage": "rob",
             "default_value": 0
+        },
+        "refetch": {
+            "length": 1,
+            "stage": "c",
+            "default_value": 0
         }
     },
     "const": {

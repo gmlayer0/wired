@@ -1,0 +1,204 @@
+{
+    "const": {
+        "_MEM_TYPE_NONE": "3'd0",
+        "_MEM_TYPE_WORD": "3'd1",
+        "_MEM_TYPE_HALF": "3'd2",
+        "_MEM_TYPE_BYTE": "3'd3",
+        "_MEM_TYPE_UWORD": "3'd5",
+        "_MEM_TYPE_UHALF": "3'd6",
+        "_MEM_TYPE_UBYTE": "3'd7"
+    },
+    "signal": {
+        "mem_type": {
+            "length": 3,
+            "stage": "lsu",
+            "default_value": 0
+        },
+        "mem_write": {
+            "length": 1,
+            "stage": "common",
+            "default_value": 0
+        },
+        "mem_read": {
+            "length": 1,
+            "stage": "common",
+            "default_value": 0
+        },
+        "mem_cacop": {
+            "length": 1,
+            "stage": "lsu",
+            "default_value": 0
+        },
+        "llsc_inst": {
+            "length": 1,
+            "stage": "common",
+            "default_value": 0
+        },
+        "ibarrier": {
+            "length": 1,
+            "stage": "lsu",
+            "default_value": 0
+        },
+        "dbarrier": {
+            "length": 1,
+            "stage": "lsu",
+            "default_value": 0
+        }
+    },
+    "inst": {
+        "ld.bu": {
+            "opcode": "0010101000",
+            "mem_type": "`_MEM_TYPE_UBYTE",
+            "mem_read": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_NONE",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_RD",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "ld.hu": {
+            "opcode": "0010101001",
+            "mem_type": "`_MEM_TYPE_UHALF",
+            "mem_read": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_NONE",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_RD",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "ld.h": {
+            "opcode": "0010100001",
+            "mem_type": "`_MEM_TYPE_HALF",
+            "mem_read": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_NONE",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_RD",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "ld.b": {
+            "opcode": "0010100000",
+            "mem_type": "`_MEM_TYPE_BYTE",
+            "mem_read": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_NONE",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_RD",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "ld.w": {
+            "opcode": "0010100010",
+            "mem_type": "`_MEM_TYPE_WORD",
+            "mem_read": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_NONE",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_RD",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "ll.w": {
+            "opcode": "00100000",
+            "mem_type": "`_MEM_TYPE_WORD",
+            "llsc_inst": 1,
+            "mem_read": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_NONE",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S14",
+            "reg_type_w": "`_REG_W_RD",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)"
+        },
+        "st.w": {
+            "opcode": "0010100110",
+            "mem_type": "`_MEM_TYPE_WORD",
+            "mem_write": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_RD",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_NONE",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "st.h": {
+            "opcode": "0010100101",
+            "mem_type": "`_MEM_TYPE_HALF",
+            "mem_write": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_RD",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_NONE",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "st.b": {
+            "opcode": "0010100100",
+            "mem_type": "`_MEM_TYPE_BYTE",
+            "mem_write": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_RD",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_NONE",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "sc.w": {
+            "opcode": "00100001",
+            "mem_type": "`_MEM_TYPE_WORD",
+            "llsc_inst": 1,
+            "mem_write": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_RD",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S14",
+            "reg_type_w": "`_REG_W_RD",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)"
+        },
+        "cacop": {
+            "opcode": "0000011000",
+            "mem_type": "`_MEM_TYPE_BYTE",
+            "mem_cacop": 1,
+            "need_lsu": 1,
+            "reg_type_r0": "`_REG_R0_NONE",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_NONE",
+            "lsu_inst": 1,
+            "das": "\"0x%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)"
+        },
+        "dbar": {
+            "opcode": "00111000011100100",
+            "dbarrier": 1,
+            "refetch": 1,
+            "need_csr": 1,
+            "lsu_inst": 1,
+            "das": "\"0\""
+        },
+        "ibar": {
+            "opcode": "00111000011100101",
+            "ibarrier": 1,
+            "refetch": 1,
+            "alu_inst": 1,
+            "das": "\"0\""
+        },
+        "preld_nop": {
+            "opcode": "0010101011",
+            "alu_inst": 1,
+            "das": "\"0\""
+        }
+    }
+}
