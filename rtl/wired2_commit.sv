@@ -69,7 +69,7 @@ module wired_commit #(
     end
 
     // 一二级流水之间插入的 Skid Buffer
-    wire h_ready;    // H 级准备好接受来自 F 级别的数据
+    logic h_ready;    // H 级准备好接受来自 F 级别的数据
     reg [1:0] f_skid_valid_q;
     rob_entry_t [1:0] h_entry;
     rob_rid_t [1:0] h_wrrid;
@@ -188,40 +188,83 @@ module wired_commit #(
 
     // 主状态机组合逻辑
     always_comb begin
+        c_lsu_req_o = '0;
         csr = csr_q;
         fsm = fsm_q;
+        h_ready = '1;
         l_flush = '0;  // 流水线需要冲刷
         l_retire = '0; // 标识指令的信息需要进入 Rename，注意，所有进入 ROB 的指令无论实际是否执行一定需要 retire。
         l_commit = '0; // 标识指令的结果需要进入 CSR / 写入 ARF
-        l_data = 'x;
-        l_warid = 'x;
-        l_wrrid = 'x;
-        l_tier_id = 'x;
+        for(integer i = 0 ; i < 2 ; i+=1) begin
+            l_data[i] = h_entry_q[i].wdata;
+            l_warid[i] = h_entry_q[i].wreg;
+            l_wrrid[i] = h_wrrid_q[i];
+            l_tier_id[i] = h_entry_q[i].wtier;
+        end
         f_upd = '0;
         case (fsm_q)
             S_NORMAL: begin
                 l_flush = '0;
                 l_retire = h_valid_inst_q;
                 l_commit = h_valid_inst_q;
-                for(integer i = 0 ; i < 2 ; i+=1) begin
-                    l_data[i] = h_entry_q[i].wdata;
-                    l_warid[i] = h_entry_q[i].wreg;
-                    l_wrrid[i] = h_wrrid_q[i];
-                    l_tier_id[i] = h_entry_q[i].wtier;
-                end
                 // 对 slot0 的 inst 做 judge
+                // 1. Uncached 请求（向 LSU 发出请求，等待 Uncached 读数据 / 写完成）
+                // （注意， Uncached Load 及 Uncached Store 均需要立即发出请求，且 Uncached Load 需要刷新流水线）
+                if(h_entry_q[0].uncached) begin
+                    h_ready = '0;
+                    if(h_entry_q[0].decode_info.mem_write) begin
+                        fsm = S_WAIT_USTORE;
+                    end else begin
+                        fsm = S_WAIT_ULOAD;
+                    end
+                end
+                // 2. Store 请求，等待 Cache 重填后再执行（暂停等待）
+                // 3. Store Conditional 请求，不再等待 Cache 重填，如果不可执行，则直接刷新流水线
+                // 4. Branch 类型指令，预测错误时跳转并更新 BPU
+                // 5. CSRWR/CSRRD 指令，直接刷新管线
             end
             S_WAIT_ULOAD: begin
-                
+                h_ready = '0;
+                c_lsu_req_o.valid = '1;
+                c_lsu_req_o.uncached_load_req = '1;
+                if(c_lsu_resp_i.ready) begin
+                    h_ready = '1;
+                    l_retire = h_valid_inst_q;
+                    l_commit = 2'b01;
+                    l_data[0] = c_lsu_resp_i.uncached_load_resp;
+                    fsm = S_WAIT_FLUSH; // 对于 Uncached load ，需要 refresh 流水线
+                end
             end
             S_WAIT_USTORE: begin
-                
+                h_ready = '0;
+                c_lsu_req_o.valid = '1;
+                c_lsu_req_o.uncached_store_req = '1;
+                if(c_lsu_resp_i.ready) begin
+                    h_ready = '1;
+                    l_retire = h_valid_inst_q;
+                    l_commit = h_valid_inst_q;
+                    fsm = S_NORMAL; // 对于 Uncached load ，需要 refresh 流水线
+                end
             end
             S_WAIT_MSTORE: begin
-                
+                h_ready = '0;
+                c_lsu_req_o.valid = '1;
+                c_lsu_req_o.refill_store_req = '1;
+                if(c_lsu_resp_i.ready) begin
+                    h_ready = '1;
+                    l_retire = h_valid_inst_q;
+                    l_commit = h_valid_inst_q;
+                    fsm = S_NORMAL; // 对于 Uncached load ，需要 refresh 流水线
+                end
             end
             S_WAIT_FLUSH: begin
-                
+                h_ready = '1;
+                l_flush  = '1;
+                l_retire = h_valid_inst_q;
+                l_commit = '0;
+                if(rename_empty_i) begin
+                    fsm = S_NORMAL;
+                end
             end
         endcase
     end

@@ -267,6 +267,7 @@ typedef struct packed {
   logic refill_store_req;   // Store miss, 申请权限
 
   // 以上均需要 valid 及 ready 系统握手
+  logic dbarrier_unlock;    // 流水线化，不需要握手，解除 dbarrier 约束
   logic storebuf_commit;    // 流水线化，不需要握手
 } commit_lsu_req_t;
 
