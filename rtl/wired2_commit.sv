@@ -552,8 +552,17 @@ module wired_commit #(
                         `_CSR_DMW1:      begin _MW(dmw1,`_DMW_PLV0);_MW(dmw1,`_DMW_PLV3);_MW(dmw1,`_DMW_MAT);_MW(dmw1,`_DMW_PSEG);_MW(dmw1,`_DMW_VSEG); end
                         endcase
                     end
-                end
 `undef _MW
+                    // ERTN
+                    if(h_entry_q[0].decode_info.ertn_inst) begin
+                        l_commit = 2'b01;
+                        f_upd.redirect = '1;
+                        fsm = S_WAIT_FLUSH;
+                    end
+                    // 实现 RDCNT 指令
+                    // 实现 TLB 控制指令
+                    // 实现 idle 指令
+                end
 
             end
             S_WAIT_ULOAD: begin
