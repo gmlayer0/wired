@@ -19,6 +19,7 @@ typedef struct packed {
     logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0] ras_ptr;
 } bpu_predict_t;
 typedef struct packed {
+    logic                                  redirect   ;
     logic                                  true_taken ;
     logic                                  miss       ;
     logic [31:0]                           pc         ;
@@ -143,7 +144,7 @@ typedef struct packed{
   reg_ctrl_t      wreg;
   logic           wtier;       // 写寄存器 tier id
   logic[27:0]     addr_imm;    // 传入 LSU，用于计算 vaddr 或者计算 csr_id（给 ALU）
-  logic[4:0]      op_code;     // 用于 Commit 级的 TLB 操作
+  logic[4:0]      op_code;     // 用于 Commit 级的 TLB 操作或者返回地址操作
   logic[31:0]     pc;
   bpu_predict_t   bpu_predict;
   static_excp_t   excp;
@@ -192,8 +193,14 @@ typedef struct packed{
 typedef struct packed {
   decode_info_rob_t decode_info; // 指令控制信息
   arch_rid_t        wreg;
+  rob_rid_t [1:0]   rreg;        // 重命名后的读寄存器
   logic             wtier;       // 写寄存器 tier id
-  logic[4:0]        op_code;       // CSR 控制信息
+  logic[4:0]        op_code;     // CSR 控制信息
+                                 // 注意，op_code 的功能比较丰富，对于跳转指令，用于提供指令类型信息。
+                                 // 对于写寄存器为 1 的分支指令，op_code[4] = '1;  // 函数调用
+                                 // 对于读寄存器1为 1 的分支指令，op_code[3] = '1; // 函数返回
+                                 // 对于 CSR 指令，存储 RJ
+                                 // 对于 INVTLB / CACOP 存储 RD（OP）
   logic[13:0]       csr_id;
   logic[31:0]       pc;
   bpu_predict_t     bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
@@ -229,7 +236,7 @@ typedef struct packed {
   decode_info_rob_t decode_info; // 指令控制信息
   arch_rid_t        wreg;
   logic             wtier;       // 写寄存器 tier id
-  logic[4:0]        op_code;       // CSR 控制信息
+  logic[4:0]        op_code;     // CSR 控制信息
   logic[13:0]       csr_id;
   logic[31:0]       pc;
   bpu_predict_t     bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
@@ -239,7 +246,7 @@ typedef struct packed {
   lsu_excp_t  lsu_excp;
   logic       excp_found;
   logic       need_jump;
-  logic[31:0] target_addr;
+  logic[31:0] target_addr; // 这里做了复用，对于跳转指令为跳转目标，对于访存指令为访存虚地址，对于 CSR 指令，为待写入的数据 gpr[rd]。
 
   // 访存流相关
   logic uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。

@@ -140,11 +140,7 @@
             "reg_type_r0": "`_REG_R0_RD",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "latest_r0_m1": 1,
-            "latest_r1_m1": 1,
-            "fu_sel_m2": "`_FUSEL_M2_CSR",
             "priv_inst": 1,
-            "refetch": 1,
             "addr_imm_type": "`_ADDR_IMM_S26",
             "slot0": 1
         },
@@ -155,7 +151,6 @@
             "reg_type_r1": "`_REG_R1_NONE",
             "reg_type_w": "`_REG_W_NONE",
             "priv_inst": 1,
-            "refetch": 1,
             "addr_imm_type": "`_ADDR_IMM_S26",
             "slot0": 1
         },
@@ -194,7 +189,6 @@
         },
         "invtlb": {
             "opcode": "00000110010010011",
-            "csr_rdcnt": "`_RDCNT_ID_VLOW",
             "invtlb_en": 1,
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",

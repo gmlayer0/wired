@@ -4,6 +4,37 @@
 `define _TLB_ENTRY_NUM (32)
 
 // 此文件中声明了 WIRED 工程将要使用到的全部 CSR TLB 定义
+
+`define _CSR_CRMD (9'h0)
+`define _CSR_PRMD (9'h1)
+`define _CSR_EUEN (9'h2)
+`define _CSR_ECTL (9'h4)
+`define _CSR_ESTAT (9'h5)
+`define _CSR_ERA (9'h6)
+`define _CSR_BADV (9'h7)
+`define _CSR_EENTRY (9'hc)
+`define _CSR_TLBIDX (9'h10)
+`define _CSR_TLBEHI (9'h11)
+`define _CSR_TLBELO0 (9'h12)
+`define _CSR_TLBELO1 (9'h13)
+`define _CSR_ASID (9'h18)
+`define _CSR_PGDL (9'h19)
+`define _CSR_PGDH (9'h1a)
+`define _CSR_PGD (9'h1b)
+`define _CSR_CPUID (9'h20)
+`define _CSR_SAVE0 (9'h30)
+`define _CSR_SAVE1 (9'h31)
+`define _CSR_SAVE2 (9'h32)
+`define _CSR_SAVE3 (9'h33)
+`define _CSR_TID (9'h40)
+`define _CSR_TCFG (9'h41)
+`define _CSR_TVAL (9'h42)
+`define _CSR_TICLR (9'h44)
+`define _CSR_LLBCTL (9'h60)
+`define _CSR_TLBRENTRY (9'h88)
+`define _CSR_DMW0 (9'h180)
+`define _CSR_DMW1 (9'h181)
+
 typedef struct packed {
   logic [31:0] crmd     ;
   logic [31:0] prmd     ;

@@ -92,8 +92,46 @@ module wired_commit #(
             end
         end
     end
+    logic [31:0] h_csr_rdata;
+    // 组合逻辑读取 CSR
+    always_comb begin
+        h_csr_rdata = '0;
+        case(h_entry[0].csr_id[8:0])
+        `_CSR_CRMD      h_csr_rdata = csr_q.crmd;
+        `_CSR_PRMD      h_csr_rdata = csr_q.prmd;
+        `_CSR_EUEN      h_csr_rdata = csr_q.euen;
+        `_CSR_ECTL      h_csr_rdata = csr_q.ectl;
+        `_CSR_ESTAT     h_csr_rdata = csr_q.estat;
+        `_CSR_ERA       h_csr_rdata = csr_q.era;
+        `_CSR_BADV      h_csr_rdata = csr_q.badv;
+        `_CSR_EENTRY    h_csr_rdata = csr_q.eentry;
+        `_CSR_TLBIDX    h_csr_rdata = csr_q.tlbidx;
+        `_CSR_TLBEHI    h_csr_rdata = csr_q.tlbehi;
+        `_CSR_TLBELO0   h_csr_rdata = csr_q.tlbelo0;
+        `_CSR_TLBELO1   h_csr_rdata = csr_q.tlbelo1;
+        `_CSR_ASID      h_csr_rdata = csr_q.asid;
+        `_CSR_PGDL      h_csr_rdata = csr_q.pgdl;
+        `_CSR_PGDH      h_csr_rdata = csr_q.pgdh;
+        `_CSR_PGD       h_csr_rdata = {csr_q.badv[31] ? csr_q.pgdh[31:12] : csr_q.pgdl[31:12] , 12'd0};
+        `_CSR_CPUID     h_csr_rdata = csr_q.cpuid;
+        `_CSR_SAVE0     h_csr_rdata = csr_q.save0;
+        `_CSR_SAVE1     h_csr_rdata = csr_q.save1;
+        `_CSR_SAVE2     h_csr_rdata = csr_q.save2;
+        `_CSR_SAVE3     h_csr_rdata = csr_q.save3;
+        `_CSR_TID       h_csr_rdata = csr_q.tid;
+        `_CSR_TCFG      h_csr_rdata = csr_q.tcfg;
+        `_CSR_TVAL      h_csr_rdata = csr_q.tval;
+        `_CSR_TICLR     h_csr_rdata = csr_q.ticlr;
+        `_CSR_LLBCTL    h_csr_rdata = {csr_q.llbctl, 1'b0, csr_q.llbit};
+        `_CSR_TLBRENTRY h_csr_rdata = csr_q.tlbrentry;
+        `_CSR_DMW0      h_csr_rdata = csr_q.dmw0;
+        `_CSR_DMW1      h_csr_rdata = csr_q.dmw1;
+        
+        endcase
+    end
 
     // 第二级流水（实质是一个状态机）
+    logic [31:0] h_csr_rdata_q;
     rob_entry_t [1:0] h_entry_q;
     rob_rid_t [1:0] h_wrrid_q;
     logic [1:0]  h_valid_inst_q;
@@ -102,6 +140,7 @@ module wired_commit #(
         if(h_ready) begin
             h_entry_q <= h_entry;
             h_wrrid_q <= h_wrrid;
+            h_csr_rdata_q <= h_csr_rdata;
         end
     end
     always_ff @(posedge clk) begin
@@ -187,6 +226,24 @@ module wired_commit #(
         end
     end
 
+    // 获取指令 0 所属跳转目标类型
+    // 0: 无跳转
+    // 1: 函数调用；2: 函数返回；3: 调用栈无关类
+    logic [1:0] slot0_target_type;
+    always_comb begin
+        slot0_target_type = '0;
+        if(h_entry_q[0].decode_info.jump_inst && h_entry_q[0].op_code[4]) begin // 1 -> CALL JIRL BL
+            slot0_target_type = 2'd1;
+        end else if(h_entry_q[0].decode_info.jump_inst && h_entry_q[0].op_code[3]) begin // 2 -> RETURN
+            slot0_target_type = 2'd2;
+        end else if(h_entry_q[0].decode_info.jump_inst) begin  // 3 -> IMM
+            slot0_target_type = 2'd3;
+        end
+    end
+
+    // CSR 写辅助指令
+    logic [31:0] csr_wmask, csr_wdata;
+
     // 主状态机组合逻辑
     excp_t [1:0] excp;
     for(genvar i = 0 ; i < 2 ; i += 1) begin
@@ -209,18 +266,42 @@ module wired_commit #(
             l_tier_id[i] = h_entry_q[i].wtier;
         end
         f_upd = '0;
+        f_upd.pc = h_entry_q[0].pc;
+        f_upd.true_taken = slot0_target_type;
+        f_upd.true_target = h_entry_q[0].target_addr;
+        f_upd.lphr = h_entry_q[0].bpu_predict.lphr;
+        f_upd.history = h_entry_q[0].bpu_predict.history;
+        f_upd.true_target_type = slot0_target_type;
+        f_upd.true_conditional_jmp = (|h_entry_q[0].decode_info.cmp_type[3:1]) && !(&h_entry_q[0].decode_info.cmp_type[3:1]);
+        f_upd.ras_ptr = h_entry_q[0].bpu_predict.ras_ptr;
+        if(slot0_target_type == 2'd1 && (slot0_target_type != h_entry_q[0].bpu_predict.target_type)) begin
+            f_upd.ras_miss_type = '1;
+            f_upd.ras_ptr = h_entry_q[0].bpu_predict.ras_ptr + 1;
+        end
+        if(slot0_target_type == 2'd2 && (slot0_target_type != h_entry_q[0].bpu_predict.target_type)) begin
+            f_upd.ras_miss_type = '1;
+            f_upd.ras_ptr = h_entry_q[0].bpu_predict.ras_ptr - 1;
+        end
+        // CSR mask 获得
+        csr_wmask = h_entry_q[0].target_addr;
+        if(h_entry_q[0].op_code == '0) csr_wmask = '0;
+        if(h_entry_q[0].op_code == 5'd1) csr_wmask = '1;
+        csr_wdata = (csr_wmask & h_entry_q[0].wdata) | ((~csr_wmask) & h_csr_rdata_q);
         case (fsm_q)
             S_NORMAL: begin
+                f_upd.need_update = h_valid_inst_q[0] && ((|slot0_target_type) || (slot0_target_type != h_entry_q[0].bpu_predict.target_type));
                 l_flush = '0;
                 l_retire = h_valid_inst_q;
                 l_commit = h_valid_inst_q;
                 // 对 inst 的中断异常情况做 judge
-                if(h_valid_inst_q[0] && |excp[0] || h_valid_inst_q[1] && |excp[1]) begin
+                if(h_valid_inst_q[0] && h_entry_q[0].excp_found || h_valid_inst_q[1] && h_entry_q[1].excp_found) begin
                     for(integer i = 1 ; i >= 0 ; i --) begin
-                        if(h_valid_inst_q[i] && |excp[i]) begin
+                        if(h_valid_inst_q[i] && h_entry_q[i].excp_found) begin
                             // 第 i 条指令有问题
                             l_commit[1] = '0;
                             l_commit[i] = '0;
+                            f_upd.redirect = '1;
+                            f_upd.true_target = csr_q.eentry;
                             fsm = S_WAIT_FLUSH;
                             if(i != 1 || (!|excp[0])) begin
                                 // 对于 0 一定可以修改，对于1，一定在 0 无异常时可以修改
@@ -254,6 +335,7 @@ module wired_commit #(
                                         csr.prmd[2:0] = csr_q.crmd[2:0];
                                         csr.badv = h_entry_q[i].pc;
                                         csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                        f_upd.true_target = csr_q.tlbrentry;
                                     end
                                     excp[i].pif: begin
                                         csr.estat[`_ESTAT_ECODE] = 6'h03;
@@ -327,6 +409,7 @@ module wired_commit #(
                                         csr.prmd[2:0] = csr_q.crmd[2:0];
                                         csr.badv = h_entry_q[i].target_addr;
                                         csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
+                                        f_upd.true_target = csr_q.tlbrentry;
                                     end
                                     excp[i].pis: begin
                                         csr.estat[`_ESTAT_ECODE] = 6'h02;
@@ -372,7 +455,7 @@ module wired_commit #(
                             end
                         end
                     end
-                end else begin
+                end else if(h_valid_inst_q[0]) begin
                     // 不存在异常的部分
                     // 0. 恢复 DBAR
                     if(h_entry_q[0].decode_info.dbarrier) begin
@@ -417,13 +500,59 @@ module wired_commit #(
                     end
                     // 跳转指令处理，注意刷新管线
                     if(h_entry_q[0].jump_inst) begin
-                        // 更新预测器逻辑（无论是否命中）
                         // 特殊处理未命中情况，刷新流水线，重定向控制流
+                        if( (h_entry_q[0].need_jump && (!h_entry_q[0].bpu_predict.taken || h_entry_q[0].bpu_predict.predict_pc != h_entry_q[0].target_addr)) ||
+                        ||  (!h_entry_q[0].need_jump && h_entry_q[0].bpu_predict.taken)) begin
+                            l_commit = 2'b01;
+                            f_upd.miss = '1;
+                            f_upd.redirect = '1;
+                            fsm = S_WAIT_FLUSH;
+                        end
                     end
                     
-                    // CSR 指令处理，注意刷新管线
-                    if()
+                    // CSR 读写指令处理，注意刷新管线
+                    // 所有指令的读取实际在 ALU 中已经完成了，这里只需要检查读结果是否有效并写入，合适的刷新管线即可
+                    // 所有对 CSR 产生写操作（状态改变）的指令都需要刷新管线。
+                    // 其实只有一条指令，csrwrxchg，操作是根据掩码写寄存器之后再读出
+`define _MW(csr_name, mask) csr.``csr_name``[mask] = csr_wdata[mask]
+                    if(h_entry_q[0].decode_info.csr_op_en) begin
+                        l_commit = 2'b01;
+                        f_upd.redirect = '1;
+                        fsm = S_WAIT_FLUSH;
+                        case(h_entry_q[0].csr_id[8:0])
+                        `_CSR_CRMD:      begin _MW(crmd, `_CRMD_PLV);_MW(crmd, `_CRMD_IE);_MW(crmd, `_CRMD_DA);_MW(crmd, `_CRMD_PG);_MW(crmd, `_CRMD_DATF);_MW(crmd, `_CRMD_DATM); end
+                        `_CSR_PRMD:      begin _MW(prmd, `_PRMD_PPLV);_MW(prmd, `_PRMD_PIE); end
+                        `_CSR_EUEN:      begin _MW(euen, `_EUEN_FPE); end
+                        `_CSR_ECTL:      begin _MW(ectl, `_ECTL_LIE1);_MW(ectl, `_ECTL_LIE2); end
+                        // `_CSR_ESTAT:     begin _MW(); end // TODO: FIXME: WRITE TO FRONTEND, NOT DIRECTLY ESTAT
+                        `_CSR_ERA:       begin _MW(era, 31:0); end
+                        `_CSR_BADV:      begin _MW(badv, 31:0); end
+                        `_CSR_EENTRY:    begin _MW(eentry, `_EENTRY_VA); end
+                        `_CSR_TLBIDX:    begin _MW(tlbidx, `_TLBIDX_INDEX);_MW(tlbidx, `_TLBIDX_PS);_MW(tlbidx, `_TLBIDX_NE); end
+                        `_CSR_TLBEHI:    begin _MW(tlbehi, `_TLBEHI_VPPN); end
+                        `_CSR_TLBELO0:   begin _MW(tlbelo0, 31:8);_MW(tlbelo0, 6:0); end
+                        `_CSR_TLBELO1:   begin _MW(tlbelo1, 31:8);_MW(tlbelo1, 6:0); end
+                        `_CSR_ASID:      begin _MW(asid, `_ASID); end
+                        `_CSR_PGDL:      begin _MW(pgdl, `_PGD_BASE); end
+                        `_CSR_PGDH:      begin _MW(pgdh, `_PGD_BASE); end
+                        // `_CSR_PGD:       begin _MW(); end // 只读
+                        // `_CSR_CPUID:     begin _MW(); end // 只读
+                        `_CSR_SAVE0:     begin _MW(save0, 31:0); end
+                        `_CSR_SAVE1:     begin _MW(save1, 31:0); end
+                        `_CSR_SAVE2:     begin _MW(save2, 31:0); end
+                        `_CSR_SAVE3:     begin _MW(save3, 31:0); end
+                        `_CSR_TID:       begin _MW(tid, 31:0); end
+                        `_CSR_TCFG:      begin _MW(tcfg,31:0);csr.tval[1:0] = '0;_MW(tval,`_TCFG_INITVAL); end
+                        // `_CSR_TVAL:      begin _MW(); end // 只读
+                        // `_CSR_TICLR:     begin _MW(); end // TODO: FIXME: WRITE TO FRONTEND, NOT DIRECTLY ESTAT
+                        `_CSR_LLBCTL:    begin _MW(llbctl, `_LLBCT_KLO); if(csr_wdata[`_LLBCT_WCLLB]) csr.llbit = 1'b0; end
+                        `_CSR_TLBRENTRY: begin _MW(tlbrentry, `_TLBRENTRY_PA); end
+                        `_CSR_DMW0:      begin _MW(dmw0,`_DMW_PLV0);_MW(dmw0,`_DMW_PLV3);_MW(dmw0,`_DMW_MAT);_MW(dmw0,`_DMW_PSEG);_MW(dmw0,`_DMW_VSEG); end
+                        `_CSR_DMW1:      begin _MW(dmw1,`_DMW_PLV0);_MW(dmw1,`_DMW_PLV3);_MW(dmw1,`_DMW_MAT);_MW(dmw1,`_DMW_PSEG);_MW(dmw1,`_DMW_VSEG); end
+                        endcase
+                    end
                 end
+`undef _MW
 
             end
             S_WAIT_ULOAD: begin
