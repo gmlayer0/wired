@@ -519,6 +519,7 @@ module wired_commit #(
                         l_commit = 2'b01;
                         f_upd.redirect = '1;
                         fsm = S_WAIT_FLUSH;
+                        l_data[0] = h_csr_rdata_q; // 强制刷新 csr 数据
                         case(h_entry_q[0].csr_id[8:0])
                         `_CSR_CRMD:      begin _MW(crmd, `_CRMD_PLV);_MW(crmd, `_CRMD_IE);_MW(crmd, `_CRMD_DA);_MW(crmd, `_CRMD_PG);_MW(crmd, `_CRMD_DATF);_MW(crmd, `_CRMD_DATM); end
                         `_CSR_PRMD:      begin _MW(prmd, `_PRMD_PPLV);_MW(prmd, `_PRMD_PIE); end
