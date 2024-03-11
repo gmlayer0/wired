@@ -108,30 +108,21 @@
     "inst": {
         "syscall": {
             "opcode": "00000000001010110",
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
-            "reg_type_w": "`_REG_W_NONE",
             "syscall_inst": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "break": {
             "opcode": "00000000001010100",
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
-            "reg_type_w": "`_REG_W_NONE",
             "break_inst": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "ertn": {
             "opcode": "0000011001001000001110",
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
-            "reg_type_w": "`_REG_W_NONE",
             "ertn_inst": 1,
             "priv_inst": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "csrwrxchg": {
@@ -141,50 +132,35 @@
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
             "priv_inst": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "tlbsrch": {
             "opcode": "0000011001001000001010",
             "tlbsrch_en": 1,
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
-            "reg_type_w": "`_REG_W_NONE",
             "priv_inst": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "tlbrd": {
             "opcode": "0000011001001000001011",
             "tlbrd_en": 1,
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
-            "reg_type_w": "`_REG_W_NONE",
             "priv_inst": 1,
-            "refetch": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "tlbwr": {
             "opcode": "0000011001001000001100",
             "tlbwr_en": 1,
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
-            "reg_type_w": "`_REG_W_NONE",
             "priv_inst": 1,
-            "refetch": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "tlbfill": {
             "opcode": "0000011001001000001101",
             "tlbfill_en": 1,
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
-            "reg_type_w": "`_REG_W_NONE",
             "priv_inst": 1,
-            "refetch": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "invtlb": {
@@ -192,40 +168,29 @@
             "invtlb_en": 1,
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
-            "reg_type_w": "`_REG_W_NONE",
-            "latest_r0_m2": 1,
-            "latest_r1_m2": 1,
             "priv_inst": 1,
-            "refetch": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "rdcnt.w": {
             "opcode": "0000000000000000011000",
             "csr_rdcnt": "`_RDCNT_ID_VLOW",
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
             "reg_type_w": "`_REG_W_RJD",
-            "fu_sel_m2": "`_FUSEL_M2_CSR",
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "rdcnth.w": {
             "opcode": "0000000000000000011001",
             "csr_rdcnt": "`_RDCNT_VHIGH",
-            "reg_type_r0": "`_REG_R0_NONE",
-            "reg_type_r1": "`_REG_R1_NONE",
             "reg_type_w": "`_REG_W_RJD",
-            "fu_sel_m2": "`_FUSEL_M2_CSR",
-            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
             "slot0": 1
         },
         "idle": {
             "opcode": "00000110010010001",
+            "alu_inst": 1,
             "wait_inst": 1,
             "priv_inst": 1,
-            "refetch": 1,
-            "addr_imm_type": "`_ADDR_IMM_S26",
             "slot0": 1
         }
     }

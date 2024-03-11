@@ -1,8 +1,6 @@
 `ifndef _WIRED_CSR_HEADER
 `define _WIRED_CSR_HEADER
 
-`define _TLB_ENTRY_NUM (32)
-
 // 此文件中声明了 WIRED 工程将要使用到的全部 CSR TLB 定义
 
 `define _CSR_CRMD (9'h0)
@@ -69,7 +67,8 @@ typedef struct packed {
 
 typedef struct packed {
   logic [18:0] vppn;
-  logic [ 5:0] ps  ;
+  // logic [ 5:0] ps  ;
+  logic   huge_page;
   logic        g   ;
   logic [ 9:0] asid;
   logic        e   ;
@@ -86,7 +85,7 @@ typedef struct packed{
 typedef struct packed {
   logic                               dmw  ;
   logic                               found;
-  logic [$clog2(`_TLB_ENTRY_NUM)-1:0] index;
+  logic [$clog2(`_WIRED_PARAM_TLB_CNT)-1:0] index;
   logic [                        5:0] ps   ;
   tlb_value_t                         value;
 } tlb_s_resp_t;
@@ -97,7 +96,7 @@ typedef struct packed {
 } tlb_entry_t;
 
 typedef struct packed {
-  logic[`_TLB_ENTRY_NUM - 1 : 0] tlb_we;
+  logic[`_WIRED_PARAM_TLB_CNT - 1 : 0] tlb_we;
   tlb_entry_t tlb_w_entry;
 } tlb_update_req_t;
 
@@ -127,7 +126,7 @@ typedef struct packed {
 //EENTRY
 `define _EENTRY_VA       31:6
 //TLBIDX
-`define _TLBIDX_INDEX     $clog2(`_TLB_ENTRY_NUM)-1:0
+`define _TLBIDX_INDEX     $clog2(`_WIRED_PARAM_TLB_CNT)-1:0
 `define _TLBIDX_PS        29:24
 `define _TLBIDX_NE        31
 //TLBEHI

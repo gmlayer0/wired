@@ -30,12 +30,15 @@ module wired_commit #(
 
     // Part 4: 前端更新端口（跳转/flush/异常中断处理）
     output bpu_correct_t           f_upd_o,
+    input       logic        [8:0] f_interrupt_i,  // 8 位硬件中断及核心间中断（最高位）
 
     // Part 5: flush 端口，刷新流水线用
     output      logic              l_flush_o,
     input       logic              rename_empty_i, // RENAME 级清空，说明 ROB 均已退休，ROB 空，可以继续。
 
     // Part 6: CSR 及地址翻译相关控制接口
+    output      csr_t              csr_o,
+    output tlb_update_req_t        tlb_update_req_o
     // 注意，提交模块分为三级，分别是 Fetch ROB(F) | Handle(H) | Commit(C)
 );
 
@@ -73,6 +76,7 @@ module wired_commit #(
     reg [1:0] f_skid_valid_q;
     rob_entry_t [1:0] h_entry;
     rob_rid_t [1:0] h_wrrid;
+    logic[31:0] h_flushtarget;
     assign h_entry = f_skid_ready_q ? c_rob_entry_i : f_skid_entry_q;
     assign h_wrrid = f_skid_ready_q ? {f_rob_ptr1_q, f_rob_ptr0_q} : f_skid_wrrid_q;
     wire [1:0] h_valid = f_skid_ready_q ? f_valid : f_skid_valid_q;
@@ -93,9 +97,14 @@ module wired_commit #(
         end
     end
     logic [31:0] h_csr_rdata;
+    logic [63:0] timer_64_q;
     // 组合逻辑读取 CSR
     always_comb begin
         h_csr_rdata = '0;
+        h_flushtarget = h_entry[0].pc + 4;
+        if(h_entry[0].decode_info.ertn_inst) begin
+            h_flushtarget = csr_q.era;
+        end
         case(h_entry[0].csr_id[8:0])
         `_CSR_CRMD      h_csr_rdata = csr_q.crmd;
         `_CSR_PRMD      h_csr_rdata = csr_q.prmd;
@@ -126,8 +135,67 @@ module wired_commit #(
         `_CSR_TLBRENTRY h_csr_rdata = csr_q.tlbrentry;
         `_CSR_DMW0      h_csr_rdata = csr_q.dmw0;
         `_CSR_DMW1      h_csr_rdata = csr_q.dmw1;
-        
         endcase
+        // 特殊处理 rdcnt 命令
+        if(h_entry[0].decode_info.csr_rdcnt[0] /*== `_RDCNT_ID_VLOW*/) h_csr_rdata = (|h_entry[0].op_code) ? csr_q.tid : timer_64_q[31:0];
+        else if(h_entry[0].decode_info.csr_rdcnt[1] /*== `_RDCNT_VHIGH*/) h_csr_rdata = timer_64_q[63:32];
+    end
+
+    // TLBSRCH / TLBRD / INVTLB PRE-RUN.
+    // 这里例化一个管理 TLB，执行所有 TLB 相关的操作。
+    tlb_entry_t [TLB_ENTRY_NUM-1:0] tlb_entrys_q;
+    logic [`_WIRED_PARAM_TLB_CNT-1:0] h_tlb_hit_srch;
+    logic [`_WIRED_PARAM_TLB_CNT-1:0] h_tlb_hit_invtlb; // 需要打流水
+    tlb_entry_t h_tlb_rd; // for tlbrd 需要打流水
+    logic [$clog2(`_WIRED_PARAM_TLB_CNT):0] h_tlb_srch_idx; // for tlbsrch 需要打流水，最高位是 FOUND
+    // tlb_entry_t h_tlb_srch; // for tlbsrch 需要打流水
+    // TLB HIT LOGIC HERE
+    for(genvar i = 0 ; i < `_WIRED_PARAM_TLB_CNT ; i+=1) begin
+        wire h_tlb_hit_asid = (tlb_entrys_q[i].key.asid == h_entry[0].target_addr[9:0]);
+        wire h_tlb_hit_vppn = (tlb_entrys_q[i].key.vppn[18:10] == h_entry[0].target_addr[31:23]) && // HIGH HIT
+                              (tlb_entrys_q[i].key.vppn[9:0] == h_entry[0].target_addr[22:13] || tlb_entrys_q[i].key.huge_page);   // LOW  HIT
+
+        always_comb begin
+            h_tlb_hit_invtlb[i] = '0;
+            if(h_entry[0].decode_info.invtlb_en) begin
+              if(h_entry[0].op_code == 0 || h_entry[0].op_code == 1) begin
+                h_tlb_hit_invtlb[i] = '1;
+              end
+              if(h_entry[0].op_code == 2) begin
+                h_tlb_hit_invtlb[i] = tlb_entrys_q[i].key.g;
+              end
+              if(h_entry[0].op_code == 3) begin
+                h_tlb_hit_invtlb[i] = !tlb_entrys_q[i].key.g;
+              end
+              if(h_entry[0].op_code == 4) begin
+                h_tlb_hit_invtlb[i] = !tlb_entrys_q[i].key.g && h_tlb_hit_asid;
+              end
+              if(h_entry[0].op_code == 5) begin
+                h_tlb_hit_invtlb[i] = !tlb_entrys_q[i].key.g && h_tlb_hit_asid && h_tlb_hit_vppn;
+              end
+              if(h_entry[0].op_code == 6) begin
+                h_tlb_hit_invtlb[i] = (tlb_entrys_q[i].key.g || h_tlb_hit_asid) && h_tlb_hit_vppn;
+              end
+            end
+        end
+        // tlbsrch
+        // 注意，这个路径可以配置为 multicycle 以优化性能。
+        assign h_tlb_hit_srch[i] = (tlb_entrys_q[i].key.e) && // E
+                                   (tlb_entrys_q[i].key.g || tlb_entrys_q[i].key.asid == csr_q.asid[9:0]) && // ASID MATHC
+                                   (tlb_entrys_q[i].key.vppn[18:10] == csr_q.tlbehi[31:23]) // HI-VPN MATCH
+                                   (tlb_entrys_q[i].key.vppn[9:0] == csr_q.tlbehi[22:13] || tlb_entrys_q[i].key.huge_page) // LO-VPN MATCH
+                                   ;
+    end
+    // tlbrd
+    assign h_tlb_rd = tlb_entrys_q[csr_q.tlbidx[`_TLBIDX_INDEX]];
+    // tlbsrch
+    always_comb begin
+        h_tlb_srch_idx = '0;
+        // h_tlb_srch = '0;
+        for(integer i = 0 ; i < `_WIRED_PARAM_TLB_CNT ; i += 1) begin
+            h_tlb_srch_idx |= h_tlb_hit_srch[i] ? {1'b1, i[`_TLBIDX_INDEX]} : '0;
+            // h_tlb_srch |= h_tlb_hit_srch[i] ? tlb_entrys_q[i].key : '0;
+        end
     end
 
     // 第二级流水（实质是一个状态机）
@@ -136,11 +204,22 @@ module wired_commit #(
     rob_rid_t [1:0] h_wrrid_q;
     logic [1:0]  h_valid_inst_q;
     rob_rid_t [1:0] h_wrrid_q;
+    logic [31:0] h_flushtarget_q;
+    logic [`_WIRED_PARAM_TLB_CNT-1:0] h_tlb_hit_invtlb_q; // 需要打流水
+    tlb_entry_t h_tlb_rd_q; // for tlbrd 需要打流水
+    logic [$clog2(`_WIRED_PARAM_TLB_CNT):0] h_tlb_srch_idx_q; // for tlbsrch 需要打流水，最高位是 FOUND
+    // tlb_entry_t h_tlb_srch_q; // for tlbsrch 需要打流水
     always_ff @(posedge clk) begin
         if(h_ready) begin
             h_entry_q <= h_entry;
             h_wrrid_q <= h_wrrid;
             h_csr_rdata_q <= h_csr_rdata;
+            h_flushtarget_q <= h_flushtarget;
+            // TLB RELATED
+            h_tlb_hit_invtlb_q <= h_tlb_hit_invtlb;
+            h_tlb_rd_q <= h_tlb_rd;
+            h_tlb_srch_idx_q <= h_tlb_srch_idx;
+            // h_tlb_srch_q <= h_tlb_srch;
         end
     end
     always_ff @(posedge clk) begin
@@ -165,7 +244,6 @@ module wired_commit #(
     // 经过之前的约束，所有可能造成暂停的指令（Uncache load/store | Missed Store）均一定在槽一
     // 可能产生流水线刷新的指令也是同样的情况
     csr_t csr, csr_init;
-    logic[63:0] timer_64_q;
     always_ff @(posedge clk) begin
         if(!rst_n) begin
             timer_64_q <= '0;
@@ -215,6 +293,7 @@ module wired_commit #(
     parameter commit_fsm_t S_WAIT_USTORE = `__FSM_BIT_LEN'd2; // 这个不用刷流水线，但需要解除 dbar（uncached 会设置 barrier）
     parameter commit_fsm_t S_WAIT_MSTORE = `__FSM_BIT_LEN'd3; // 这个不用刷流水线
     parameter commit_fsm_t S_WAIT_FLUSH  = `__FSM_BIT_LEN'd4; // 这个是用来刷流水线的
+    parameter commit_fsm_t S_WAIT_INTERRUPT  = `__FSM_BIT_LEN'd5; // 这个是用来等待中断的
     `undef __FSM_BIT_LEN
     commit_fsm_t fsm_q;
     commit_fsm_t fsm;
@@ -252,6 +331,26 @@ module wired_commit #(
     // SUPER SUPER HUGE LOGIC BEGIN !
     // MAIN PROCESSOR STATES ARE MAINTAINED HERE !
     always_comb begin
+        tlb_update_req_o = '0;
+        
+        tlb_update_req_o.tlb_w_entry.key.vppn = csr_q.tlbehi[31:13];
+        // tlb_update_req_o.tlb_w_entry.key.ps   = csr_q.tlbidx[29:24]; // P72
+        tlb_update_req_o.tlb_w_entry.key.huge_page = csr_q.tlbidx[29:24] == 6'd22; // P72
+        tlb_update_req_o.tlb_w_entry.key.g    = csr_q.tlbelo0[6] && csr_q.tlbelo1[6];
+        tlb_update_req_o.tlb_w_entry.key.asid = csr_q.asid[9:0];
+        tlb_update_req_o.tlb_w_entry.key.e    = !csr_q.tlbidx[31] || csr_q.estat[21]; // P73
+
+        tlb_update_req_o.tlb_w_entry.value[0].ppn = csr_q.tlbelo0[27:8]; // P74
+        tlb_update_req_o.tlb_w_entry.value[0].v   = csr_q.tlbelo0[0];
+        tlb_update_req_o.tlb_w_entry.value[0].d   = csr_q.tlbelo0[1];
+        tlb_update_req_o.tlb_w_entry.value[0].plv = csr_q.tlbelo0[3:2];
+        tlb_update_req_o.tlb_w_entry.value[0].mat = csr_q.tlbelo0[5:4];
+
+        tlb_update_req_o.tlb_w_entry.value[1].ppn = csr_q.tlbelo1[27:8]; // P74
+        tlb_update_req_o.tlb_w_entry.value[1].v   = csr_q.tlbelo1[0];
+        tlb_update_req_o.tlb_w_entry.value[1].d   = csr_q.tlbelo1[1];
+        tlb_update_req_o.tlb_w_entry.value[1].plv = csr_q.tlbelo1[3:2];
+        tlb_update_req_o.tlb_w_entry.value[1].mat = csr_q.tlbelo1[5:4];
         c_lsu_req_o = '0;
         csr = csr_q;
         fsm = fsm_q;
@@ -268,7 +367,7 @@ module wired_commit #(
         f_upd = '0;
         f_upd.pc = h_entry_q[0].pc;
         f_upd.true_taken = slot0_target_type;
-        f_upd.true_target = h_entry_q[0].target_addr;
+        f_upd.true_target = h_entry_q[0].target_addr; // 对于分支指令，这就是最终目标，对于非分支指令，这里不会使用，若跳转类型错误，后面会做纠正
         f_upd.lphr = h_entry_q[0].bpu_predict.lphr;
         f_upd.history = h_entry_q[0].bpu_predict.history;
         f_upd.true_target_type = slot0_target_type;
@@ -294,7 +393,7 @@ module wired_commit #(
                 l_retire = h_valid_inst_q;
                 l_commit = h_valid_inst_q;
                 // 对 inst 的中断异常情况做 judge
-                if(h_valid_inst_q[0] && h_entry_q[0].excp_found || h_valid_inst_q[1] && h_entry_q[1].excp_found) begin
+                if((h_valid_inst_q[0] && h_entry_q[0].excp_found) || (h_valid_inst_q[1] && h_entry_q[1].excp_found)) begin
                     for(integer i = 1 ; i >= 0 ; i --) begin
                         if(h_valid_inst_q[i] && h_entry_q[i].excp_found) begin
                             // 第 i 条指令有问题
@@ -303,7 +402,7 @@ module wired_commit #(
                             f_upd.redirect = '1;
                             f_upd.true_target = csr_q.eentry;
                             fsm = S_WAIT_FLUSH;
-                            if(i != 1 || (!|excp[0])) begin
+                            if(i != 1 || (!h_entry_q[0].excp_found)) begin
                                 // 对于 0 一定可以修改，对于1，一定在 0 无异常时可以修改
                                 // 先更新 ecode
                                 case(1'b1)
@@ -506,6 +605,7 @@ module wired_commit #(
                             l_commit = 2'b01;
                             f_upd.miss = '1;
                             f_upd.redirect = '1;
+                            if(!h_entry_q[0].need_jump) f_upd.true_target = h_flushtarget_q; // 这里已经更新过了
                             fsm = S_WAIT_FLUSH;
                         end
                     end
@@ -516,9 +616,6 @@ module wired_commit #(
                     // 其实只有一条指令，csrwrxchg，操作是根据掩码写寄存器之后再读出
 `define _MW(csr_name, mask) csr.``csr_name``[mask] = csr_wdata[mask]
                     if(h_entry_q[0].decode_info.csr_op_en) begin
-                        l_commit = 2'b01;
-                        f_upd.redirect = '1;
-                        fsm = S_WAIT_FLUSH;
                         l_data[0] = h_csr_rdata_q; // 强制刷新 csr 数据
                         case(h_entry_q[0].csr_id[8:0])
                         `_CSR_CRMD:      begin _MW(crmd, `_CRMD_PLV);_MW(crmd, `_CRMD_IE);_MW(crmd, `_CRMD_DA);_MW(crmd, `_CRMD_PG);_MW(crmd, `_CRMD_DATF);_MW(crmd, `_CRMD_DATM); end
@@ -553,15 +650,76 @@ module wired_commit #(
                         endcase
                     end
 `undef _MW
-                    // ERTN
-                    if(h_entry_q[0].decode_info.ertn_inst) begin
+                    // 实现 RDCNT 指令
+                    if(h_entry_q[0].decode_info.csr_rdcnt[0]) begin
+                        // RDCNT LOW | ID
+                        l_data[0] = h_csr_rdata_q; // 强制刷新 csr 数据
+                    end
+                    // 实现 TLB 控制指令
+                    // - INVTLB，直接无效化表项即可，先前已进行检查
+                    if(h_entry_q[0].decode_info.invtlb_en) begin
+                        tlb_update_req_o.tlb_w_entry.key.e = '0;
+                        tlb_update_req_o.tlb_we = h_tlb_hit_invtlb_q;
+                    end
+                    // - TLBWR
+                    if(h_entry_q[0].decode_info.tlbwr_en) begin
+                        tlb_update_req_o.tlb_we[csr_q.tlbidx[`_TLBIDX_INDEX]] = '1;
+                    end
+                    // - TLBFILL
+                    if(h_entry_q[0].decode_info.tlbfill_en) begin
+                        tlb_update_req_o.tlb_we[timer_64_q[`_TLBIDX_INDEX]] = '1;
+                    end
+                    // - TLBSRCH
+                    if(h_entry_q[0].decode_info.tlbsrch_en) begin
+                        csr.tlbidx[`_TLBIDX_INDEX] = h_tlb_srch_idx_q[`_TLBIDX_INDEX];
+                        csr.tlbidx[`_TLBIDX_NE] = h_tlb_srch_idx_q[$clog2(`_WIRED_PARAM_TLB_CNT)];
+                    end
+                    // - TLBRD
+                    if(h_entry_q[0].decode_info.tlbrd_en) begin
+                        csr.tlbidx[`_TLBIDX_NE] = ~h_tlb_rd_q.key.e;
+                        if(h_tlb_rd_q.key.e) begin
+                            csr.tlbidx[`_TLBIDX_PS] = h_tlb_rd_q.key.huge_page ? 6'd22 : 6'd12;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_tlb_rd_q.key.vppn;
+                            csr.tlbelo0[`_TLBELO_TLB_V]   = h_tlb_rd_q.value[0].v;
+                            csr.tlbelo0[`_TLBELO_TLB_D]   = h_tlb_rd_q.value[0].d;
+                            csr.tlbelo0[`_TLBELO_TLB_PLV] = h_tlb_rd_q.value[0].plv;
+                            csr.tlbelo0[`_TLBELO_TLB_MAT] = h_tlb_rd_q.value[0].mat;
+                            csr.tlbelo0[`_TLBELO_TLB_G]   = h_tlb_rd_q.key.g;
+                            csr.tlbelo0[`_TLBELO_TLB_PPN] = h_tlb_rd_q.value[0].ppn;
+
+                            csr.tlbelo1[`_TLBELO_TLB_V]   = h_tlb_rd_q.value[1].v;
+                            csr.tlbelo1[`_TLBELO_TLB_D]   = h_tlb_rd_q.value[1].d;
+                            csr.tlbelo1[`_TLBELO_TLB_PLV] = h_tlb_rd_q.value[1].plv;
+                            csr.tlbelo1[`_TLBELO_TLB_MAT] = h_tlb_rd_q.value[1].mat;
+                            csr.tlbelo1[`_TLBELO_TLB_G]   = h_tlb_rd_q.key.g;
+                            csr.tlbelo1[`_TLBELO_TLB_PPN] = h_tlb_rd_q.value[1].ppn;
+                            csr.asid[`_ASID]              =  h_tlb_rd_q.key.asid;
+                        end else begin
+                            csr.tlbidx[`_TLBIDX_PS] = '0;
+                            csr.tlbehi[`_TLBEHI_VPPN] = '0;
+                            csr.tlbelo0[`_TLBELO_TLB_V]   = '0;
+                            csr.tlbelo0[`_TLBELO_TLB_D]   = '0;
+                            csr.tlbelo0[`_TLBELO_TLB_PLV] = '0;
+                            csr.tlbelo0[`_TLBELO_TLB_MAT] = '0;
+                            csr.tlbelo0[`_TLBELO_TLB_G]   = '0;
+                            csr.tlbelo0[`_TLBELO_TLB_PPN] = '0;
+
+                            csr.tlbelo1[`_TLBELO_TLB_V]   = '0;
+                            csr.tlbelo1[`_TLBELO_TLB_D]   = '0;
+                            csr.tlbelo1[`_TLBELO_TLB_PLV] = '0;
+                            csr.tlbelo1[`_TLBELO_TLB_MAT] = '0;
+                            csr.tlbelo1[`_TLBELO_TLB_G]   = '0;
+                            csr.tlbelo1[`_TLBELO_TLB_PPN] = '0;
+                            csr.asid[`_ASID]              = '0;
+                        end
+                    end
+                    // flush / ertn 逻辑 及 idle 逻辑
+                    if(h_entry_q[0].decode_info.priv_inst) begin
                         l_commit = 2'b01;
                         f_upd.redirect = '1;
-                        fsm = S_WAIT_FLUSH;
+                        f_upd.true_target = h_flushtarget_q;
+                        fsm = h_entry_q[0].decode_info.idle ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
                     end
-                    // 实现 RDCNT 指令
-                    // 实现 TLB 控制指令
-                    // 实现 idle 指令
                 end
 
             end
@@ -610,7 +768,19 @@ module wired_commit #(
                     fsm = S_NORMAL;
                 end
             end
+            S_WAIT_INTERRUPT: begin
+                h_ready = '1;
+                l_flush  = '1;
+                l_retire = h_valid_inst_q;
+                l_commit = '0;
+                if(rename_empty_i && '0 /*TODO: DETECT INTERRUPT INCOMMING...*/) begin
+                    fsm = S_NORMAL;
+                end
+            end
         endcase
     end
+
+    // CSR 输出
+    assign csr_o = csr_q;
 
 endmodule

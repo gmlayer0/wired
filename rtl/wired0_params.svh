@@ -24,4 +24,7 @@
 
 `define _WIRED_PARAM_LSU_STOREBUFFER 4
 
+// TLB RELATED
+`define _WIRED_PARAM_TLB_CNT 16
+
 `endif

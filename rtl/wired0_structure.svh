@@ -33,8 +33,8 @@ typedef struct packed {
     logic ras_miss_type;
 } bpu_correct_t;
 typedef struct packed {
-  logic interrupt[9:0]; // ALL Interrupt including software Interruption
-  logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to become an nop.
+  // logic interrupt[9:0]; // ALL Interrupt including software Interruption
+  // logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to become an nop.
   logic adef;           // Address translation failure will force this instruction to become an nop.
   logic tlbr;
   logic pif ;
@@ -42,8 +42,8 @@ typedef struct packed {
 } fetch_excp_t;
 typedef struct packed {
   // FRONTEND
-  logic interrupt[9:0]; // ALL Interrupt including software Interruption
-  logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+  // logic interrupt[9:0]; // ALL Interrupt including software Interruption
+  // logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
   logic adef ;
   logic tlbr;
   logic pif  ;
@@ -66,7 +66,7 @@ typedef struct packed {
 } lsu_excp_t;
 
 typedef struct packed {
-  logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+  // logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
   logic adef ;
   logic itlbr;
   logic pif  ;
@@ -156,7 +156,7 @@ typedef struct packed {
   lsu_excp_t  excp;
   logic       need_jump;
   logic[31:0] target_addr;       // FOR LSU: VADDR, FOR ALU: TARGET_ADDR
-
+                                 // FOR INVTLB: VPN-[31:12] ASID-[9:0]
   // 访存流相关
   logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
   logic       store_buffer;      // 提交一条 Store_buffer 中的写请求
@@ -199,7 +199,7 @@ typedef struct packed {
                                  // 注意，op_code 的功能比较丰富，对于跳转指令，用于提供指令类型信息。
                                  // 对于写寄存器为 1 的分支指令，op_code[4] = '1;  // 函数调用
                                  // 对于读寄存器1为 1 的分支指令，op_code[3] = '1; // 函数返回
-                                 // 对于 CSR 指令，存储 RJ
+                                 // 对于 CSR | rdcnt 指令，存储 RJ
                                  // 对于 INVTLB / CACOP 存储 RD（OP）
   logic[13:0]       csr_id;
   logic[31:0]       pc;
@@ -283,7 +283,7 @@ endfunction
 
 function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i) begin
   excp_t ret;
-  ret.fetch_int = static_i.fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+  // ret.fetch_int = static_i.fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
   ret.adef = static_i.adef;
   ret.itlbr = static_i.tlb;
   ret.pif = static_i.pif ;

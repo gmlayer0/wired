@@ -179,12 +179,11 @@ module wired_decoder(
                 decode_err_o = 1'b0;
                 is_o.priv_inst = 1'd1;
                 is_o.csr_op_en = 1'd1;
+                is_o.alu_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RD;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
                 is_o.slot0 = 1'd1;
-                is_o.refetch = 1'd1;
             end
             32'b00100000????????????????????????: begin
                 decode_err_o = 1'b0;
@@ -523,19 +522,13 @@ module wired_decoder(
             32'b00000000001010100???????????????: begin
                 decode_err_o = 1'b0;
                 is_o.break_inst = 1'd1;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
-                is_o.reg_type_w = `_REG_W_NONE;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
             end
             32'b00000000001010110???????????????: begin
                 decode_err_o = 1'b0;
                 is_o.syscall_inst = 1'd1;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
-                is_o.reg_type_w = `_REG_W_NONE;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
             end
             32'b00000000010000001???????????????: begin
@@ -572,21 +565,17 @@ module wired_decoder(
                 decode_err_o = 1'b0;
                 is_o.priv_inst = 1'd1;
                 is_o.wait_inst = 1'd1;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
-                is_o.refetch = 1'd1;
             end
             32'b00000110010010011???????????????: begin
                 decode_err_o = 1'b0;
                 is_o.priv_inst = 1'd1;
-                is_o.csr_rdcnt = `_RDCNT_ID_VLOW;
                 is_o.invtlb_en = 1'd1;
+                is_o.alu_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
-                is_o.reg_type_w = `_REG_W_NONE;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
                 is_o.slot0 = 1'd1;
-                is_o.refetch = 1'd1;
             end
             32'b00111000011100100???????????????: begin
                 decode_err_o = 1'b0;
@@ -602,73 +591,50 @@ module wired_decoder(
             32'b0000000000000000011000??????????: begin
                 decode_err_o = 1'b0;
                 is_o.csr_rdcnt = `_RDCNT_ID_VLOW;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
+                is_o.alu_inst = 1'd1;
                 is_o.reg_type_w = `_REG_W_RJD;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
                 is_o.slot0 = 1'd1;
             end
             32'b0000000000000000011001??????????: begin
                 decode_err_o = 1'b0;
                 is_o.csr_rdcnt = `_RDCNT_VHIGH;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
+                is_o.alu_inst = 1'd1;
                 is_o.reg_type_w = `_REG_W_RJD;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
                 is_o.slot0 = 1'd1;
             end
             32'b0000011001001000001010??????????: begin
                 decode_err_o = 1'b0;
                 is_o.priv_inst = 1'd1;
                 is_o.tlbsrch_en = 1'd1;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
-                is_o.reg_type_w = `_REG_W_NONE;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
-                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001011??????????: begin
                 decode_err_o = 1'b0;
                 is_o.priv_inst = 1'd1;
                 is_o.tlbrd_en = 1'd1;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
-                is_o.reg_type_w = `_REG_W_NONE;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
-                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001100??????????: begin
                 decode_err_o = 1'b0;
                 is_o.priv_inst = 1'd1;
                 is_o.tlbwr_en = 1'd1;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
-                is_o.reg_type_w = `_REG_W_NONE;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
-                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001101??????????: begin
                 decode_err_o = 1'b0;
                 is_o.priv_inst = 1'd1;
                 is_o.tlbfill_en = 1'd1;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
-                is_o.reg_type_w = `_REG_W_NONE;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
-                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001110??????????: begin
                 decode_err_o = 1'b0;
                 is_o.ertn_inst = 1'd1;
                 is_o.priv_inst = 1'd1;
-                is_o.reg_type_r0 = `_REG_R0_NONE;
-                is_o.reg_type_r1 = `_REG_R1_NONE;
-                is_o.reg_type_w = `_REG_W_NONE;
-                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
             end
         endcase
