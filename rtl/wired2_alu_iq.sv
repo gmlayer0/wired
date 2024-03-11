@@ -44,11 +44,11 @@ module wired_alu_iq #(
     parameter integer FIRERANGE = 6; // 4 - 8
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENFIRE_PER_ALU
         for(genvar j = 0 ; j < IQ_SIZE ; j++) begin : GENFIRE_PER_SLOT
-            localparam integer PIO_NOW  = i == 0 ? (FIREPIO[j]) : (7-FIREPIO[j]);
+            localparam integer PIO_NOW  = i == 0 ? (FIREPIO[j]) : (IQ_SIZE-1-FIREPIO[j]);
             if(j == 0) begin
                 assign fire_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW];
             end else if(j < FIRERANGE) begin
-                localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (7-UPDPIO[j-1]);
+                localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (IQ_SIZE-1-UPDPIO[j-1]);
                 assign fire_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW] & ~upd_sel_oh[i][PIO_PREV];
             end else begin
                 assign fire_sel_oh[i][PIO_NOW] = '0;
@@ -67,11 +67,11 @@ module wired_alu_iq #(
     parameter integer UPDPIO [IQ_SIZE-1:0] = {4,5,6,7,0,1,2,3};
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENUPD_PER_ALU
         for(genvar j = 0 ; j < IQ_SIZE ; j++) begin : GENUPD_PER_SLOT
-            localparam integer PIO_NOW  = i == 0 ? (UPDPIO[j]) : (7-UPDPIO[j]);
+            localparam integer PIO_NOW  = i == 0 ? (UPDPIO[j]) : (IQ_SIZE-1-UPDPIO[j]);
             if(j == 0) begin
                 assign upd_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW];
             end else begin
-                localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (7-UPDPIO[j-1]);
+                localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (IQ_SIZE-1-UPDPIO[j-1]);
                 assign upd_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW] & ~upd_sel_oh[i][PIO_PREV];
             end
         end
