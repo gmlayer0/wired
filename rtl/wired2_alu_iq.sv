@@ -27,7 +27,7 @@ module wired_alu_iq #(
     input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
 );
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
-    logic [IQ_SIZE-1:0] issue_rdy_q;  // 标识 IQ ENTRY 可发射
+    logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
     // Todo: AGE-MAP BASED OPTIMIZATION
 
     // IQ 有一个比较奇特的设计，整体 IQ 为 8 项，但其中仅有4项是两个 ALU 均可以发射的，其余4项则是独占的
@@ -39,6 +39,22 @@ module wired_alu_iq #(
     // ALU1:     5 4 3 2 1 0
     // UPD0: 3 2 1 0 7 6 5 4
     // UPD1: 4 5 6 7 0 1 2 3
+    logic [1:0][IQ_SIZE-1:0] fire_sel_oh;
+    parameter integer FIREPIO [IQ_SIZE-1:0] = {0,1,2,3,4,5,6,7};
+    parameter integer FIRERANGE = 6; // 4 - 8
+    for(genvar i = 0 ; i < 2 ; i += 1) begin : GENFIRE_PER_ALU
+        for(genvar j = 0 ; j < IQ_SIZE ; j++) begin : GENFIRE_PER_SLOT
+            localparam integer PIO_NOW  = i == 0 ? (FIREPIO[j]) : (7-FIREPIO[j]);
+            if(j == 0) begin
+                assign fire_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW];
+            end else if(j < FIRERANGE) begin
+                localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (7-UPDPIO[j-1]);
+                assign fire_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW] & ~upd_sel_oh[i][PIO_PREV];
+            end else begin
+                assign fire_sel_oh[i][PIO_NOW] = '0;
+            end
+        end
+    end
 
     // 也就是每个 ALU 可以执行的直接数据源是 6 项目
     // 仅需要 2 x LUT6 + MUX2 即可完成一个数据源的选择，逻辑深度为3
@@ -48,16 +64,17 @@ module wired_alu_iq #(
     // UPD0: 3 2 1 0 7 6 5 4
     // UPD1: 4 5 6 7 0 1 2 3
     logic [1:0][IQ_SIZE-1:0] upd_sel_oh;
-    parameter integer UPDPIO [7:0] = {4,5,6,7,0,1,2,3};
-    for(genvar i = 0 ; i < 2 ; i += 1) begin
-        assign upd_sel_oh[i][i == 0 ? (UPDPIO[0]) : (7-UPDPIO[0])] = empty_q[i == 0 ? (UPDPIO[0]) : (7-UPDPIO[0])];
-        assign upd_sel_oh[i][i == 0 ? (UPDPIO[1]) : (7-UPDPIO[1])] = empty_q[i == 0 ? (UPDPIO[1]) : (7-UPDPIO[1])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[0]) : (7-UPDPIO[0])];
-        assign upd_sel_oh[i][i == 0 ? (UPDPIO[2]) : (7-UPDPIO[2])] = empty_q[i == 0 ? (UPDPIO[2]) : (7-UPDPIO[2])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[1]) : (7-UPDPIO[1])];
-        assign upd_sel_oh[i][i == 0 ? (UPDPIO[3]) : (7-UPDPIO[3])] = empty_q[i == 0 ? (UPDPIO[3]) : (7-UPDPIO[3])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[2]) : (7-UPDPIO[2])];
-        assign upd_sel_oh[i][i == 0 ? (UPDPIO[4]) : (7-UPDPIO[4])] = empty_q[i == 0 ? (UPDPIO[4]) : (7-UPDPIO[4])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[3]) : (7-UPDPIO[3])];
-        assign upd_sel_oh[i][i == 0 ? (UPDPIO[5]) : (7-UPDPIO[5])] = empty_q[i == 0 ? (UPDPIO[5]) : (7-UPDPIO[5])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[4]) : (7-UPDPIO[4])];
-        assign upd_sel_oh[i][i == 0 ? (UPDPIO[6]) : (7-UPDPIO[6])] = empty_q[i == 0 ? (UPDPIO[6]) : (7-UPDPIO[6])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[5]) : (7-UPDPIO[5])];
-        assign upd_sel_oh[i][i == 0 ? (UPDPIO[7]) : (7-UPDPIO[7])] = empty_q[i == 0 ? (UPDPIO[7]) : (7-UPDPIO[7])] & ~upd_sel_oh[i][i == 0 ? (UPDPIO[6]) : (7-UPDPIO[6])];
+    parameter integer UPDPIO [IQ_SIZE-1:0] = {4,5,6,7,0,1,2,3};
+    for(genvar i = 0 ; i < 2 ; i += 1) begin : GENUPD_PER_ALU
+        for(genvar j = 0 ; j < IQ_SIZE ; j++) begin : GENUPD_PER_SLOT
+            localparam integer PIO_NOW  = i == 0 ? (UPDPIO[j]) : (7-UPDPIO[j]);
+            if(j == 0) begin
+                assign upd_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW];
+            end else begin
+                localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (7-UPDPIO[j-1]);
+                assign upd_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW] & ~upd_sel_oh[i][PIO_PREV];
+            end
+        end
     end
 
     // CDB 接口上的 FIFO 队列， 不满的时候才可以以发射指令到 FU 执行，一旦有一个 FIFO 满，就阻止指令发射。
@@ -109,7 +126,7 @@ module wired_alu_iq #(
             .b2b_rid_i(),
             .cdb_i(cdb_i),
             .empty_o(empty_q[i]),
-            .ready_o(issue_rdy_q[i]),
+            .ready_o(fire_rdy_q[i]),
             .b2b_sel_o(b2b_src[i]),
             .data_o(iq_data[i]),
             .payload_o(iq_static[i])
