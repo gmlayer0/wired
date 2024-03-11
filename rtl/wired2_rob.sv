@@ -1,9 +1,7 @@
 `include "wired0_defines"
 
 // Fuction module for Wired project
-module wired_rob #(
-    parameter int INST_PAYLOAD_SIZE = 128
-)(
+module wired_rob (
     `_WIRED_GENERAL_DEFINE,
 
     // 连接到 DISPATCH(P) 级别的端口

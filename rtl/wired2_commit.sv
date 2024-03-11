@@ -5,9 +5,7 @@
 // Futhermore, this module will change CSR / ARF / NPC status to commit instruction.
 // This module can commit(retire) at most two inst / cycle.
 // Because our CDB is 2-width, this is already enough.
-module wired_commit #(
-    parameter int INST_PAYLOAD_SIZE = 128
-)(
+module wired_commit (
     `_WIRED_GENERAL_DEFINE,
 
     // Part 1: ROB 读端口
