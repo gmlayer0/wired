@@ -345,8 +345,20 @@ typedef struct packed {
   logic[31:0] rdata;
 } lsu_bus_resp_t;
 
+// TAG 内容
 typedef struct packed {
-  
+  logic rp; // read permission
+  logic wp; // write permission
+  logic[19:0] p; // ppn
+} cache_tag_t;
+
+typedef struct packed {
+  logic [31:0] daddr;
+  logic [3:0][3:0]  dstrb;
+  logic [3:0][31:0] d;
+
+  logic [31:0] taddr;
+  cache_tag_t  t; // tag
 } dsram_snoop_t;
 
 // CPU 提交级到 LSU 的请求
