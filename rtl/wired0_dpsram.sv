@@ -1,57 +1,4 @@
-#!/bin/python3
-# -*- coding: utf-8 -*-
-# @Time    : 2023/11/6 下午6:48
-# @Author  : Yang Su
-# @File    : gen_sram_wapper.py
-# @Software: PyCharm 
-# @Comment :
-
-smic_tdpram_config = [
-    {
-        'words': 1024,
-        'bits': 32,
-        'mux': 4,
-        'bit_write': True
-    },
-    {
-        'words': 512,
-        'bits': 30,
-        'mux': 4,
-        'bit_write': False
-    },
-    {
-        'words': 256,
-        'bits': 21,
-        'mux': 4,
-        'bit_write': False
-    },
-    {
-        'words': 256,
-        'bits': 14,
-        'mux': 4,
-        'bit_write': False
-    }
-]
-
-# 按照words和bits的值去重
-# unique_configs = []
-# seen_configs = set()
-
-# for config in smic_tdpram_config:
-#     config_tuple = (config['words'], config['bits'])  # 创建一个只包含 'words' 和 'bits' 的元组
-#     if config_tuple not in seen_configs and config['bit_write']:  # 如果这个元组之前没有出现过且bit_write为True
-#         seen_configs.add(config_tuple)  # 将这个元组添加到已经看到的集合中
-#         unique_configs.append(config)  # 将当前的字典元素添加到结果列表中
-
-# for config in smic_tdpram_config:
-#     config_tuple = (config['words'], config['bits'])  # 创建一个只包含 'words' 和 'bits' 的元组
-#     if config_tuple not in seen_configs and not config['bit_write']:  # 如果这个元组之前没有出现过且bit_write为False
-#         seen_configs.add(config_tuple)  # 将这个元组添加到已经看到的集合中
-#         unique_configs.append(config)  # 将当前的字典元素添加到结果列表中
-
-# smic_tdpram_config = unique_configs
-
-tdpram_wrapper = '''`include "wired0_defines"
+`include "wired0_defines"
 
 module wired_dpsram #(
   parameter int unsigned DATA_WIDTH = 32  ,
@@ -183,20 +130,9 @@ module wired_dpsram #(
         assign bwena[(i+1)*BYTE_SIZE - 1:i*BYTE_SIZE] = {BYTE_SIZE{we0_i[i]}};
         assign bwenb[(i+1)*BYTE_SIZE - 1:i*BYTE_SIZE] = {BYTE_SIZE{we1_i[i]}};
       end
-'''
 
-name_format = "{HEAD}_RAM_DP_W{W}_B{B}_M{M}"
-
-head = 'S018DP'
-prefix = ''
-
-for ram in smic_tdpram_config:
-    name = name_format.format(HEAD=head, W=ram['words'], B=ram['bits'], M=ram['mux'])
-    if ram['bit_write']:
-        name += '_BW'
-        tdpram_wrapper += f"""
-    {prefix}if (DATA_DEPTH == {ram['words']} && DATA_WIDTH == {ram['bits']} && BYTE_SIZE != DATA_WIDTH) begin
-      {name} {name}_INST (
+    if (DATA_DEPTH == 1024 && DATA_WIDTH == 32 && BYTE_SIZE != DATA_WIDTH) begin
+      S018DP_RAM_DP_W1024_B32_M4_BW S018DP_RAM_DP_W1024_B32_M4_BW_INST (
       .QA      (rdata0_o),
       .QB      (rdata1_o),
       .CLKA    (clk0    ),
@@ -213,11 +149,9 @@ for ram in smic_tdpram_config:
       .DB      (wdata1_i)
       );
     end
-"""
-    else:
-        tdpram_wrapper += f"""
-    {prefix}if (DATA_DEPTH == {ram['words']} && DATA_WIDTH == {ram['bits']} && BYTE_SIZE == DATA_WIDTH) begin
-      {name} {name}_INST (
+
+    else if (DATA_DEPTH == 512 && DATA_WIDTH == 30 && BYTE_SIZE == DATA_WIDTH) begin
+      S018DP_RAM_DP_W512_B30_M4 S018DP_RAM_DP_W512_B30_M4_INST (
       .QA      (rdata0_o),
       .QB      (rdata1_o),
       .CLKA    (clk0    ),
@@ -232,10 +166,41 @@ for ram in smic_tdpram_config:
       .DB      (wdata1_i)
       );
     end
-"""
-    prefix = 'else '
 
-tdpram_wrapper += """
+    else if (DATA_DEPTH == 256 && DATA_WIDTH == 21 && BYTE_SIZE == DATA_WIDTH) begin
+      S018DP_RAM_DP_W256_B21_M4 S018DP_RAM_DP_W256_B21_M4_INST (
+      .QA      (rdata0_o),
+      .QB      (rdata1_o),
+      .CLKA    (clk0    ),
+      .CLKB    (clk1    ),
+      .CENA    (~en0_i),
+      .CENB    (~en1_i),
+      .WENA    (~we0_i),
+      .WENB    (~we1_i),
+      .AA      (addr0_i),
+      .AB      (addr1_i),
+      .DA      (wdata0_i),
+      .DB      (wdata1_i)
+      );
+    end
+
+    else if (DATA_DEPTH == 256 && DATA_WIDTH == 14 && BYTE_SIZE == DATA_WIDTH) begin
+      S018DP_RAM_DP_W256_B14_M4 S018DP_RAM_DP_W256_B14_M4_INST (
+      .QA      (rdata0_o),
+      .QB      (rdata1_o),
+      .CLKA    (clk0    ),
+      .CLKB    (clk1    ),
+      .CENA    (~en0_i),
+      .CENB    (~en1_i),
+      .WENA    (~we0_i),
+      .WENB    (~we1_i),
+      .AA      (addr0_i),
+      .AB      (addr1_i),
+      .DA      (wdata0_i),
+      .DB      (wdata1_i)
+      );
+    end
+
     else begin
       initial begin
         $display("Not support tdpram type %d %d %d", DATA_WIDTH, DATA_DEPTH, BYTE_SIZE);
@@ -248,10 +213,3 @@ tdpram_wrapper += """
 `endif
 
 endmodule
-"""
-
-# print(tdpram_wrapper)
-
-# 写入文件
-with open('../rtl/wired0_dpsram.sv', 'w') as file:
-    file.write(tdpram_wrapper)

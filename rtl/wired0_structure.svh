@@ -305,6 +305,50 @@ typedef struct packed {
   
 } iq_alu_static_t;
 
+// LSU IQ 到 LSU 的请求
+typedef struct packed {
+  logic write;
+  logic [3:0] wstrobe;
+  logic [2:0] cacop;
+  logic dbar;          // 显式 dbar
+  logic acq_write;     // LL 指令，需要写权限
+  logic[31:0] vaddr;   // 虚拟地址
+  logic[31:0] wdata;   // 写地址
+} iq_lsu_req_t;
+
+// LSU 到 LSU IQ 的响应
+typedef struct packed {
+
+  logic [31:0] rdata;
+} iq_lsu_resp_t;
+
+// LSU 到 Manager 的请求
+typedef struct packed {
+  logic valid;
+
+  logic uncached_load_req;
+  logic uncached_store_req;
+  logic acq_read_req;  // 申请读权限
+  logic acq_write_req; // 申请写权限
+  logic sram_wb_req;
+
+  logic [3:0]  wstrobe;
+  logic [31:0] wdata;
+  logic [31:0] target_paddr;
+
+} lsu_bus_req_t;
+
+typedef struct packed {
+  lsu_excp_t  excp;
+  logic       uncached;
+  logic[31:0] vaddr;
+  logic[31:0] rdata;
+} lsu_bus_resp_t;
+
+typedef struct packed {
+  
+} dsram_snoop_t;
+
 // CPU 提交级到 LSU 的请求
 typedef struct packed {
   logic valid;
