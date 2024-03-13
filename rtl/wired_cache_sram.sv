@@ -112,7 +112,7 @@ module wired_cache_sram#(
     begin
       wire [1:0] m_sel = m_way_q-b[1:0];
       assign m_rdata_o[b]   = m_sram_rdata[m_sel][31:0];
-      assign m_rdata_o[b+1] = m_sram_rdata[m_sel][63:0];
+      assign m_rdata_o[b+1] = m_sram_rdata[m_sel][63:32];
     end
   end
 
@@ -129,11 +129,17 @@ module wired_cache_sram#(
     begin
       wire [1:0] m_sel = m_way_i-b[1:0];
       assign m_sram_addr[b] = {m_addr_i[11:4], m_sel};
+      assign m_sram_wdata[b] = m_wdata_i[m_sel];
+      assign m_sram_strb[b] = m_wstrb_i[m_sel];
     end
     else
     begin
       wire m_sel = m_way_i[1]-b[1];
       assign m_sram_addr[b] = {m_addr_i[11:4], m_sel};
+      assign m_sram_wdata[b][31:0] = m_wdata_i[{m_sel, 1'b0}];
+      assign m_sram_wdata[b][63:32] = m_wdata_i[{m_sel, 1'b1}];
+      assign m_sram_strb[b][3:0] = m_wstrb_i[{m_sel, 1'b0}] && b[0] == m_way_i[2];
+      assign m_sram_strb[b][7:4] = m_wstrb_i[{m_sel, 1'b1}] && b[0] == m_way_i[2];
     end
   end
 
