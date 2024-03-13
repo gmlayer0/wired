@@ -138,8 +138,8 @@ module wired_cache_sram#(
       assign m_sram_addr[b] = {m_addr_i[11:4], m_sel};
       assign m_sram_wdata[b][31:0] = m_wdata_i[{m_sel, 1'b0}];
       assign m_sram_wdata[b][63:32] = m_wdata_i[{m_sel, 1'b1}];
-      assign m_sram_strb[b][3:0] = m_wstrb_i[{m_sel, 1'b0}] && b[0] == m_way_i[2];
-      assign m_sram_strb[b][7:4] = m_wstrb_i[{m_sel, 1'b1}] && b[0] == m_way_i[2];
+      assign m_sram_strb[b][3:0] = m_wstrb_i[{m_sel, 1'b0}] && b[1] == m_way_i[1];
+      assign m_sram_strb[b][7:4] = m_wstrb_i[{m_sel, 1'b1}] && b[1] == m_way_i[1];
     end
   end
 
