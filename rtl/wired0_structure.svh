@@ -279,6 +279,7 @@ function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry
   ret.store_conditional = dynamic_i.store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
   // 写回 ARF 的数据
   ret.wdata = data_i;
+  return ret;
 endfunction
 
 function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i) begin
@@ -298,6 +299,16 @@ function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i) 
   ret.ppi = lsu_i.ppi;
   ret.ale = lsu_i.ale;
   ret.tlbr = lsu_i.tlbr;
+  return ret;
+end
+
+function automatic logic[31:0] gen_mask_word(logic [31:0] o, logic [31:0] n, logic [3:0] s) begin
+  logic [31:0] r;
+  r[7:0]   = s[0] ? n[7:0];
+  r[15:8]  = s[1] ? n[15:8];
+  r[23:16] = s[2] ? n[23:16];
+  r[31:24] = s[3] ? n[31:24];
+  return r;
 end
 
 // Issue Queue Entry
@@ -307,19 +318,21 @@ typedef struct packed {
 
 // LSU IQ 到 LSU 的请求
 typedef struct packed {
-  logic write;
-  logic [3:0] wstrobe;
-  logic [2:0] cacop;
-  logic dbar;          // 显式 dbar
-  logic acq_write;     // LL 指令，需要写权限
-  logic[31:0] vaddr;   // 虚拟地址
-  logic[31:0] wdata;   // 写地址
+  logic  [3:0] strb;
+  logic  [2:0] cacop;
+  logic  dbar;          // 显式 dbar
+  logic  llsc;       // LL 指令，需要写权限
+  logic  [1:0] msize;   // 访存大小-1
+  logic [31:0] vaddr;   // 虚拟地址
+  logic [31:0] wdata;   // 写地址
 } iq_lsu_req_t;
 
 // LSU 到 LSU IQ 的响应
 typedef struct packed {
-
-  logic [31:0] rdata;
+  lsu_excp_t  excp;
+  logic       uncached;
+  logic[31:0] vaddr;
+  logic[31:0] rdata;
 } iq_lsu_resp_t;
 
 // LSU 到 Manager 的请求
@@ -339,10 +352,8 @@ typedef struct packed {
 } lsu_bus_req_t;
 
 typedef struct packed {
-  lsu_excp_t  excp;
-  logic       uncached;
-  logic[31:0] vaddr;
-  logic[31:0] rdata;
+  logic ready;             // 响应完成
+  logic [3:0][31:0] rdata; // 把整个总线返回反馈给 LSU
 } lsu_bus_resp_t;
 
 // TAG 内容
@@ -353,12 +364,14 @@ typedef struct packed {
 } cache_tag_t;
 
 typedef struct packed {
-  logic [31:0] daddr;
+  logic [11:0] daddr;
+  logic  [1:0]  dway;
   logic [3:0][3:0]  dstrb;
   logic [3:0][31:0] d;
 
-  logic [31:0] taddr;
-  cache_tag_t  t; // tag
+  logic [11:0] taddr;
+  logic [3:0]       twe;
+  cache_tag_t       t; // can only write one tag once
 } dsram_snoop_t;
 
 // CPU 提交级到 LSU 的请求
@@ -381,5 +394,12 @@ typedef struct packed {
 
   logic [31:0] uncached_load_resp;
 } commit_lsu_resp_t;
+
+typedef struct packed {
+  logic [31:0] paddr;
+  logic [3:0] hit; // cache hit
+  logic [3:0] strb;
+  logic [31:0] wdata;
+} sb_meta_t; // store_buffer 元数据
 
 `endif
