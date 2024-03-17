@@ -33,14 +33,13 @@ module wired_lsu_sb_entry(
     // end
     // else
     // begin
-      if(valid_i)
-      begin
-        valid_q <= '1;
-      end
-      else if(invalid_i)
-      begin
-        valid_q <= '0;
-      end
+    if(invalid_i)
+    begin
+      valid_q <= '0;
+    end else if(valid_i) // 这两个其实不可能同时发生
+    begin
+      valid_q <= '1;
+    end
     // end
   end
 

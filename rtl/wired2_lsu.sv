@@ -32,18 +32,24 @@ module wired_lsu(
     output logic [11:0]       p_addr_o,
     input  logic [3:0][31:0]  p_rdata_i,
     input  cache_tag_t [3:0]  p_tag_i,
-    input  logic [1:0]        p_sll_i
+    input  logic [1:0]        p_sll_i,
+
+    // 无效化端口
+    input  logic              flush_i
 
 );
 
+    // IQ-M1 真握手信号
+    logic iq_m1_ready; // iq -> m1 的通路就绪
     // M1-M2 真握手信号
     logic m1_m2_ready, m1_m2_valid;
+    // STOREBUFFER 握手信号
+    logic store_buffer_ready;
 
     // IQ-M1 握手生成
     assign lsu_req_ready_o = iq_m1_ready;
 
     // M1 信号定义
-    logic iq_m1_ready; // iq -> m1 的通路就绪
     tlb_s_resp_t m1_tlb_resp;
     // 同时开始地址翻译请求与 SRAM 请求。
     // 例化地址翻译模块
@@ -52,7 +58,7 @@ module wired_lsu(
     )
     wired_addr_trans_inst (
         `_WIRED_GENERAL_CONN,
-        .clken_i('1),
+        .clken_i(iq_m1_ready),
         .vaddr_i(lsu_req_i.vaddr),
         .csr_i(csr_i),
         .tlb_update_req_i(tlb_update_i),
@@ -61,6 +67,7 @@ module wired_lsu(
 
     // M1 主要流水
     logic m1_valid_q, m1_skid_valid_q;
+    assign m1_m2_valid = m1_valid_q | m1_skid_valid_q;
     always_ff @(posedge clk) begin
         if(!rst_n) begin
             m1_skid_valid_q <= '0;
@@ -76,7 +83,7 @@ module wired_lsu(
     end
     // M1 请求结构体
     typedef struct packed {
-        logic             write;   // 写请求
+        logic             wreq;   // 写请求
         logic       [3:0] strb;    // 写掩码
         logic       [2:0] cacop;   // cache 请求
         logic             dbar;    // 产生 dbar 效果
@@ -93,20 +100,21 @@ module wired_lsu(
         if(!rst_n) begin
             m1_valid_q <= '0;
         end else begin
-            m1_valid_q <= lsu_req_valid_i;
+            if(iq_m1_ready) m1_valid_q <= lsu_req_valid_i;
         end
     end
     iq_lsu_req_t m1_req_q;
     always_ff @(posedge clk) begin
-        m1_req_q <= lsu_req_i;
+        if(iq_m1_ready) m1_req_q <= lsu_req_i;
     end
     m1_pack_t m1_raw, m1_nosnop, m1; // m1_raw 直接来自输入打一拍， m1_nosnop 在 skid 与 raw 之间进行选择，经过 snoop 得到 m1
     m1_pack_t m1_skid_q;
+    assign iq_m1_ready = !m1_skid_q;
 
     // m1_raw 逻辑
     logic m1_tlb_no_excp; // 对于 (sc && llbit == '0) || (cacheop && no_addr_trans)不触发异常
     always_comb begin
-        m1_raw.write = |m1_req_q.strb;
+        m1_raw.wreq = |m1_req_q.strb;
         m1_raw.strb = m1_req_q.strb;
         m1_raw.cacop = m1_req_q.cacop;
         m1_raw.dbar = m1_req_q.dbar || (m1_tlb_resp.value.mat == '0); // TODO: MAKE SURE UNCACHED INST CAN ALSO CAUSE DBAR
@@ -120,10 +128,10 @@ module wired_lsu(
         m1_raw.ale = (m1_req_q.msize == 2'd0) ? '0 :
                      ((m1_req_q.msize == 2'd1) ?  m1_req_q.vaddr[0] :
                                                 (|m1_req_q.vaddr[1:0]));
-        m1_raw.tlbr = !m1_raw.ale && !m1_tlb_resp.found;
-        m1_raw.inv = !m1_raw.tlbr && !m1_tlb_resp.value.v;
-        m1_raw.ppi = !m1_raw.inv && (m1_tlb_resp.value.plv == 2'b00) && (csr_i.crmd[`_CRMD_PLV] == 2'd3);
-        m1_raw.pme = !m1_raw.ppi && !m1_tlb_resp.value.d && (|m1_req_q.strb);
+        m1_raw.tlbr = !m1_raw.ale && !m1_tlb_resp.found && !m1_tlb_no_excp;
+        m1_raw.inv = !m1_raw.tlbr && !m1_tlb_resp.value.v && !m1_tlb_no_excp;
+        m1_raw.ppi = !m1_raw.inv && (m1_tlb_resp.value.plv == 2'b00) && (csr_i.crmd[`_CRMD_PLV] == 2'd3) && !m1_tlb_no_excp;
+        m1_raw.pme = !m1_raw.ppi && !m1_tlb_resp.value.d && (|m1_req_q.strb) && !m1_tlb_no_excp;
     end
 
     // m1_nosnop 逻辑
@@ -149,18 +157,80 @@ module wired_lsu(
             end
         end
     end
+    sb_meta_t sb_w;
+    
+    logic sb_inv; // TODO: CONNECT ME
+    logic [3:0] sb_valid;
+    sb_meta_t [3:0] sb_entry;
+    // storebuffer 定义
+    wired_lsu_sb  wired_lsu_sb_inst (
+    `_WIRED_GENERAL_CONN,
+    .flush_i(flush_i),
+    .ready_o(store_buffer_ready),
+    .valid_i(m1_m2_ready && m1_m2_valid && m1.wreq),  /* 当且仅当 m1-m2 握手成功时，更新 storebuffer */
+    .meta_i(sb_w),
+    .valid_o(sb_valid),
+    .meta_o(sb_entry),
+    .invalid_i(sb_inv),
+    .top_hit_o(commit_lsu_resp_o.storebuf_hit),
+    .snoop_i(snoop_i)
+  );
 
     // M1-M2 部分
     // hit 生成
-    logic [3:0] m1_hit;
+    logic [3:0] m1_hit, m1_rhit, m1_whit;
+    for(genvar i = 0 ; i < 4 ; i += 1) begin
+        assign m1_hit[i] = m1.tag[w].p == m1.paddr[31:12]; // 只处理读命中。
+        assign m1_rhit[i] = m1_hit[i] & m1.tag[w].rp;
+        assign m1_whit[i] = m1_hit[i] & m1.tag[w].wp;
+    end
+    // sb_w 项目生成
+    always_comb begin
+        sb_w.paddr = m1.paddr;
+        sb_w.hit = m1_whit;
+        sb_w.strb = m1.strb;
+        sb_w.wdata = m1.wdata;
+    end
     // sbhit 生成：生成与 storebuf 的碰撞情况，（注意重复碰撞是不被允许的，故存在 hit 的 uncached store 指令会暂停住管线）
-    logic [3:0] m1_sbhit;
+    logic [3:0] m1_sb_hit;
+    // 检查四项 sb_entry
+    for(genvar i = 0 ; i < 4 ; i += 1) begin
+        assign m1_sb_hit[i] = sb_entry[i].paddr[31:2] == m1.paddr[31:2] && sb_valid[i];
+    end
     // 由于约束， 至多存在一项 hit，也仅有一组 strb。
-    logic [3:0] m1_strb;
+    logic [31:0] m1_sb_rdata;
+    logic [3:0] m1_sb_strb;
+    assign m1_sb_strb = ({4{m1_sb_hit[0]}} & sb_entry[0].strb) |
+                        ({4{m1_sb_hit[1]}} & sb_entry[1].strb) |
+                        ({4{m1_sb_hit[2]}} & sb_entry[2].strb) |
+                        ({4{m1_sb_hit[3]}} & sb_entry[3].strb);
+
+    assign m1_sb_rdata = ({32{m1_sb_hit[0]}} & sb_entry[0].wdata) |
+                         ({32{m1_sb_hit[1]}} & sb_entry[1].wdata) |
+                         ({32{m1_sb_hit[2]}} & sb_entry[2].wdata) |
+                         ({32{m1_sb_hit[3]}} & sb_entry[3].wdata);
 
     // 注： M1 天然带有 skid buf 属性，当 M2 暂停后的第一个周期，M1 依然可以接受一条请求。
     // M1 此时的请求将被压入 M1 的 skid buf 中记录，并实时检查 snoop 进行更新。
     // 这里的 snoop 主要是为了避免重复 refill
 
-    
+    // M2 部分开始，涉及主状态机
+    // M2 请求结构体
+    typedef struct packed {
+        logic             wreq;   // 写请求
+        logic       [3:0] strb;    // 写掩码
+        logic       [2:0] cacop;   // cache 请求
+        logic             dbar;    // 产生 dbar 效果
+        logic             llsc;    // llsc 指令，读时需要申请写权限
+        logic       [1:0] msize;   // 访存大小-1
+        logic      [31:0] paddr;   // 请求物理地址
+        logic             uncache; // Uncached 请求
+        logic      [31:0] wdata;   // 写数据
+        logic       [3:0] hit;     // 这里不用更新，到达此处的命中指令被认为已经完成访存
+        logic       [3:0] sb_hit;  // store buffer 在 m2 暂停的时候，不会被更新，因此 sb_hit 可以一直使用。
+        logic [3:0][31:0] data;    // sram data
+        logic inv; logic pme; logic ppi; logic ale; logic tlbr; // TLB EXCP
+    } m2_pack_t;
+
+
 endmodule
