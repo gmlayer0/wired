@@ -14,8 +14,8 @@ module wired_lsu(
     output iq_lsu_resp_t lsu_resp_o,
 
     // CPU COMMIT 中的交互端口
-    input commit_lsu_req_t  commit_lsu_req_i,
-    input commit_lsu_resp_t commit_lsu_resp_o,
+    input  commit_lsu_req_t  commit_lsu_req_i,
+    output commit_lsu_resp_t commit_lsu_resp_o,
 
     // 到总线侧的请求接口
     output lsu_bus_req_t  bus_req_o,
@@ -231,6 +231,77 @@ module wired_lsu(
         logic [3:0][31:0] data;    // sram data
         logic inv; logic pme; logic ppi; logic ale; logic tlbr; // TLB EXCP
     } m2_pack_t;
+    logic m2_c_valid_q;
+    m2_pack_t m2;
+    always_ff @(posedge clk) begin
+        if(m1_m2_ready) begin
+            m2 <= m1;
+        end
+    end
+    always_ff @(posedge clk) begin
+        if(!rst_n) begin
+            m2_c_valid_q <= '0;
+        end else if(m1_m2_ready) begin
+            m2_c_valid_q <= m1_m2_valid;
+        end
+    end
 
+    // M2 主状态机
+    typedef logic[3:0] fsm_t;
+    localparam fsm_t S_NORMAL  = 0;
+    localparam fsm_t S_HANDLED = 1; // 已经处理就绪，但是后级暂停
+    localparam fsm_t S_MWAITSB = 2; // Storebuffer Multihit
+    localparam fsm_t S_MREFILL = 3; // Read miss(LL include) REFILL
+    localparam fsm_t S_MCACOP  = 4;  // Cache operation
+    localparam fsm_t S_MDBAR   = 5;   // DBarrier
+    localparam fsm_t S_CUCLOAD = 6; // Uncached load
+    localparam fsm_t S_CUCSTRD = 7; // Uncached store
+    localparam fsm_t S_CREFILL = 8; // Store miss(SC exclude) REFILL
+
+    fsm_t fsm_q;
+    fsm_t fsm;
+    always_ff @(posedge clk) begin
+        if(!rst_n) begin
+            fsm_q <= S_NORMAL;
+        end else begin
+            fsm_q <= fsm;
+        end
+    end
+    // 主状态机转移逻辑
+    always_comb begin
+        fsm = fsm_q;
+        m1_m2_ready = '0;
+        bus_req_o = '0;         // 产生所有到总线管理器的请求
+        commit_lsu_resp_o = '0; // 产生所有到提交级的响应
+        case (fsm_q)
+        default/*S_NORMAL*/: begin
+            
+        end
+        S_HANDLED: begin
+            
+        end
+        S_MWAITSB: begin
+            
+        end
+        S_MREFILL: begin
+            
+        end
+        S_MCACOP: begin
+            
+        end
+        S_MDBAR: begin
+            
+        end
+        S_CUCLOAD: begin
+            
+        end
+        S_CUCSTRD: begin
+            
+        end
+        S_CREFILL: begin
+            
+        end
+        endcase
+    end
 
 endmodule
