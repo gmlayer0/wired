@@ -1,5 +1,8 @@
-// dcache cpu side
+// dcache bus side
 `include "wired0_defines"
+
+// include tilelink header
+`include "tl_util.svh"
 
 module wired_tl_adapter #(
     parameter int unsigned SourceWidth = 1,
@@ -82,7 +85,13 @@ module wired_tl_adapter #(
     logic [11:4] prb_tag_set;
     cache_tag_t [3:0] prb_tag;
 
-    // CPU_Request 状态机 - crq
+    // CPU_Request 状态机 - crq - - write SRAM-DATA
+    /* - data sram - */
+    logic             crq_data_valid, crq_data_ready;
+    logic  [1:0]      crq_data_way;
+    logic [11:0]      crq_data_addr;
+    logic [3:0][3:0]  crq_data_wstrb;
+    logic [3:0][31:0] crq_data_wdata;
 
     // Invalid     状态机 - inv - C、D - write SRAM-TAG, read SRAM-DATA
     /* - tl - */
@@ -90,11 +99,16 @@ module wired_tl_adapter #(
     tl_c_t inv_c;
     logic inv_d_valid, inv_d_ready;
     tl_d_t inv_d;
-    /* - sram - */
+    /* - tag sram - */
     logic inv_tag_valid, inv_tag_ready;
     logic [11:4] inv_tag_set;
     logic  [3:0] inv_tag_we;
     cache_tag_t  inv_tag;
+    /* - data sram - */
+    logic        inv_data_valid, inv_data_ready;
+    logic  [1:0] inv_data_way;
+    logic [11:0] inv_data_addr;
+    logic [3:0][31:0] inv_data_rdata;
 
     // Acquire     状态机 - acq - A、D、E - write SRAM-TAG, write SRAM-DATA
     /* - tl - */
@@ -104,11 +118,17 @@ module wired_tl_adapter #(
     tl_d_t acq_d;
     logic acq_e_valid, acq_e_ready;
     tl_e_t acq_e;
-    /* - sram - */
+    /* - tag sram - */
     logic acq_tag_valid, acq_tag_ready;
     logic [11:4] acq_tag_set;
     logic  [3:0] acq_tag_we;
     cache_tag_t  acq_tag;
+    /* - data sram - */
+    logic             acq_data_valid, acq_data_ready;
+    logic  [1:0]      acq_data_way;
+    logic [11:0]      acq_data_addr;
+    logic [3:0][3:0]  acq_data_wstrb;
+    logic [3:0][31:0] acq_data_wdata;
 
     // Uncached    状态机 - unc - A、D
     logic unc_a_valid, unc_a_ready;
@@ -119,6 +139,79 @@ module wired_tl_adapter #(
     /* --- --- --- --- --- --- --- --- ARB Begin --- --- --- --- --- --- --- --- --- */
 
     // SRAM 仲裁器，固定优先级
+    // - tag 仲裁器，两写一读 - prb / inv acq -
+    logic [2:0] sram_tag_valid_mult, sram_tag_ready_mult;
+    logic [2:0][11:4] sram_tag_addr_mult;
+    logic [2:0][3:0]  sram_tag_we_mult;
+    cache_tag_t [2:0] sram_tag_w_mult;
+    assign sram_tag_valid_mult[0] = prb_tag_valid;
+    assign sram_tag_valid_mult[1] = inv_tag_valid;
+    assign sram_tag_valid_mult[2] = acq_tag_valid;
+    assign sram_tag_addr_mult[0] = prb_tag_set;
+    assign sram_tag_addr_mult[1] = inv_tag_set;
+    assign sram_tag_addr_mult[2] = acq_tag_set;
+    assign prb_tag_ready = sram_tag_ready_mult[0];
+    assign inv_tag_ready = sram_tag_ready_mult[1];
+    assign acq_tag_ready = sram_tag_ready_mult[2];
+    assign sram_tag_we_mult[0] = '0;
+    assign sram_tag_we_mult[1] = inv_tag_we;
+    assign sram_tag_we_mult[2] = acq_tag_we;
+    assign sram_tag_w_mult[0] = '0;
+    assign sram_tag_w_mult[1] = inv_tag;
+    assign sram_tag_w_mult[2] = acq_tag;
+    assign prb_tag = t_rtag_i;
+    assign sram_tag_ready_mult[0] = '1;
+    assign sram_tag_ready_mult[1] = ~sram_tag_valid_mult[0];
+    assign sram_tag_ready_mult[2] = ~sram_tag_valid_mult[0] & ~sram_tag_valid_mult[1];
+    assign t_addr_o = sram_tag_valid_mult[0] ? sram_tag_addr_mult[0] : 
+                      sram_tag_valid_mult[1] ? sram_tag_addr_mult[1] :
+                                               sram_tag_addr_mult[2];
+    assign t_we_o   = sram_tag_valid_mult[0] ? sram_tag_we_mult[0] : 
+                      sram_tag_valid_mult[1] ? sram_tag_we_mult[1] :
+                                               sram_tag_we_mult[2];
+    assign t_wtag_o = sram_tag_valid_mult[0] ? sram_tag_w_mult[0] : 
+                      sram_tag_valid_mult[1] ? sram_tag_w_mult[1] :
+                                               sram_tag_w_mult[2];
+    // - data 仲裁器，两写一读 - inv / crq acq -
+    logic [2:0] sram_data_valid_mult, sram_data_ready_mult;
+    logic [2:0][1:0]  sram_data_way_mult;
+    logic [2:0][11:0] sram_data_addr_mult;
+    logic [2:0][3:0][3:0]  sram_data_strb_mult;
+    logic [2:0][3:0][31:0] sram_data_w_mult;
+    assign sram_data_valid_mult[0] = crq_data_valid;
+    assign sram_data_valid_mult[1] = inv_data_valid;
+    assign sram_data_valid_mult[2] = acq_data_valid;
+    assign sram_data_way_mult[0] = crq_data_way;
+    assign sram_data_way_mult[1] = inv_data_way;
+    assign sram_data_way_mult[2] = acq_data_way;
+    assign sram_data_addr_mult[0] = crq_data_addr;
+    assign sram_data_addr_mult[1] = inv_data_addr;
+    assign sram_data_addr_mult[2] = acq_data_addr;
+    assign crq_data_ready = sram_data_ready_mult[0];
+    assign inv_data_ready = sram_data_ready_mult[1];
+    assign acq_data_ready = sram_data_ready_mult[2];
+    assign sram_data_strb_mult[0] = crq_data_wstrb;
+    assign sram_data_strb_mult[1] = '0;
+    assign sram_data_strb_mult[2] = acq_data_wstrb;
+    assign sram_data_w_mult[0] = crq_data_wdata;
+    assign sram_data_w_mult[1] = '0;
+    assign sram_data_w_mult[2] = acq_data_wdata;
+    assign inv_data_rdata = m_rdata_i;
+    assign sram_data_ready_mult[0] = '1;
+    assign sram_data_ready_mult[1] = ~sram_data_valid_mult[0];
+    assign sram_data_ready_mult[2] = ~sram_data_valid_mult[0] & ~sram_data_valid_mult[1];
+    assign m_way_o   = sram_data_valid_mult[0] ? sram_data_way_mult[0] :
+                      sram_data_valid_mult[1] ? sram_data_way_mult[1] :
+                                                sram_data_way_mult[2];
+    assign m_addr_o  = sram_data_valid_mult[0] ? sram_data_addr_mult[0] :
+                      sram_data_valid_mult[1] ? sram_data_addr_mult[1] :
+                                                sram_data_addr_mult[2];
+    assign m_strb_o  = sram_data_valid_mult[0] ? sram_data_strb_mult[0] :
+                      sram_data_valid_mult[1] ? sram_data_strb_mult[1] :
+                                                sram_data_strb_mult[2];
+    assign m_wdata_o = sram_data_valid_mult[0] ? sram_data_w_mult[0] :
+                       /*sram_data_valid_mult[1] ? sram_data_w_mult[1] : 实际上不太需要*/
+                                                sram_data_w_mult[2];
 
     // TILELINK 仲裁器，固定优先级
 
