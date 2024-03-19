@@ -28,7 +28,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     output  logic [11:4] t_addr_o,
     output  logic  [3:0] t_we_o,
     output  cache_tag_t  t_wtag_o,
-    input   cache_tag_t  t_rtag_i,
+    input   cache_tag_t  [3:0] t_rtag_i,
 
     `TL_DECLARE_HOST_PORT(DataWidth, PhysAddrLen, SourceWidth, SinkWidth, tl) // tl_a_o
 );
@@ -40,15 +40,15 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic prb_inv_cal; // prb drive
     logic prb_inv_ret; // inv drive
     // payload
-    logic [1:0] prb_inv_way; // prb drive
-    logic [7:0] prb_inv_set; // prb drive
+    logic        prb_inv_hit;  // prb drive, 仅无效化命中行，否之无效化 addr[15:12] 掩码对应所有行
+    logic [31:0] prb_inv_addr; // prb drive
     // - crq begin
     // --- crq call inv
     logic crq_inv_cal; // crq drive
     logic crq_inv_ret; // inv drive
     // payload
-    logic [1:0]  crq_inv_way; // crq drive
-    logic [11:4] crq_inv_set; // crq drive
+    logic        prb_inv_hit;  // crq drive, 仅无效化命中行，否之无效化 addr[15:12] 掩码对应所有行
+    logic [31:0] crq_inv_addr; // crq drive
     // --- crq call acq
     logic crq_acq_cal; // crq drive
     logic crq_acq_ret; // acq drive
@@ -81,9 +81,9 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic prb_b_valid, prb_b_ready;
     tl_b_t prb_b;
     /* - sram - */
-    logic prb_tag_valid, prb_tag_ready;
-    logic [11:4] prb_tag_set;
-    cache_tag_t [3:0] prb_tag;
+    // logic prb_tag_valid, prb_tag_ready;
+    // logic [11:4] prb_tag_set;
+    // cache_tag_t [3:0] prb_tag;
 
     // CPU_Request 状态机 - crq - - write SRAM-DATA
     /* - data sram - */
@@ -93,7 +93,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic [3:0][3:0]  crq_data_wstrb;
     logic [3:0][31:0] crq_data_wdata;
 
-    // Invalid     状态机 - inv - C、D - write SRAM-TAG, read SRAM-DATA
+    // Invalid     状态机 - inv - C、D - read/write SRAM-TAG, read SRAM-DATA
     /* - tl - */
     logic inv_c_valid, inv_c_ready;
     tl_c_t inv_c;
@@ -104,6 +104,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic [11:4] inv_tag_set;
     logic  [3:0] inv_tag_we;
     cache_tag_t  inv_tag;
+    cache_tag_t [3:0] inv_rtag;
     /* - data sram - */
     logic        inv_data_valid, inv_data_ready;
     logic  [1:0] inv_data_way;
@@ -163,6 +164,43 @@ module wired_tl_adapter import tl_pkg::*; #(
                                ####      ## ##   ##   ##  
     --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     */
+    // Probe       状态机 - prb - B - read SRAM-TAG
+    if(1) begin : prb_fsm
+        /* PROBE 状态机，状态定义 */
+        typedef logic[1:0] fsm_t;
+        fsm_t fsm;
+        fsm_t fsm_q;
+        localparam fsm_t S_FREE = 0;
+        localparam fsm_t S_INV = 1; // Call inv
+    end
+
+    // CPU_Request 状态机 - crq - - write SRAM-DATA
+    if(1) begin : crq_fsm
+        /* PROBE 状态机，状态定义 */
+        typedef logic[2:0] fsm_t;
+        fsm_t fsm;
+        fsm_t fsm_q;
+        localparam fsm_t S_FREE = 0;
+        localparam fsm_t S_ULD = 1; // Call unc
+        localparam fsm_t S_UST = 2; // Call unc
+        localparam fsm_t S_COP = 3; // Call inv
+        localparam fsm_t S_INV = 4; // Call inv
+        localparam fsm_t S_ACQ = 5; // Call acq
+    end
+
+    // Invalid     状态机 - inv - C、D - read/write SRAM-TAG, read SRAM-DATA
+    if(1) begin : inv_fsm
+        /* PROBE 状态机，状态定义 */
+        typedef logic[2:0] fsm_t;
+        fsm_t fsm;
+        fsm_t fsm_q;
+        localparam fsm_t S_FREE = 0;
+        localparam fsm_t S_ULD = 1; // Call unc
+        localparam fsm_t S_UST = 2; // Call unc
+        localparam fsm_t S_COP = 3; // Call inv
+        localparam fsm_t S_INV = 4; // Call inv
+        localparam fsm_t S_ACQ = 5; // Call acq
+    end
 
     // SRAM 仲裁器，固定优先级
     // - tag 仲裁器，两写一读 - prb / inv acq -
@@ -170,22 +208,23 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic [2:0][11:4] sram_tag_addr_mult;
     logic [2:0][3:0]  sram_tag_we_mult;
     cache_tag_t [2:0] sram_tag_w_mult;
-    assign sram_tag_valid_mult[0] = prb_tag_valid;
-    assign sram_tag_valid_mult[1] = inv_tag_valid;
-    assign sram_tag_valid_mult[2] = acq_tag_valid;
-    assign sram_tag_addr_mult[0] = prb_tag_set;
-    assign sram_tag_addr_mult[1] = inv_tag_set;
-    assign sram_tag_addr_mult[2] = acq_tag_set;
-    assign prb_tag_ready = sram_tag_ready_mult[0];
-    assign inv_tag_ready = sram_tag_ready_mult[1];
-    assign acq_tag_ready = sram_tag_ready_mult[2];
+    assign sram_tag_valid_mult[0] = /*prb_tag_valid*/ '0;
+    assign sram_tag_valid_mult[1] = acq_tag_valid;
+    assign sram_tag_valid_mult[2] = inv_tag_valid;
+    assign sram_tag_addr_mult[0] = /*prb_tag_set*/ '0;
+    assign sram_tag_addr_mult[1] = acq_tag_set;
+    assign sram_tag_addr_mult[2] = inv_tag_set;
+    // assign prb_tag_ready = sram_tag_ready_mult[0];
+    assign acq_tag_ready = sram_tag_ready_mult[1];
+    assign inv_tag_ready = sram_tag_ready_mult[2];
     assign sram_tag_we_mult[0] = '0;
-    assign sram_tag_we_mult[1] = inv_tag_we;
-    assign sram_tag_we_mult[2] = acq_tag_we;
+    assign sram_tag_we_mult[1] = acq_tag_we;
+    assign sram_tag_we_mult[2] = inv_tag_we;
     assign sram_tag_w_mult[0] = '0;
-    assign sram_tag_w_mult[1] = inv_tag;
-    assign sram_tag_w_mult[2] = acq_tag;
-    assign prb_tag = t_rtag_i;
+    assign sram_tag_w_mult[1] = acq_tag;
+    assign sram_tag_w_mult[2] = inv_tag;
+    // assign prb_tag = t_rtag_i;
+    assign inv_rtag = t_rtag_i;
     assign sram_tag_ready_mult[0] = '1;
     assign sram_tag_ready_mult[1] = ~sram_tag_valid_mult[0];
     assign sram_tag_ready_mult[2] = ~sram_tag_valid_mult[0] & ~sram_tag_valid_mult[1];
@@ -205,23 +244,23 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic [2:0][3:0][3:0]  sram_data_strb_mult;
     logic [2:0][3:0][31:0] sram_data_w_mult;
     assign sram_data_valid_mult[0] = crq_data_valid;
-    assign sram_data_valid_mult[1] = inv_data_valid;
-    assign sram_data_valid_mult[2] = acq_data_valid;
+    assign sram_data_valid_mult[1] = acq_data_valid;
+    assign sram_data_valid_mult[2] = inv_data_valid;
     assign sram_data_way_mult[0] = crq_data_way;
-    assign sram_data_way_mult[1] = inv_data_way;
-    assign sram_data_way_mult[2] = acq_data_way;
+    assign sram_data_way_mult[1] = acq_data_way;
+    assign sram_data_way_mult[2] = inv_data_way;
     assign sram_data_addr_mult[0] = crq_data_addr;
-    assign sram_data_addr_mult[1] = inv_data_addr;
-    assign sram_data_addr_mult[2] = acq_data_addr;
+    assign sram_data_addr_mult[1] = acq_data_addr;
+    assign sram_data_addr_mult[2] = inv_data_addr;
     assign crq_data_ready = sram_data_ready_mult[0];
-    assign inv_data_ready = sram_data_ready_mult[1];
-    assign acq_data_ready = sram_data_ready_mult[2];
+    assign acq_data_ready = sram_data_ready_mult[1];
+    assign inv_data_ready = sram_data_ready_mult[2];
     assign sram_data_strb_mult[0] = crq_data_wstrb;
-    assign sram_data_strb_mult[1] = '0;
-    assign sram_data_strb_mult[2] = acq_data_wstrb;
+    assign sram_data_strb_mult[1] = acq_data_wstrb;
+    assign sram_data_strb_mult[2] = '0;
     assign sram_data_w_mult[0] = crq_data_wdata;
-    assign sram_data_w_mult[1] = '0;
-    assign sram_data_w_mult[2] = acq_data_wdata;
+    assign sram_data_w_mult[1] = acq_data_wstrb;
+    assign sram_data_w_mult[2] = '0;
     assign inv_data_rdata = m_rdata_i;
     assign sram_data_ready_mult[0] = '1;
     assign sram_data_ready_mult[1] = ~sram_data_valid_mult[0];
@@ -236,8 +275,8 @@ module wired_tl_adapter import tl_pkg::*; #(
                       sram_data_valid_mult[1] ? sram_data_strb_mult[1] :
                                                 sram_data_strb_mult[2];
     assign m_wdata_o = sram_data_valid_mult[0] ? sram_data_w_mult[0] :
-                       /*sram_data_valid_mult[1] ? sram_data_w_mult[1] : 实际上不太需要*/
-                                                sram_data_w_mult[2];
+                       /*sram_data_valid_mult[1] ? */sram_data_w_mult[1]/* :
+                                                sram_data_w_mult[2]*/;
 
     // TILELINK 仲裁器，固定优先级
 

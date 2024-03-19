@@ -343,7 +343,10 @@ typedef struct packed {
   logic uncached_store_req;
   logic acq_read_req;  // 申请读权限
   logic acq_write_req; // 申请写权限
+  logic cacinv_req;
   logic sram_wb_req;
+
+  logic [3:0]  inv_mask;
 
   logic [3:0]  wstrobe;
   logic [31:0] wdata;
