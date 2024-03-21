@@ -5,9 +5,9 @@
 `include "tl_util.svh"
 
 module wired_tl_adapter import tl_pkg::*; #(
-    parameter int unsigned SourceWidth = 1,
-    parameter int unsigned SinkWidth   = 1,
-    parameter bit [SourceWidth-1:0] SourceBase  = 0,
+    parameter int unsigned SOURCE_WIDTH = 1,
+    parameter int unsigned SINK_WIDTH   = 1,
+    parameter bit [SOURCE_WIDTH-1:0] SOURCE_BASE  = 0,
 )(
     `_WIRED_GENERAL_DEFINE,
     // 到 CPU 侧的请求接口
@@ -30,7 +30,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     output  cache_tag_t  t_wtag_o,
     input   cache_tag_t  [3:0] t_rtag_i,
 
-    `TL_DECLARE_HOST_PORT(DataWidth, PhysAddrLen, SourceWidth, SinkWidth, tl) // tl_a_o
+    `TL_DECLARE_HOST_PORT(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl) // tl_a_o
 );
 
     /* --- --- --- --- --- --- ---  I-FSM-CALL Begin  --- --- --- --- --- --- --- --- */
@@ -55,7 +55,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     // --- crq call inv
     logic        crq_inv_cal; // crq drive
     logic        crq_inv_ret; // inv drive
-    logic [1:0]  crq_inv_sel; // inv drive
+    logic [2:0]  crq_inv_sel; // high indecate-write hit inv drive
     // payload
     inv_parm_e   crq_inv_parm; // crq drive
     logic [31:0] crq_inv_addr; // crq drive
@@ -80,11 +80,11 @@ module wired_tl_adapter import tl_pkg::*; #(
     /* --- --- --- --- --- --- --- --- FSM Defines Begin  --- --- --- --- --- --- --- --- */
 
     // 有意思的是，只有 A 需要仲裁，C、E 均为独享。
-    typedef `TL_A_STRUCT(128, 32, SourceWidth, SinkWidth) tl_a_t;
-    typedef `TL_B_STRUCT(128, 32, SourceWidth, SinkWidth) tl_b_t;
-    typedef `TL_C_STRUCT(128, 32, SourceWidth, SinkWidth) tl_c_t;
-    typedef `TL_D_STRUCT(128, 32, SourceWidth, SinkWidth) tl_d_t;
-    typedef `TL_E_STRUCT(128, 32, SourceWidth, SinkWidth) tl_e_t;
+    typedef `TL_A_STRUCT(128, 32, SOURCE_WIDTH, SINK_WIDTH) tl_a_t;
+    typedef `TL_B_STRUCT(128, 32, SOURCE_WIDTH, SINK_WIDTH) tl_b_t;
+    typedef `TL_C_STRUCT(128, 32, SOURCE_WIDTH, SINK_WIDTH) tl_c_t;
+    typedef `TL_D_STRUCT(128, 32, SOURCE_WIDTH, SINK_WIDTH) tl_d_t;
+    typedef `TL_E_STRUCT(128, 32, SOURCE_WIDTH, SINK_WIDTH) tl_e_t;
 
     // Probe       状态机 - prb - B - read SRAM-TAG
     /* - tl - */
@@ -119,7 +119,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic        inv_data_valid, inv_data_ready;
     logic  [1:0] inv_data_way;
     logic [11:0] inv_data_addr;
-    logic [3:0][31:0] inv_data_rdata;
+    logic [3:0][31:0] inv_data;
 
     // Acquire     状态机 - acq - A、D、E - write SRAM-TAG, write SRAM-DATA
     /* - tl - */
@@ -250,6 +250,8 @@ module wired_tl_adapter import tl_pkg::*; #(
         typedef struct packed {
             logic     sel_prb; // 响应来自 prb 的请求，否之则是 crq
             logic [31:0] addr;
+            logic [31:0] taddr; // 低 2 位是 index
+            logic [3:0][31:0] data;
         } registerd_entrys;
         always_comb begin
             
@@ -259,17 +261,31 @@ module wired_tl_adapter import tl_pkg::*; #(
     // Invalid     状态机 - inv - C、D - read/write SRAM-TAG, read SRAM-DATA
     if(1) begin : inv_fsm
         /* PROBE 状态机，状态定义 */
-        typedef logic[2:0] fsm_t;
+        logic [7:0] rnd_value_q;
+        always_ff @(posedge clk) begin
+            if(~rst_n) begin
+                rnd_value_q <= 8'h24;
+            end else begin
+                rnd_value <= {rnd_value[5:0], ~{rnd_value_q[7] ^ rnd_value_q[5] ^ rnd_value_q[4] ^ rnd_value_q[3]},
+                                              ~{rnd_value_q[6] ^ rnd_value_q[4] ^ rnd_value_q[3] ^ rnd_value_q[2]}};
+            end
+        end
+        wire [1:0] rnd_sel = rnd_value_q[7:6];
+        wire [3:0] rnd_sel_oh = {rnd_sel == 2'd3, rnd_sel == 2'd2, rnd_sel == 2'd1, rnd_sel == 2'd0};
+        typedef logic[3:0] fsm_t;
         fsm_t fsm;
         fsm_t fsm_q;
-        localparam fsm_t S_FREE = 0;
+        localparam fsm_t S_FREE  = 0;
         localparam fsm_t S_RTAG0 = 1; // Read tags request
         localparam fsm_t S_RTAG1 = 2; // Read tags fetch result
-        localparam fsm_t S_MTAG = 3; // Match tags
-        localparam fsm_t S_WTAG = 4; // Write tag sram
-        localparam fsm_t S_RDAT = 5; // Read data sram
-        localparam fsm_t S_TLC  = 6; // TL-C
-        localparam fsm_t S_TLD  = 7; // TL-D
+        localparam fsm_t S_ASEL  = 3; // Alloc select
+        localparam fsm_t S_HSEL  = 4; // Hit select
+        localparam fsm_t S_WTAG  = 5; // Write tag sram
+        localparam fsm_t S_SEL   = 6; // 从 MASK 中拿到第一个请求，并无效化对应 MASK
+        localparam fsm_t S_RDAT0 = 7; // Read data request
+        localparam fsm_t S_RDAT1 = 7; // Read data fetch result
+        localparam fsm_t S_TLC   = 8; // TL-C
+        localparam fsm_t S_TLD   = 9; // TL-D
         typedef struct packed {
             logic     prb_sel; // 选择来自 prb 的请求
             logic [31:0] addr;
@@ -296,12 +312,18 @@ module wired_tl_adapter import tl_pkg::*; #(
             crq_inv_sel = '0;
             inv_c_valid = '0;
             inv_c = '0;
+            inv_c.opcode = tl_pkg::Release;
+            inv_c.source = SOURCE_BASE;
+            inv_c.size = 4; // 16Bytes == 128bits == 2^4Bytes
+            inv_c.address = {q.taddr[31:4], 4'd0};
+            inv_c.data = q.data;
+            inv_d_ready = '0;
             inv_data_valid = '0;
-            inv_data_addr = '0;
-            inv_data_way = '0;
+            inv_data_addr = {q.taddr[11:4], 4'd0};
+            inv_data_way = q.taddr[1:0];
             inv_tag_valid = '0;
             inv_tag_we = '0;
-            inv_tag_set = '0;
+            inv_tag_set = q.addr[11:4];
             inv_tag = '0;
             case (fsm_q)
                 /*S_FREE*/default: begin
@@ -325,33 +347,112 @@ module wired_tl_adapter import tl_pkg::*; #(
                 end
                 S_RTAG1: begin
                     d.tags = inv_rtag;
-                    // RD_ALLOC 不需要 match，只需要找空行
-                    if(q.parm inside {RD_ALLOC, IDX_INV, IDX_INIT}) begin
+                    // 这两个不需要 match 生成 mask
+                    if(q.parm inside {IDX_INV, IDX_INIT}) begin
                         fsm = S_WTAG;
                     end else begin
-                        fsm = S_MTAG;
+                        if(q.parm == RD_ALLOC) begin
+                            fsm = S_ASEL;
+                        end else begin
+                            fsm = S_HSEL;
+                        end
                     end
                 end
-                S_MTAG: begin
+                S_ASEL: begin
+                    // 生成 分配项目的 mask
+                    for(integer i = 0 ; i < 4 ; i += 1) begin
+                        if(!q.tags[i].rp && (d.mask == '0)) begin
+                            d.mask[i] = '1;
+                            crq_inv_sel = {1'b1, i[1:0]};
+                        end
+                    end
+                    if(d.mask == '0) begin
+                        d.mask = rnd_sel_oh[3:0];
+                        // 这里还是需要去释放下旧表项的
+                        fsm = S_WTAG;
+                    end else begin
+                        // 不用再继续走了，返回空闲项目就行
+                        crq_inv_ret = '1;
+                        fsm = S_FREE;
+                    end
+                end
+                S_HSEL: begin // 以命中的方式选择表项
                     for(integer i = 0 ; i < 4 ; i += 1) begin
                         if(q.tags[i].rp && q.tags[i].p == q.addr[31:12]) begin
                             d.mask[i] = '1; // hit logic 
-                            d.perm = {q.tags[i].rp, q.tags[i].wp};
-                            if(q.parm = WR_ALLOC) begin
-                                fsm = S_FREE;
-                                crq_inv_ret = '1;
-                                crq_inv_sel = i[1:0];
-                            end
                         end
                     end
-                    if(!crq_inv_ret) begin
+                    if((d.mask == '0)) begin
+                        if(q.parm inside {PRB_HIT_ADDR_N, PRB_HIT_ADDR_B}) begin
+                            // 没有命中项目，对于 probe 请求，直接返回 C 即可
+                            fsm = S_TLC;
+                        end else begin
+                            // 对于写请求，继续进行 ASEL 工作
+                            fsm = S_ASEL;
+                        end
+                    end else begin
+                        // 存在命中项目，即至少存在 rp == '1
                         fsm = S_WTAG;
                     end
                 end
                 S_WTAG: begin
-                    // WR_ALLOC | RD_ALLOC
-                    // PRB_HIT_ADDR_N
-                    // PRB_HIT_ADDR_B
+                    // 所有 mask 的 TAG 都需要在这里被无效化
+                    inv_tag_valid = '1;
+                    inv_tag_we = q.mask;
+                    inv_tag_set = q.addr[11:4];
+                    inv_tag = '0;
+                    inv_tag.rp = q.parm == PRB_HIT_ADDR_B ? '1 : '0;
+                    IF(inv_tag_ready) begin
+                        // 继续前进！
+                        fsm = S_SEL;
+                    end
+                end
+                S_SEL: begin
+                    for(integer i = 3 ; i >= 0 ; i -= 1) begin
+                        if(d.mask[i]) begin
+                            d.perm  = {q.tags[i].wp, q.tags[i].rp}
+                            d.taddr = {q.tags[i].p, q.addr[11:4],2'd0,i[1:0]};
+                        end
+                    end
+                    d.mask[d.taddr[1:0]] == '0;
+                    if(d.perm[1]) fsm = S_RDAT0;
+                    else fsm = S_TLC;
+                end
+                S_RDAT0: begin
+                    inv_data_valid = '1;
+                    inv_data_addr = {q.taddr[11:4], 4'd0};
+                    inv_data_way = q.taddr[1:0];
+                    if(inv_data_ready) fsm = S_RDAT1;
+                end
+                S_RDAT1: begin
+                    d.data = inv_data;
+                    fsm = S_TLC;
+                end
+                S_TLC: begin
+                    // form tlc request
+                    inv_c_valid = '1;
+                    inv_c.opcode = q.parm inside {PRB_HIT_ADDR_B, PRB_HIT_ADDR_N} ? (
+                        q.perm[1] ? tl_pkg::ProbeAckData : tl_pkg::ProbeAck
+                    ) : (
+                        q.perm[1] ? tl_pkg::ReleaseData : tl_pkg::Release
+                    );
+                    inv_c.param = q.parm == PRB_HIT_ADDR_B ? (
+                        q.perm[1] ? tl_pkg::TtoB : (q.perm[0] ? tl_pkg::BtoB : tl_pkg::NtoN)
+                    ) : (
+                        q.perm[1] ? tl_pkg::TtoN : (q.perm[0] ? tl_pkg::BtoN : tl_pkg::NtoN)
+                    );
+                    if(inv_c_ready) begin
+                        // Probe 到此结束，否之等待 response
+                        if(q.parm inside {PRB_HIT_ADDR_B, PRB_HIT_ADDR_N}) begin
+                            prb_inv_ret = '1;
+                            fsm = S_FREE;
+                        end 
+                    end else begin
+                        fsm = S_TLD;
+                    end
+                end
+                S_TLD: begin
+                    // 等待
                 end
             endcase
         end
@@ -433,7 +534,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     assign sram_data_w_mult[0] = crq_data_wdata;
     assign sram_data_w_mult[1] = acq_data_wstrb;
     assign sram_data_w_mult[2] = '0;
-    assign inv_data_rdata = m_rdata_i;
+    assign inv_data = m_rdata_i;
     assign sram_data_ready_mult[0] = '1;
     assign sram_data_ready_mult[1] = ~sram_data_valid_mult[0];
     assign sram_data_ready_mult[2] = ~sram_data_valid_mult[0] & ~sram_data_valid_mult[1];
