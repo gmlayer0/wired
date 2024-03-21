@@ -475,9 +475,98 @@ module wired_tl_adapter import tl_pkg::*; #(
         localparam fsm_t S_WRAM = 3; // Write data&tag sram
         localparam fsm_t S_TLE  = 4; // Issue E response
         typedef struct packed {
-            logic [31:0] addr;
-            logic [2:0] parm;
+            logic [3:0][31:0]      data;
+            logic [31:0]           addr;
+            logic [1:0]             way;
+            logic [SINK_WIDTH-1:0] sink;
+            logic wp;
         } registerd_entrys;
+        registerd_entrys init = '0;
+        registerd_entrys q;
+        registerd_entrys d;
+        always_ff @(posedge clk) begin
+            if(!rst_n) begin
+                q <= init;
+            end else begin
+                q <= d;
+            end
+        end
+        always_comb begin
+            d = q;
+            crq_acq_ret = '0;
+            crq_acq_data = q.data;
+            acq_a_valid = '0;
+            acq_a = '0;
+            acq_a.opcode  = tl_pkg::AcquireBlock;
+            acq_a.param   = tl_pkg::NtoB;
+            acq_a.size    = 4;
+            acq_a.address = {q.addr[31:4], 4'd0};
+            acq_a.source  = SOURCE_BASE;
+            acq_a.mask    = '1;
+            acq_a.corrupt = '0;
+
+            acq_e_valid = '0;
+            acq_e = '0;
+            acq_e.sink    = q.sink;
+
+            // SRAM 控制信号
+            acq_tag_valid = '0;
+            acq_tag_set   = q.addr[11:4];
+            acq_tag_we    = '0;
+            acq_tag       = '0;
+            acq_tag.p     = q.addr[31:12];
+            acq_data_valid = '0;
+            acq_data_way   = q.way;
+            acq_data_addr  = q.addr[11:0];
+            acq_data_wstrb = '0;
+            acq_data_wdata = q.data;
+            case (fsm_q)
+            default/*S_FREE*/: begin
+                if(crq_acq_cal) begin
+                    d.addr = crq_acq_addr;
+                    d.way  = crq_acq_way;
+                    d.wp   = crq_acq_wp;
+                    fsm    = S_TLA;
+                end
+            end 
+            S_TLA: begin
+                acq_a_valid = '1;
+                if(q.wp) begin
+                    acq_a.param = tl_pkg::NtoT;
+                end
+                if(acq_a_ready) begin
+                    fsm = S_TLD;
+                end
+            end
+            S_TLD: begin
+                d.data = acq_d.data;
+                acq_d_ready = '1;
+                if(acq_d_valid && acq_d.opcode == tl_pkg::GrantData) begin
+                    fsm = S_WRAM;
+                end
+            end
+            S_WRAM: begin
+                acq_tag_valid = '1; // 这里只是为了锁住 inv，不允许其提前进入 RTAG 状态
+                acq_tag_we[q.way] = '1;
+                acq_data_valid = '1;
+                acq_data_wstrb = '1;
+                if(acq_data_ready) begin
+                    fsm = S_TLE;
+                end
+            end
+            S_TLE: begin
+                acq_tag_valid = '1;
+                acq_tag_we[q.way] = '1;
+                // Keep writing to tag sram to block inv from continue.
+                if(acq_e_ready) begin
+                    fsm = S_FREE;
+                    acq_tag.wp = q.wp;
+                    acq_tag.rp = '1; // 这里才更新状态
+                    crq_acq_ret = '1;
+                end
+            end
+            endcase
+        end
     end
 
     // SRAM 仲裁器，固定优先级
