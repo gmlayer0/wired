@@ -343,11 +343,14 @@ typedef struct packed {
   logic uncached_store_req;
   logic acq_read_req;  // 申请读权限
   logic acq_write_req; // 申请写权限
-  logic cacinv_req;
+  logic idxinv_req;    // 行无效
+  logic hitinv_req;
+  
   logic sram_wb_req;
 
   logic [3:0]  inv_mask;
-
+  logic [1:0]  size; // 0-1bytes, 1-2bytes, 2-4bytes, 3-8bytes
+  logic [1:0]  way;
   logic [3:0]  wstrobe;
   logic [31:0] wdata;
   logic [31:0] target_paddr;
@@ -356,7 +359,8 @@ typedef struct packed {
 
 typedef struct packed {
   logic ready;             // 响应完成
-  logic [3:0][31:0] rdata; // 把整个总线返回反馈给 LSU
+  logic [63:0] rdata;      // 返回给请求方 LSU
+                           // 注意：对于 size<=2 的请求仅使用低 32 位，否之使用全部 64 位
 } lsu_bus_resp_t;
 
 // TAG 内容

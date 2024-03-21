@@ -5,9 +5,9 @@
 `include "tl_util.svh"
 
 module wired_tl_adapter import tl_pkg::*; #(
-    parameter int unsigned SOURCE_WIDTH = 1,
-    parameter int unsigned SINK_WIDTH   = 1,
-    parameter bit [SOURCE_WIDTH-1:0] SOURCE_BASE  = 0,
+    parameter int unsigned SOURCE_WIDTH  = 1,
+    parameter int unsigned SINK_WIDTH    = 1,
+    parameter bit [SOURCE_WIDTH-1:0] SOURCE_BASE  = 0
 )(
     `_WIRED_GENERAL_DEFINE,
     // 到 CPU 侧的请求接口
@@ -46,6 +46,7 @@ module wired_tl_adapter import tl_pkg::*; #(
         WR_ALLOC,       // for write miss, check whether read hit, if hit, just return.
                         // otherwise, invalidate random way and return.
         IDX_INV,        // INDEX INVALID WRITE BACK
+        HIT_INV,
         IDX_INIT        // INDEXED INIT
     } inv_parm_e;
     // payload
@@ -230,16 +231,15 @@ module wired_tl_adapter import tl_pkg::*; #(
 
     // CPU_Request 状态机 - crq - - write SRAM-DATA
     if(1) begin : crq_fsm
-        /* PROBE 状态机，状态定义 */
+        /* CPU Request 状态机，状态定义 */
         typedef logic[2:0] fsm_t;
         fsm_t fsm;
         fsm_t fsm_q;
         localparam fsm_t S_FREE = 0;
         localparam fsm_t S_ULD = 1; // Call unc
         localparam fsm_t S_UST = 2; // Call unc
-        localparam fsm_t S_COP = 3; // Call inv
-        localparam fsm_t S_INV = 4; // Call inv
-        localparam fsm_t S_ACQ = 5; // Call acq
+        localparam fsm_t S_INV = 3; // Call inv
+        localparam fsm_t S_ACQ = 4; // Call acq
         always_ff @(posedge clk) begin
             if(!rst_n) begin
                 fsm_q <= S_FREE;
@@ -248,13 +248,103 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
         end
         typedef struct packed {
-            logic     sel_prb; // 响应来自 prb 的请求，否之则是 crq
-            logic [31:0] addr;
-            logic [31:0] taddr; // 低 2 位是 index
-            logic [3:0][31:0] data;
+            logic [1:0]  size;
+            logic [31:0] addr; // 目标地址
+            logic [63:0] data;
         } registerd_entrys;
+        registerd_entrys init = '0;
+        registerd_entrys q;
+        registerd_entrys d;
+        always_ff @(posedge clk) begin
+            if(!rst_n) begin
+                q <= init;
+                fsm_q <= S_FREE;
+            end else begin
+                q <= d;
+                fsm_q <= fsm;
+            end
+        end
         always_comb begin
-            
+            fsm = fsm_q;
+            d   = q;
+            // inv call
+            crq_inv_cal  = '0;
+            crq_inv_parm = '0;
+            crq_inv_addr = '0;
+            // acq call
+            crq_acq_cal  = '0;
+            crq_acq_wp   = '0; // crq drive, wether to get write permission
+            crq_acq_way  = '0; // crq drive
+            crq_acq_addr = '0; // crq drive
+            crq_acq_data = '0; // acq drive
+            // unc call
+            crq_unc_cal  = '0; // crq drive
+            crq_unc_wreq = '0;
+            crq_unc_strb = q.size[1] ? 4'b1111 : (q.size[0] ? 
+                                    (q.addr[1] ? 4'b1100 : 4'b0011) : 
+                                    (q.addr[1] ? (q.addr[0] ? 4'b1000 : 4'b0100) : (q.addr[0] ? 4'b0010 : 4'b0001)));
+            crq_unc_size = q.size;
+            crq_unc_addr = q.addr;
+            // cpu responded
+            bus_resp_o   = '0;
+            bus_resp_o.rdata = q.data;
+            // cpu writeback
+            crq_data_valid = '0;
+            crq_data_way = '0;
+            crq_data_addr = '0;
+            crq_data_wstrb = '0;
+            crq_data_wdata = '0;
+            case (fsm_q)
+            /*S_FREE*/default:begin
+                if(bus_req_i.valid) begin
+                    unique case (1'b1)
+                        bus_req_i.uncached_load_req: begin
+                            fsm = S_ULD;
+                            d.size = bus_req_i.size;
+                            d.addr = bus_req_i.target_paddr;
+                        end
+                        bus_req_i.uncached_store_req: begin
+                            fsm = S_UST;
+                            d.size = bus_req_i.size;
+                            d.addr = bus_req_i.target_paddr;
+                            d.data[31:0] = bus_req_i.wdata;
+                        end
+                        bus_req_i.acq_read_req, bus_req_i.acq_write_req, idxinv_req, hitinv_req: begin
+                            fsm = S_INV;
+                        end
+                        sram_wb_req: begin
+                            bus_resp_o.ready = '1;
+                            crq_data_valid = '1;
+                            crq_data_way   = bus_req_i.way;
+                            crq_data_addr  = {bus_req_i.addr[11:4], 4'd0};
+                            for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.addr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
+                            crq_data_wdata[bus_req_i.addr[3:2]] = bus_req_i.wdata;
+                        end
+                    endcase
+                end
+            end
+            S_ULD: begin
+                crq_unc_cal = '1;
+                d.data = ;
+                if(crq_unc_ret) begin
+                    bus_resp_o.ready = '1;
+                    fsm = S_FREE;
+                end
+            end
+            S_UST: begin
+                crq_unc_cal = '1;
+                crq_unc_wreq = '1;
+                if(crq_unc_ret) begin
+                    fsm = S_FREE;
+                end
+            end
+            S_INV: begin
+                
+            end
+            S_ACQ: begin
+                
+            end
+            endcase
         end
     end
 
@@ -300,8 +390,10 @@ module wired_tl_adapter import tl_pkg::*; #(
         always_ff @(posedge clk) begin
             if(!rst_n) begin
                 q <= init;
+                fsm_q <= S_FREE;
             end else begin
                 q <= d;
+                fsm_q <= fsm;
             end
         end
         always_comb begin
