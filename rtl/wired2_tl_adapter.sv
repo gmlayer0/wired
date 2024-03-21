@@ -453,6 +453,11 @@ module wired_tl_adapter import tl_pkg::*; #(
                 end
                 S_TLD: begin
                     // 等待
+                    if(inv_d_valid && inv_d.opcode == tl_pkg::ReleaseAck) begin
+                        inv_d_ready = '1;
+                        if(q.mask != 0) fsm = S_SEL;
+                        else fsm = S_FREE;
+                    end
                 end
             endcase
         end
