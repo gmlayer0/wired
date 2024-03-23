@@ -587,7 +587,7 @@ module wired_commit (
                                     // 2. 非 SC 的 Store 请求 MISS ，等待 Cache 重填后再执行（暂停等待）
                                     if(!c_lsu_resp_i.storebuf_hit) begin
                                         h_ready = '0;
-                                        fsm = S_WAIT_USTORE;
+                                        fsm = S_WAIT_MSTORE;
                                     end else begin
                                         c_lsu_req_o.storebuf_commit = '1;
                                     end
