@@ -46,7 +46,7 @@ module wired_tl_adapter import tl_pkg::*; #(
         WR_ALLOC,       // for write miss, check whether read hit, if hit, just return.
                         // otherwise, invalidate random way and return.
         IDX_INV,        // INDEX INVALID WRITE BACK
-        HIT_INV,
+        HIT_INV,        // TODO
         IDX_INIT        // INDEXED INIT
     } inv_parm_e;
     // payload
@@ -240,6 +240,7 @@ module wired_tl_adapter import tl_pkg::*; #(
         localparam fsm_t S_UST = 2; // Call unc
         localparam fsm_t S_INV = 3; // Call inv
         localparam fsm_t S_ACQ = 4; // Call acq
+        localparam fsm_t S_RET = 5; // Return value
         always_ff @(posedge clk) begin
             if(!rst_n) begin
                 fsm_q <= S_FREE;
@@ -251,6 +252,8 @@ module wired_tl_adapter import tl_pkg::*; #(
             logic [1:0]  size;
             logic [31:0] addr; // 目标地址
             logic [63:0] data;
+            logic     inv_req;
+            logic        parm;
         } registerd_entrys;
         registerd_entrys init = '0;
         registerd_entrys q;
@@ -269,8 +272,8 @@ module wired_tl_adapter import tl_pkg::*; #(
             d   = q;
             // inv call
             crq_inv_cal  = '0;
-            crq_inv_parm = '0;
-            crq_inv_addr = '0;
+            crq_inv_parm = HIT_INV;
+            crq_inv_addr = q.addr;
             // acq call
             crq_acq_cal  = '0;
             crq_acq_wp   = '0; // crq drive, wether to get write permission
@@ -311,6 +314,8 @@ module wired_tl_adapter import tl_pkg::*; #(
                         end
                         bus_req_i.acq_read_req, bus_req_i.acq_write_req, idxinv_req, hitinv_req: begin
                             fsm = S_INV;
+                            d.inv_req = idxinv_req | hitinv_req;
+                            d.parm = bus_req_i.acq_write_req | hitinv_req;
                         end
                         sram_wb_req: begin
                             bus_resp_o.ready = '1;
@@ -325,23 +330,31 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
             S_ULD: begin
                 crq_unc_cal = '1;
-                d.data = ;
+                d.data = {tl_d.data[{q.addr[3], 1'd1}],tl_d.data[{q.addr[3], (&q.size[1:0]) ? 1'd0 : q.addr[2]}]};
                 if(crq_unc_ret) begin
-                    bus_resp_o.ready = '1;
-                    fsm = S_FREE;
+                    fsm = S_RET;
                 end
             end
             S_UST: begin
                 crq_unc_cal = '1;
                 crq_unc_wreq = '1;
                 if(crq_unc_ret) begin
+                    bus_resp_o.ready = '1;
                     fsm = S_FREE;
                 end
             end
             S_INV: begin
-                
+                crq_inv_cal = '1;
+                crq_inv_parm = HIT_INV;
+                if(!q.inv_req) begin
+                    // write / read request
+                    
+                end
             end
             S_ACQ: begin
+                
+            end
+            S_RET: begin
                 
             end
             endcase
