@@ -358,7 +358,7 @@ module wired_tl_adapter import tl_pkg::*; #(
 
     // Invalid     状态机 - inv - C、D - read/write SRAM-TAG, read SRAM-DATA
     if(1) begin : inv_fsm
-        /* PROBE 状态机，状态定义 */
+        /* Invalid 状态机，状态定义 */
         logic [7:0] rnd_value_q;
         always_ff @(posedge clk) begin
             if(~rst_n) begin
@@ -594,7 +594,7 @@ module wired_tl_adapter import tl_pkg::*; #(
 
     // Acquire     状态机 - acq - A、D、E - write SRAM-TAG, write SRAM-DATA
     if(1) begin : acq_fsm
-        /* PROBE 状态机，状态定义 */
+        /* Acquire 状态机，状态定义 */
         typedef logic[2:0] fsm_t;
         fsm_t fsm;
         fsm_t fsm_q;
@@ -697,6 +697,63 @@ module wired_tl_adapter import tl_pkg::*; #(
             endcase
         end
     end
+
+    // Uncached 状态机
+    if(1) begin : unc_fsm
+        /* PROBE 状态机，状态定义 */
+        typedef logic[1:0] fsm_t;
+        fsm_t fsm;
+        fsm_t fsm_q;
+        localparam fsm_t S_FREE = 0;
+        localparam fsm_t S_INV = 1; // Call inv
+        typedef struct packed {
+            logic [31:0] addr;
+            logic        wreq;
+            logic [3:0][3:0]   strb;
+            logic [3:0][31:0]  data;
+        } registerd_entrys;
+        registerd_entrys init = '0;
+        registerd_entrys d;
+        registerd_entrys q;
+        always_ff @(posedge clk) begin
+            if(!rst_n) begin
+                d <= init;
+                fsm_q <= S_FREE;
+            end else begin
+                d <= q;
+                fsm_q <= fsm;
+            end
+        end
+        always_comb begin
+            // ALL DRIVEN SIGNAL
+            d = q;
+            fsm = fsm_q;
+            prb_b_ready = '0;
+            prb_inv_parm = PRB_HIT_ADDR_N;
+            prb_inv_addr = q.addr;
+            prb_inv_cal = '0;
+            case (fsm_q)
+                /*S_FREE*/default: begin
+                    prb_b_ready = '1;
+                    if(prb_b_valid) begin
+                        // TODO: ADD RESOURCE PROTECTION, BUT NOT TODAY
+                        fsm = S_INV;
+                        d.addr = prb_b.address;
+                        d.parm = prb_b.parm;
+                    end
+                end
+                S_INV: begin
+                    prb_inv_parm = q.parm == tl_pkg::toB ? PRB_HIT_ADDR_B : PRB_HIT_ADDR_N;
+                    prb_inv_addr = q.addr;
+                    prb_inv_cal = '1;
+                    if(prb_inv_ret) begin
+                        fsm = S_FREE;
+                    end
+                end
+            endcase
+        end
+    end
+
 
     // SRAM 仲裁器，固定优先级
     // - tag 仲裁器，两写一读 - prb / inv acq -
