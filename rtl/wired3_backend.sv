@@ -1,7 +1,6 @@
 `include "wired0_defines"
 
 // Fuction module for Wired project
-// This module take two inst register infomation as input(combinational)
 module wired_backend #(
     parameter CPU_ID = 1'd0
 )(
