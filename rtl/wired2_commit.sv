@@ -364,8 +364,9 @@ module wired_commit (
         end
         f_upd = '0;
         f_upd.pc = h_entry_q[0].pc;
-        f_upd.true_taken = slot0_target_type;
+        f_upd.true_taken = h_entry_q[0].need_jump;
         f_upd.true_target = h_entry_q[0].target_addr; // 对于分支指令，这就是最终目标，对于非分支指令，这里不会使用，若跳转类型错误，后面会做纠正
+        f_upd.btb_target  = h_entry_q[0].target_addr;
         f_upd.lphr = h_entry_q[0].bpu_predict.lphr;
         f_upd.history = h_entry_q[0].bpu_predict.history;
         f_upd.true_target_type = slot0_target_type;
@@ -602,6 +603,7 @@ module wired_commit (
                         ||  (!h_entry_q[0].need_jump && h_entry_q[0].bpu_predict.taken)) begin
                             l_commit = 2'b01;
                             f_upd.miss = '1;
+                            f_upd.need_update = '1;
                             f_upd.redirect = '1;
                             if(!h_entry_q[0].need_jump) f_upd.true_target = h_flushtarget_q; // 这里已经更新过了
                             fsm = S_WAIT_FLUSH;

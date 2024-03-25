@@ -8,25 +8,36 @@
 typedef logic[31:0] word_t;
 
 // Frontend Begin
+// BPU
+typedef enum logic[1:0] {
+  BPU_TARGET_NPC,
+  BPU_TARGET_CALL,
+  BPU_TARGET_RETURN,
+  BPU_TARGET_IMM
+} bpu_target_type_t;
 typedef struct packed {
     logic taken;
+    logic tid;  // 跳转生命周期 ID，后端仅接受有效的 Tier ID。每次重定向控制流的时候，也会修改前后端的 tier id。
+                // 注意，对于重命名模块，在 flush 状态下 Tier ID 不一致的会被直接接受并丢弃，对于 Tier ID 一致的结果，会拉低 ready 等待。
     // logic pc_off;
     logic [                31:0]           predict_pc ;
     logic [                 1:0]           lphr       ;
     logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history    ;
-    logic [                 1:0]           target_type;
+    bpu_target_type_t                      target_type;
     logic                                  dir_type   ;
     logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0] ras_ptr;
 } bpu_predict_t;
 typedef struct packed {
-    logic                                  redirect   ;
+    logic                                  redirect   ; // 实际跳转信号
+    logic                                  tid        ; // 重定向后的 Tier ID，复位一致默认为 0
     logic                                  true_taken ;
     logic                                  miss       ;
     logic [31:0]                           pc         ;
     logic [31:0]                           true_target;
+    logic [31:0]                            btb_target;
     logic [1:0]                            lphr       ;
     logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history    ;
-    logic [1:0]                       true_target_type;
+    bpu_target_type_t                 true_target_type;
     logic                         true_conditional_jmp;
     logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0]     ras_ptr;
     logic need_update;
