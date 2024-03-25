@@ -99,8 +99,8 @@ module wired_alu_iq #(
     // 解包信息
     for(genvar i = 0 ; i < 2 ; i += 1) begin
         always_comb begin
-            p_static[i].gop = p_ctrl_i[i].decode_info.alu_grand_op;
-            p_static[i].op  = p_ctrl_i[i].decode_info.alu_op;
+            p_static[i].gop = p_ctrl_i[i].di.alu_grand_op;
+            p_static[i].op  = p_ctrl_i[i].di.alu_op;
             p_static[i].pc  = p_ctrl_i[i].pc;
         end
     end

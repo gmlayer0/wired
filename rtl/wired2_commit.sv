@@ -58,7 +58,7 @@ module wired_commit (
     rob_entry_t [1:0] f_skid_entry_q;
     rob_rid_t [1:0] f_skid_wrrid_q;
     wire slot1_bank_conflict = c_rob_entry_i[1].wreg[0] == c_rob_entry_i[0].wreg[0];
-    wire slot1_cannot_fire = c_rob_entry_i[1].decode_info.slot0 || slot1_bank_conflict1;
+    wire slot1_cannot_fire = c_rob_entry_i[1].di.slot0 || slot1_bank_conflict1;
     wire [1:0] f_valid = c_rob_valid_i & {~slot1_cannot_fire, 1'd1};
     assign c_retire_o = f_valid & {f_skid_ready_q, f_skid_ready_q};
 
@@ -100,7 +100,7 @@ module wired_commit (
     always_comb begin
         h_csr_rdata = '0;
         h_flushtarget = h_entry[0].pc + 4;
-        if(h_entry[0].decode_info.ertn_inst) begin
+        if(h_entry[0].di.ertn_inst) begin
             h_flushtarget = csr_q.era;
         end
         case(h_entry[0].csr_id[8:0])
@@ -135,8 +135,8 @@ module wired_commit (
         `_CSR_DMW1      h_csr_rdata = csr_q.dmw1;
         endcase
         // 特殊处理 rdcnt 命令
-        if(h_entry[0].decode_info.csr_rdcnt[0] /*== `_RDCNT_ID_VLOW*/) h_csr_rdata = (|h_entry[0].op_code) ? csr_q.tid : timer_64_q[31:0];
-        else if(h_entry[0].decode_info.csr_rdcnt[1] /*== `_RDCNT_VHIGH*/) h_csr_rdata = timer_64_q[63:32];
+        if(h_entry[0].di.csr_rdcnt[0] /*== `_RDCNT_ID_VLOW*/) h_csr_rdata = (|h_entry[0].op_code) ? csr_q.tid : timer_64_q[31:0];
+        else if(h_entry[0].di.csr_rdcnt[1] /*== `_RDCNT_VHIGH*/) h_csr_rdata = timer_64_q[63:32];
     end
 
     // TLBSRCH / TLBRD / INVTLB PRE-RUN.
@@ -155,7 +155,7 @@ module wired_commit (
 
         always_comb begin
             h_tlb_hit_invtlb[i] = '0;
-            if(h_entry[0].decode_info.invtlb_en) begin
+            if(h_entry[0].di.invtlb_en) begin
               if(h_entry[0].op_code == 0 || h_entry[0].op_code == 1) begin
                 h_tlb_hit_invtlb[i] = '1;
               end
@@ -309,11 +309,11 @@ module wired_commit (
     logic [1:0] slot0_target_type;
     always_comb begin
         slot0_target_type = '0;
-        if(h_entry_q[0].decode_info.jump_inst && h_entry_q[0].op_code[4]) begin // 1 -> CALL JIRL BL
+        if(h_entry_q[0].di.jump_inst && h_entry_q[0].op_code[4]) begin // 1 -> CALL JIRL BL
             slot0_target_type = 2'd1;
-        end else if(h_entry_q[0].decode_info.jump_inst && h_entry_q[0].op_code[3]) begin // 2 -> RETURN
+        end else if(h_entry_q[0].di.jump_inst && h_entry_q[0].op_code[3]) begin // 2 -> RETURN
             slot0_target_type = 2'd2;
-        end else if(h_entry_q[0].decode_info.jump_inst) begin  // 3 -> IMM
+        end else if(h_entry_q[0].di.jump_inst) begin  // 3 -> IMM
             slot0_target_type = 2'd3;
         end
     end
@@ -370,7 +370,7 @@ module wired_commit (
         f_upd.lphr = h_entry_q[0].bpu_predict.lphr;
         f_upd.history = h_entry_q[0].bpu_predict.history;
         f_upd.true_target_type = slot0_target_type;
-        f_upd.true_conditional_jmp = (|h_entry_q[0].decode_info.cmp_type[3:1]) && !(&h_entry_q[0].decode_info.cmp_type[3:1]);
+        f_upd.true_conditional_jmp = (|h_entry_q[0].di.cmp_type[3:1]) && !(&h_entry_q[0].di.cmp_type[3:1]);
         f_upd.ras_ptr = h_entry_q[0].bpu_predict.ras_ptr;
         if(slot0_target_type == 2'd1 && (slot0_target_type != h_entry_q[0].bpu_predict.target_type)) begin
             f_upd.ras_miss_type = '1;
@@ -556,7 +556,7 @@ module wired_commit (
                 end else if(h_valid_inst_q[0]) begin
                     // 不存在异常的部分
                     // 0. 恢复 DBAR
-                    if(h_entry_q[0].decode_info.dbarrier) begin
+                    if(h_entry_q[0].di.dbarrier) begin
                         // 可能进入这里的，一定不会暂停
                         c_lsu_req_o.dbarrier_unlock = '1;
                     end
@@ -566,15 +566,15 @@ module wired_commit (
                             // 1. Uncached 请求（向 LSU 发出请求，等待 Uncached 读数据 / 写完成）
                             // （注意， Uncached Load 及 Uncached Store 均需要立即发出请求，且 Uncached Load 需要刷新流水线）
                             h_ready = '0;
-                            if(h_entry_q[0].decode_info.mem_write) begin
+                            if(h_entry_q[0].di.mem_write) begin
                                 fsm = S_WAIT_USTORE;
                             end else begin
                                 fsm = S_WAIT_ULOAD;
                             end
                         end else begin
-                            if(h_entry_q[0].decode_info.mem_write) begin
+                            if(h_entry_q[0].di.mem_write) begin
                                 // 3. Store Conditional 请求，不再等待 Cache 重填，如果不可执行，则直接刷新流水线
-                                if(h_entry_q[0].decode_info.llsc_inst) begin
+                                if(h_entry_q[0].di.llsc_inst) begin
                                     if((!c_lsu_resp_i.storebuf_hit) || (!csr_q.llbit)) begin // 其它 Cache Coherent Master probe 了这行，不再原子
                                         l_commit = 2'b01;
                                         l_data[0] = 32'd0;
@@ -615,7 +615,7 @@ module wired_commit (
                     // 所有对 CSR 产生写操作（状态改变）的指令都需要刷新管线。
                     // 其实只有一条指令，csrwrxchg，操作是根据掩码写寄存器之后再读出
 `define _MW(csr_name, mask) csr.``csr_name``[mask] = csr_wdata[mask]
-                    if(h_entry_q[0].decode_info.csr_op_en) begin
+                    if(h_entry_q[0].di.csr_op_en) begin
                         l_data[0] = h_csr_rdata_q; // 强制刷新 csr 数据
                         case(h_entry_q[0].csr_id[8:0])
                         `_CSR_CRMD:      begin _MW(crmd, `_CRMD_PLV);_MW(crmd, `_CRMD_IE);_MW(crmd, `_CRMD_DA);_MW(crmd, `_CRMD_PG);_MW(crmd, `_CRMD_DATF);_MW(crmd, `_CRMD_DATM); end
@@ -651,31 +651,31 @@ module wired_commit (
                     end
 `undef _MW
                     // 实现 RDCNT 指令
-                    if(h_entry_q[0].decode_info.csr_rdcnt[0]) begin
+                    if(h_entry_q[0].di.csr_rdcnt[0]) begin
                         // RDCNT LOW | ID
                         l_data[0] = h_csr_rdata_q; // 强制刷新 csr 数据
                     end
                     // 实现 TLB 控制指令
                     // - INVTLB，直接无效化表项即可，先前已进行检查
-                    if(h_entry_q[0].decode_info.invtlb_en) begin
+                    if(h_entry_q[0].di.invtlb_en) begin
                         tlb_update_req_o.tlb_w_entry.key.e = '0;
                         tlb_update_req_o.tlb_we = h_tlb_hit_invtlb_q;
                     end
                     // - TLBWR
-                    if(h_entry_q[0].decode_info.tlbwr_en) begin
+                    if(h_entry_q[0].di.tlbwr_en) begin
                         tlb_update_req_o.tlb_we[csr_q.tlbidx[`_TLBIDX_INDEX]] = '1;
                     end
                     // - TLBFILL
-                    if(h_entry_q[0].decode_info.tlbfill_en) begin
+                    if(h_entry_q[0].di.tlbfill_en) begin
                         tlb_update_req_o.tlb_we[timer_64_q[`_TLBIDX_INDEX]] = '1;
                     end
                     // - TLBSRCH
-                    if(h_entry_q[0].decode_info.tlbsrch_en) begin
+                    if(h_entry_q[0].di.tlbsrch_en) begin
                         csr.tlbidx[`_TLBIDX_INDEX] = h_tlb_srch_idx_q[`_TLBIDX_INDEX];
                         csr.tlbidx[`_TLBIDX_NE] = h_tlb_srch_idx_q[$clog2(`_WIRED_PARAM_TLB_CNT)];
                     end
                     // - TLBRD
-                    if(h_entry_q[0].decode_info.tlbrd_en) begin
+                    if(h_entry_q[0].di.tlbrd_en) begin
                         csr.tlbidx[`_TLBIDX_NE] = ~h_tlb_rd_q.key.e;
                         if(h_tlb_rd_q.key.e) begin
                             csr.tlbidx[`_TLBIDX_PS] = h_tlb_rd_q.key.huge_page ? 6'd22 : 6'd12;
@@ -714,11 +714,11 @@ module wired_commit (
                         end
                     end
                     // flush / ertn 逻辑 及 idle 逻辑
-                    if(h_entry_q[0].decode_info.priv_inst) begin
+                    if(h_entry_q[0].di.priv_inst) begin
                         l_commit = 2'b01;
                         f_upd.redirect = '1;
                         f_upd.true_target = h_flushtarget_q;
-                        fsm = h_entry_q[0].decode_info.idle ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
+                        fsm = h_entry_q[0].di.idle ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
                     end
                 end
 

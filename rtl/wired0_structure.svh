@@ -96,13 +96,12 @@ typedef struct packed {
   logic tlbr ;
 } excp_t;
 
-// 输入到 Decode 级的指令流
+// 输入到 Pack 级的指令流
 typedef struct packed {
-    logic[31:0]   inst;
-    logic[31:0]   pc;
+    decode_info_d_t        di;
     bpu_predict_t bpu_predict;
     fetch_excp_t  fetch_excp ;
-} pipeline_ctrl_d_t;
+} pipeline_ctrl_pack_t;
 
 // Backend Begin
 // 解码出来的寄存器信息
@@ -117,7 +116,7 @@ typedef struct packed{
 
 // 输入到 Rename 级的指令流
 typedef struct packed {
-  decode_info_r_t decode_info;
+  decode_info_r_t di;
   logic[25:0]     imm_domain;
   reg_info_t      reg_info   ;
   logic[31:0]     pc;
@@ -151,7 +150,7 @@ endcase
 endfunction
 
 typedef struct packed{
-  decode_info_p_t decode_info; // 指令控制信息
+  decode_info_p_t di; // 指令控制信息
   reg_ctrl_t      wreg;
   logic           wtier;       // 写寄存器 tier id
   logic[27:0]     addr_imm;    // 传入 LSU，用于计算 vaddr 或者计算 csr_id（给 ALU）
@@ -201,7 +200,7 @@ typedef struct packed{
 // Static 表项，双写口双读口，在 disPatch 时写入，保持不变
 // 也是从 disPatch 写入到 ROB 的指令静态信息（提交级使用）
 typedef struct packed {
-  decode_info_rob_t decode_info; // 指令控制信息
+  decode_info_rob_t di; // 指令控制信息
   arch_rid_t        wreg;
   rob_rid_t [1:0]   rreg;        // 重命名后的读寄存器
   logic             wtier;       // 写寄存器 tier id
@@ -243,7 +242,7 @@ typedef struct packed {
 typedef struct packed {
   logic valid;
 
-  decode_info_rob_t decode_info; // 指令控制信息
+  decode_info_rob_t di; // 指令控制信息
   arch_rid_t        wreg;
   logic             wtier;       // 写寄存器 tier id
   logic[4:0]        op_code;     // CSR 控制信息
@@ -271,7 +270,7 @@ typedef struct packed {
 function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry_dynamic_t dynamic_i, rob_entry_data_t data_i, rob_entry_valid_t valid_i);
   rob_entry_t ret;
   ret.valid = valid_i;
-  ret.decode_info = static_i.decode_info; // 指令控制信息
+  ret.di = static_i.di; // 指令控制信息
   ret.wreg = static_i.wreg;
   ret.wtier = static_i.wtier;       // 写寄存器 tier id
   ret.op_code = static_i.op_code;       // CSR 控制信息
