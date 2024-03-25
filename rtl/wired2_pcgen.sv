@@ -39,8 +39,8 @@ logic tier_id_q;  // tier_id
 always_ff @(posedge clk) begin
   if(!rst_n) begin
     tier_id_q <= '0;
-  end else if(p_correct_i.) begin
-    
+  end else if(p_correct_i.redirect) begin
+    tier_id_q <= p_correct_i.tid;
   end
 end
 
@@ -94,8 +94,8 @@ assign l2_cnt[1] = l2_ram[info_rdata[1].history];
 always_comb begin
   info_wdata.target_type = p_correct_i.true_target_type;
   info_wdata.conditional_jmp = p_correct_i.true_conditional_jmp;
-  info_wdata.history = {p_correct_i.history[3:0], correct_i.true_taken};
-  info_wdata.tag = get_tag(correct_i.pc);
+  info_wdata.history = {p_correct_i.history[3:0], p_correct_i.true_taken};
+  info_wdata.tag = get_tag(p_correct_i.pc);
 end
 for(genvar p = 0 ; p < 2 ; p += 1) begin
   assign btb_rdata[p][1:0] = '0;
@@ -169,8 +169,47 @@ always_ff @(posedge clk) begin
   end
 end
 
-// NPC 生成逻辑
 logic pc_is_cal, pc_is_ret;
+// RAS 生成逻辑
+logic[7:0][31:0] ras_q;
+logic[2:0] ras_w_ptr_q,ras_ptr_q; // TODO:check
+logic pc_is_call, pc_is_return;
+logic [31:0] ras_rdata_q;
+always_ff @(posedge clk) ras_rdata_q <= ras_q[ras_ptr_q];
+always_ff @(posedge clk) begin
+  if(!rst_n) begin
+    ras_ptr_q <= 0;
+    ras_w_ptr_q <= 1;
+    ras_q <= 'x;
+  end
+  else begin
+    // TODO: check
+    // RETURN MISS: RAS_PTR_Q <= (TRUE_PTR == R_PTR)
+    // CALL MISS RAS_PTR_Q <= TRUE_PTR AND ras_q[TRUE_PTR] <= TRUE_TARGET;
+    if(p_correct_i.miss || p_correct_i.ras_miss_type) begin
+      /* 考虑一下，没有 miss 但是类型估计错误的情况，这时候也需要更新 */
+      /* printf */
+      ras_w_ptr_q <= p_correct_i.ras_ptr + 3'd1;
+      ras_ptr_q <= p_correct_i.ras_ptr;
+      if(p_correct_i.true_target_type == BPU_TARGET_CALL) begin
+        ras_q[p_correct_i.ras_ptr] <= p_correct_i.pc + 3'd4;
+      end
+    end
+    else begin
+      if(pc_is_call && p_ready_i) begin
+        ras_q[ras_w_ptr_q] <= {pc[31:3], 3'b000} + ((mask_0_valid_q & branch_need_jmp[0]) ? 32'd4 : 32'd8);
+        ras_w_ptr_q <= ras_w_ptr_q + 3'd1;
+        ras_ptr_q <= ras_ptr_q + 3'd1;
+      end
+      if(pc_is_return && p_ready_i) begin
+        ras_w_ptr_q <= ras_w_ptr_q - 3'd1;
+        ras_ptr_q <= ras_ptr_q - 3'd1;
+      end
+    end
+  end
+end
+
+// NPC 生成逻辑
 always_comb begin
   p_valid_o = '1;
   npc = {pc[31:3] + 1'd1, 3'b000}; // PC + 8 LOGIC
@@ -178,6 +217,15 @@ always_comb begin
   p_predict_o = '0;
   pc_is_cal = '0;
   pc_is_ret = '0;
+  for(integer i = 0 ; i < 2 ; i += 1) begin
+    p_predict_o[i].tid = tier_id_q;
+    p_predict_o[i].predict_pc = npc;
+    p_predict_o[i].lphr = l2_cnt[i];
+    p_predict_o[i].history = info_rdata[i].history;
+    p_predict_o[i].target_type = info_rdata[i].target_type;
+    p_predict_o[i].dir_type = info_rdata[i].conditional_jmp;
+    p_predict_o[i].ras_ptr = ras_ptr_q;
+  end
   if(mask_0_valid_q && branch_need_jmp[0]) begin
     p_predict_o[0].taken = '1;
     p_mask_o[1] = '0;
