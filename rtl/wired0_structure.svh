@@ -186,7 +186,6 @@ typedef struct packed{
   word_t [1:0] rdata;
 } pipeline_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
 
-
 // ROB 存储表项定义
 // Static 表项，双写口双读口，在 disPatch 时写入，保持不变
 // 也是从 disPatch 写入到 ROB 的指令静态信息（提交级使用）
