@@ -239,6 +239,7 @@ always_comb begin
     npc = info_rdata[1].target_type == BPU_TARGET_RETURN ? ras_rdata_q : btb_rdata[0];
   end
   if(p_correct_i.redirect) begin
+    p_valid_o = '0;
     npc = p_correct_i.true_target;
   end
 end
