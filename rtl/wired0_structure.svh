@@ -96,15 +96,6 @@ typedef struct packed {
   logic tlbr ;
 } excp_t;
 
-// 输入到 Pack 级的指令流
-typedef struct packed {
-    decode_info_d_t        di;
-    bpu_predict_t bpu_predict;
-    fetch_excp_t  fetch_excp ;
-} pipeline_ctrl_pack_t;
-
-// Backend Begin
-// 解码出来的寄存器信息
 
 typedef logic[`_WIRED_PARAM_PRF_LEN-1:0] arch_rid_t; // 架构寄存器号
 typedef logic[`_WIRED_PARAM_ROB_LEN-1:0] rob_rid_t;  // 重命名后寄存器号 == {}
@@ -114,14 +105,26 @@ typedef struct packed{
     arch_rid_t       w_reg;
 } reg_info_t;
 
+// 输入到 Pack 级的指令流
+typedef struct packed {
+  decode_info_d_t        di;
+  logic                 ine; // 解码产生
+  reg_info_t             ri;
+  bpu_predict_t bpu_predict;
+  fetch_excp_t   fetch_excp;
+} pipeline_ctrl_pack_t;
+
+// Backend Begin
+// 解码出来的寄存器信息
+
 // 输入到 Rename 级的指令流
 typedef struct packed {
   decode_info_r_t di;
   logic[25:0]     imm_domain;
-  reg_info_t      reg_info   ;
-  logic[31:0]     pc;
-  bpu_predict_t   bpu_predict;
-  static_excp_t   excp ;
+  reg_info_t              ri;
+  logic[31:0]             pc;
+  bpu_predict_t  bpu_predict;
+  static_excp_t         excp;
 } pipeline_ctrl_r_t;
 
 typedef struct packed {
