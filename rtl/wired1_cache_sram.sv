@@ -46,7 +46,7 @@ module wired_cache_sram#(
                    .rst_n0(rst_n),
                    // RO Port in verilator
                    .addr0_i(p_sram_addr[i]),
-                   .en0_i('1),
+                   .en0_i(!conflict_fire),
                    .we0_i('0),
                    .wdata0_i('0),
                    .rdata0_o(p_sram_rdata_raw),
