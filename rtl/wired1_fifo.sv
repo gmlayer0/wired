@@ -26,15 +26,15 @@ module wired_fifo #(
     // 指针更新
     `_WIRED_FF_RSTABLE_EN(wptr, '0, push)
     `_WIRED_FF_RSTABLE_EN(rptr, '0, pop)
-    `_WIRED_FF_RSTABLE_EN(cnt, '0, push | pop)
+    `_WIRED_FF_RSTABLE_EN(cnt, '0, '1)
     assign wptr = (wptr_q == DEPTH - 1) ? '0 : (wptr_q + 1'd1);
     assign rptr = (rptr_q == DEPTH - 1) ? '0 : (rptr_q + 1'd1);
     assign cnt  = cnt_q + (push ? 1'd1 : 1'd0) - (pop ? 1'd1 : 1'd0);
 
     // 握手信号
     wire ready, valid;
-    assign ready = cnt_q < ((push & ~pop) ? (DEPTH - 1) : DEPTH;
-    assign valid = cnt_q > ((pop & ~push) ? 1'd1 : 1'd0);
+    assign ready = cnt < DEPTH;
+    assign valid = cnt > 1'd0);
     `_WIRED_FF_RSTABLE(ready, '1)
     `_WIRED_FF_RSTABLE(valid, '0)
 
