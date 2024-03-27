@@ -152,7 +152,7 @@ module wired_lsu(
         if(snoop_i.taddr[11:4] == m1.paddr[11:4]) begin // 是同一个 Cache line
             for(integer w = 0 ; w < 4 ; w += 1) begin // 逐路检查
                 if(snoop_i.twe[w]) begin
-                    m1.tag[w] = snoop_i.tag[w];
+                    m1.tag[w] = snoop_i.t;
                 end
             end
         end
