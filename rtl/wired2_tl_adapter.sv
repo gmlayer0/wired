@@ -673,6 +673,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_TLD: begin
                 d.data = acq_d.data;
                 acq_d_ready = '1;
+                d.sink = acq_d.sink; // 记录 sink 给 E 通道使用
                 if(acq_d_valid && acq_d.opcode == tl_pkg::GrantData) begin
                     fsm = S_WRAM;
                 end
@@ -689,6 +690,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_TLE: begin
                 acq_tag_valid = '1;
                 acq_tag_we[q.way] = '1;
+                acq_e_valid = '1;
                 // Keep writing to tag sram to block inv from continue.
                 if(acq_e_ready) begin
                     fsm = S_FREE;

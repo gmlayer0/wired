@@ -3,7 +3,9 @@
 // Fuction module for Wired project
 // Frontend module
 module wired_frontend #(
-    parameter CPU_ID = 1'd0
+  parameter int unsigned SOURCE_WIDTH  = 1,
+  parameter int unsigned SINK_WIDTH    = 1,
+    parameter int CPU_ID = 0
   )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -19,7 +21,7 @@ module wired_frontend #(
     input  bpu_correct_t       bpu_correct_i,
 
     // 连接到内存总线（TILELINK-C）
-
+    `TL_DECLARE_HOST_PORT(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl) // tl_a_o
   );
 
   wire g_flush = bpu_correct_i.redirect; // 前端刷新信号
@@ -127,6 +129,30 @@ module wired_frontend #(
                  .p_sll_i(),
                  .flush_i()
                );
+  wired_tl_adapter # (
+                     .SOURCE_WIDTH(SOURCE_WIDTH),
+                     .SINK_WIDTH(SINK_WIDTH),
+                     .SOURCE_WIDTH(SOURCE_WIDTH)
+                   )
+                   wired_tl_adapter_inst (
+                     ._WIRED_GENERAL_DEFINE(_WIRED_GENERAL_DEFINE),
+                     .bus_req_i(bus_req_i),
+                     .bus_resp_o(bus_resp_o),
+                     .snoop_i(snoop_i),
+                     .m_way_o(m_way_o),
+                     .m_addr_o(m_addr_o),
+                     .m_wstrb_o(m_wstrb_o),
+                     .m_wdata_o(m_wdata_o),
+                     .m_rdata_i(m_rdata_i),
+                     .t_addr_o(t_addr_o),
+                     .t_we_o(t_we_o),
+                     .t_wtag_o(t_wtag_o),
+                     .t_rtag_i(t_rtag_i),
+                     .TL_DECLARE_HOST_PORT(TL_DECLARE_HOST_PORT),
+                     .SOURCE_WIDTH(SOURCE_WIDTH),
+                     .SINK_WIDTH(SINK_WIDTH),
+                     .tl(tl)
+                   );
 
   // f_d skid buf
   if( 1 )
@@ -231,10 +257,14 @@ module wired_frontend #(
   // D -> B 握手处理
   logic b_ready;
   logic b_valid_q, b_tid_q;
-  always_ff @(posedge clk) begin
-    if(!rst_n) begin
+  always_ff @(posedge clk)
+  begin
+    if(!rst_n)
+    begin
       b_tid_q <= '0;
-    end else if(bpu_correct_i.redirect) begin
+    end
+    else if(bpu_correct_i.redirect)
+    begin
       b_tid_q <= bpu_correct_i.tid;
     end
   end
@@ -243,8 +273,11 @@ module wired_frontend #(
     if(!rst_n || g_flush)
     begin
       b_valid_q <= '0;
-    end else begin
-      if(b_ready) begin
+    end
+    else
+    begin
+      if(b_ready)
+      begin
         b_valid_q <= (b_q.p[0].bpu_predict.tid == b_tid_q) && skid_b_valid; // 丢弃无用包
       end
     end
@@ -261,7 +294,8 @@ module wired_frontend #(
   `_WIRED_HANDSHAKE_DEFINE(fifo_out, d_b_t);
   d_b_t fifo_raw;
   logic [1:0] fifo_mask;
-  always_comb begin
+  always_comb
+  begin
     fifo_in_payload = fifo_raw;
     fifo_in_payload.mask = fifo_mask;
   end

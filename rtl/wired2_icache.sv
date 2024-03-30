@@ -21,7 +21,7 @@ module wired_icache #(
     // input  logic            [31:0]  c_addr_i,
     // input  inv_parm_e               c_parm_i,
 
-    // CPU FETCH 请求返回接口 TODO: CONN
+    // CPU FETCH 请求返回接口 TODO: CHECK
     output logic                   f_valid_o,
     input  logic                   f_ready_i,
     output logic            [1:0]   f_mask_o,
@@ -30,7 +30,7 @@ module wired_icache #(
     output logic [PACKED_SIZE-1 : 0] f_pkg_o,
     output fetch_excp_t             f_excp_o, // 取值错误，显然两条指令是一致的
 
-    // 到总线侧的请求接口 TODO: CONN
+    // 到总线侧的请求接口 TODO: CHECK
     output lsu_bus_req_t  bus_req_o, // TODO
     input  lsu_bus_resp_t bus_resp_i,
 
@@ -276,6 +276,7 @@ module wired_icache #(
     fsm_data = fsm_data_q;
     bus_req_o = '0;
     bus_req_o.target_paddr = {f2.addr[31:3], 3'd0};
+    bus_req_o.size = (&f2.mask) ? 2'd3 : 2'd2;
     f_valid_o = '0;
     f1_f2_ready = '0;
     f_mask_o = f2.mask;

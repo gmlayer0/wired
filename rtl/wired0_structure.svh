@@ -373,7 +373,7 @@ typedef struct packed {
   logic [3:0]  inv_mask;
   logic [1:0]  size; // 0-1bytes, 1-2bytes, 2-4bytes, 3-8bytes
   logic [1:0]  way;
-  logic [3:0]  wstrobe;
+  logic [3:0]  wstrobe; // 仅供写入 sram 时使用
   logic [31:0] wdata;
   logic [31:0] target_paddr;
 
