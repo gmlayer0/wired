@@ -66,7 +66,8 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic  [3:0] crq_unc_strb; // crq drive
     logic  [1:0] crq_unc_size; // crq drive
     logic [31:0] crq_unc_addr; // crq drive
-    logic [31:0] crq_unc_data; // unc drive
+    logic [31:0] crq_unc_wdata; // crq drive
+    logic [3:0][31:0] crq_unc_data; // unc drive
 
     /* --- --- --- --- --- --- --- --- FSM Defines Begin  --- --- --- --- --- --- --- --- */
 
