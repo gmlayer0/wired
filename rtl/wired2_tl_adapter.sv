@@ -63,6 +63,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     logic crq_unc_ret; // unc drive
     // payload
     logic        crq_unc_wreq; // crq drive, write/read selection.
+    logic  [3:0] crq_unc_histrb; // crq drive
     logic  [3:0] crq_unc_strb; // crq drive
     logic  [1:0] crq_unc_size; // crq drive
     logic [31:0] crq_unc_addr; // crq drive
@@ -273,6 +274,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             // unc call
             crq_unc_cal  = '0; // crq drive
             crq_unc_wreq = '0;
+            crq_unc_histrb = (&q.size) ? 4'b1111 : 4'b0000;
             crq_unc_strb = q.size[1] ? 4'b1111 : (q.size[0] ? 
                                     (q.addr[1] ? 4'b1100 : 4'b0011) : 
                                     (q.addr[1] ? (q.addr[0] ? 4'b1000 : 4'b0100) : (q.addr[0] ? 4'b0010 : 4'b0001)));
@@ -706,7 +708,9 @@ module wired_tl_adapter import tl_pkg::*; #(
         fsm_t fsm;
         fsm_t fsm_q;
         localparam fsm_t S_FREE = 0;
-        localparam fsm_t S_INV = 1; // Call inv
+        localparam fsm_t S_TLA = 1; // Call Get / PutFullData
+        localparam fsm_t S_WTLD = 2; // Wait AccessAck / AccessAckData
+        localparam fsm_t S_RTLD = 3; // Wait AccessAck / AccessAckData
         typedef struct packed {
             logic [31:0] addr;
             logic        wreq;
@@ -729,27 +733,30 @@ module wired_tl_adapter import tl_pkg::*; #(
             // ALL DRIVEN SIGNAL
             d = q;
             fsm = fsm_q;
-            prb_b_ready = '0;
-            prb_inv_parm = PRB_HIT_ADDR_N;
-            prb_inv_addr = q.addr;
-            prb_inv_cal = '0;
+            unc_a_valid = '0;
+            unc_a = '0;
+            unc_d_ready = '0;
+            crq_unc_data = q.data;
+            crq_unc_ret = '0;
             case (fsm_q)
-                /*S_FREE*/default: begin
-                    prb_b_ready = '1;
-                    if(prb_b_valid) begin
-                        // TODO: ADD RESOURCE PROTECTION, BUT NOT TODAY
-                        fsm = S_INV;
-                        d.addr = prb_b.address;
-                        d.parm = prb_b.parm;
+                /*S_FREE*/default: begin\
+                    if(crq_unc_cal) begin
+                        fsm = S_TLA;
+                        d.addr = crq_unc_addr;
+                        d.wreq = crq_unc_wreq;
+                        d.strb = '0;
+                        d.strb[{crq_unc_addr[3],1'd1}] = crq_unc_histrb;
+                        d.strb[crq_unc_addr[3:2]]      = crq_unc_strb;
+                        d.data = '0;
+                        d.data[crq_unc_addr[3:2]]      = crq_unc_wdata;
                     end
                 end
-                S_INV: begin
-                    prb_inv_parm = q.parm == tl_pkg::toB ? PRB_HIT_ADDR_B : PRB_HIT_ADDR_N;
-                    prb_inv_addr = q.addr;
-                    prb_inv_cal = '1;
-                    if(prb_inv_ret) begin
-                        fsm = S_FREE;
-                    end
+                S_TLA: begin
+                    unc_a_valid = '1;
+                end
+                S_WTLD: begin
+                end
+                S_RTLD: begin
                 end
             endcase
         end
