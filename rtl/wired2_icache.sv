@@ -317,7 +317,7 @@ module wired_icache #(
       begin
         f_valid_o = f2_valid_q;
         f_inst_o = fsm_data_q;
-        if(f_ready_i)
+        if(f_ready_i || !f2_valid_q) // 被 flush 了。
         begin
           fsm = S_FREE;
         end
