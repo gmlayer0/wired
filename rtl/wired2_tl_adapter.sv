@@ -714,6 +714,7 @@ module wired_tl_adapter import tl_pkg::*; #(
         typedef struct packed {
             logic [31:0] addr;
             logic        wreq;
+            logic      [1:0]   size;
             logic [3:0][3:0]   strb;
             logic [3:0][31:0]  data;
         } registerd_entrys;
@@ -735,8 +736,16 @@ module wired_tl_adapter import tl_pkg::*; #(
             fsm = fsm_q;
             unc_a_valid = '0;
             unc_a = '0;
+            unc_a.opcode  = q.wreq ? tl_pkg::PutFullData : tl_pkg::Get;
+            unc_a.param   = '0;
+            unc_a.size    = q.size;
+            unc_a.address = q.addr[31:0];
+            unc_a.source  = SOURCE_BASE;
+            unc_a.mask    = q.mask;
+            unc_a.corrupt = '0;
+            unc_a.data    = q.data;
             unc_d_ready = '0;
-            crq_unc_data = q.data;
+            crq_unc_data = unc_d.data;
             crq_unc_ret = '0;
             case (fsm_q)
                 /*S_FREE*/default: begin\
@@ -744,6 +753,7 @@ module wired_tl_adapter import tl_pkg::*; #(
                         fsm = S_TLA;
                         d.addr = crq_unc_addr;
                         d.wreq = crq_unc_wreq;
+                        d.size = crq_unc_size;
                         d.strb = '0;
                         d.strb[{crq_unc_addr[3],1'd1}] = crq_unc_histrb;
                         d.strb[crq_unc_addr[3:2]]      = crq_unc_strb;
@@ -753,10 +763,23 @@ module wired_tl_adapter import tl_pkg::*; #(
                 end
                 S_TLA: begin
                     unc_a_valid = '1;
+                    if(unc_a_ready) begin
+                        fsm = q.wreq ? S_WTLD : S_RTLD;
+                    end
                 end
                 S_WTLD: begin
+                    if(unc_d_valid && unc_d.opcode == tl_pkg::AccessAck) begin
+                        unc_d_ready = '1;
+                        crq_unc_ret = '1;
+                        fsm = S_FREE;
+                    end
                 end
                 S_RTLD: begin
+                    if(unc_d_valid && unc_d.opcode == tl_pkg::AccessAckData) begin
+                        unc_d_ready = '1;
+                        crq_unc_ret = '1;
+                        fsm = S_FREE;
+                    end
                 end
             endcase
         end
