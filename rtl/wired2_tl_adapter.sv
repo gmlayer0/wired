@@ -289,7 +289,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             crq_data_addr = '0;
             crq_data_wstrb = '0;
             crq_data_wdata = '0;
-            if(bus_req_i.sram_wb_req) begin
+            if(bus_req_i.sram_wb_req) begin // 最最最高优先级，一定保证
                 crq_data_valid = '1;
                 crq_data_addr  = {bus_req_i.addr[11:4], 4'd0};
                 for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.addr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
@@ -313,7 +313,7 @@ module wired_tl_adapter import tl_pkg::*; #(
                             fsm = S_INV;
                             d.size = bus_req_i.size;
                             d.addr = bus_req_i.target_paddr;
-                            d.parm = bus_req_i.inv_req inside {IDX_INIT, IDX_INV};
+                            d.parm = bus_req_i.inv_req;
                     end
                 end
             end
