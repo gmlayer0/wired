@@ -8,13 +8,53 @@ module wired_cache_sram#(
 
     input  logic [11:0]               p_addr_i, // CPU 侧访问地址，返回所有路（共四路）上的数据
     output logic [3:0][WORD_SIZE-1:0] p_rdata_o,
+    output cache_tag_t [3:0]          p_rtag_o,
 
     input  logic [1:0]  m_way_i,
     input  logic [11:0] m_addr_i,                // 状态机侧访问地址，读写某 way 的整行
     input  logic [3:0][3:0] m_wstrb_i,           // 写掩码，全 0 为读
     input  logic [3:0][31:0] m_wdata_i,
     output logic [3:0][31:0] m_rdata_o,          // 整行，已内部对齐（注：组合逻辑对齐）
+
+    input  logic [11:4] t_addr_i,
+    input  logic  [3:0] t_we_i,
+    input  cache_tag_t  t_wtag_i,
+    output cache_tag_t  [3:0] t_rtag_o
   );
+  // 四路 TAGSRAM 生成
+  for(genvar w = 0 ; w < 4 ; w += 1)
+  begin : tag_gen
+    wire conflict = (p_addr_i[11:4] == t_addr_i[11:4]) && t_we_i[w];
+    logic conflict_q;
+    cache_tag_t raw_rtag_0, raw_rtag_1;
+    assign p_rtag_o[w] = conflict_q ? raw_rtag_1 : raw_rtag_0;
+    assign t_rtag_o[w] = raw_rtag_1;
+    always_ff @(posedge clk)
+    begin
+      conflict_q <= conflict;
+    end
+    wired_dpsram # (
+                   .DATA_WIDTH($bits(cache_tag_t)),
+                   .DATA_DEPTH(1024),
+                   .BYTE_SIZE($bits(cache_tag_t))
+                 )
+                 wired_dpsram_inst (
+                   .clk0(clk),
+                   .rst_n0(rst_n),
+                   .addr0_i(p_addr_i[11:4]),
+                   .en0_i(!conflict),
+                   .we0_i('0),
+                   .wdata0_i('0),
+                   .rdata0_o(raw_rtag_0),
+                   .clk1(clk),
+                   .rst_n1(rst_n),
+                   .addr1_i(t_addr_i[11:4]),
+                   .en1_i('1),
+                   .we1_i(t_we_i[w]),
+                   .wdata1_i(t_wtag_i),
+                   .rdata1_o(raw_rtag_1)
+                 );
+  end
 
   // 四路 SRAM 控制线
   // 为 1024x32b / 512x64b  的双端口类型
@@ -24,7 +64,7 @@ module wired_cache_sram#(
   logic [3:0][WORD_SIZE-1:0] raw_pdata;
   logic [3:0][WORD_SIZE-1:0] raw_rdata;
   for(genvar b = 0 ; b < 4 ; b += 1)
-  begin : sram_gen
+  begin : data_gen
     // 本地生成 m 口的访问端口
     wire [11:0] m_addr;
     wire [3:0]  m_strb;
@@ -82,7 +122,8 @@ module wired_cache_sram#(
 
   // 输出移位
   logic [1:0] m_way_q;
-  always_ff @(posedge clk) begin
+  always_ff @(posedge clk)
+  begin
     m_way_q <= m_way_i;
   end
   if(WORD_SIZE == 32)
@@ -104,14 +145,19 @@ module wired_cache_sram#(
     end
   end
   logic [1:0] p_s_q;
-  always_ff @(posedge clk) begin
+  always_ff @(posedge clk)
+  begin
     p_s_q <= p_addr_i[3:2];
   end
-  for(genvar w = 0 ; w < 4 ; w += 1) begin
-    if(WORD_SIZE == 32) begin
+  for(genvar w = 0 ; w < 4 ; w += 1)
+  begin
+    if(WORD_SIZE == 32)
+    begin
       wire [1:0] sft = w[1:0] - p_s_q;
       assign p_rdata_o[w] = raw_pdata[sft];
-    end else begin
+    end
+    else
+    begin
       assign p_rdata_o[w] = raw_pdata[{w[1], w[0] ^ p_s_q[1]}];
     end
   end
