@@ -15,7 +15,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     output lsu_bus_resp_t bus_resp_o,
 
     // 用于 SNOOP 的总线更新接口
-    output dsram_snoop_t  snoop_i,
+    output dsram_snoop_t  snoop_o,
 
     // DSRAM 端口
     output  logic [1:0]  m_way_o,
@@ -32,6 +32,13 @@ module wired_tl_adapter import tl_pkg::*; #(
 
     `TL_DECLARE_HOST_PORT(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl) // tl_a_o
 );
+    assign snoop_o.daddr = m_addr_o;
+    assign snoop_o.dway  = m_way_o;
+    assign snoop_o.dstrb = m_wstrb_o;
+    assign snoop_o.d     = m_wdata_o;
+    assign snoop_o.taddr = {t_addr_o,4'd0};
+    assign snoop_o.twe   = t_we_o;
+    assign snoop_o.t     = t_wtag_o;
 
     /* --- --- --- --- --- --- ---  I-FSM-CALL Begin  --- --- --- --- --- --- --- --- */
     // Inter-FSM Called signals
@@ -857,7 +864,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     assign m_addr_o  = sram_data_valid_mult[0] ? sram_data_addr_mult[0] :
                       sram_data_valid_mult[1] ? sram_data_addr_mult[1] :
                                                 sram_data_addr_mult[2];
-    assign m_strb_o  = sram_data_valid_mult[0] ? sram_data_strb_mult[0] :
+    assign m_wstrb_o = sram_data_valid_mult[0] ? sram_data_strb_mult[0] :
                       sram_data_valid_mult[1] ? sram_data_strb_mult[1] :
                                                 sram_data_strb_mult[2];
     assign m_wdata_o = sram_data_valid_mult[0] ? sram_data_w_mult[0] :

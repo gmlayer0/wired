@@ -97,6 +97,8 @@ module wired_frontend #(
     end
   end
   f_d_t skid_d;
+  lsu_bus_req_t bus_req;
+  lsu_bus_resp_t bus_resp;
   wired_icache # (
                  .PACKED_SIZE(2 * $bits(bpu_predict_t))
                )
@@ -118,8 +120,8 @@ module wired_frontend #(
                  .f_inst_o(f_raw.inst),
                  .f_pkg_o(f_raw.predict),
                  .f_excp_o(f_raw.excp)
-                 .bus_req_o(),
-                 .bus_resp_i(),
+                 .bus_req_o(bus_req),
+                 .bus_resp_i(bus_resp),
                  .snoop_i(),
                  .csr_i(csr_i),
                  .tlb_update_i(tlb_update_i),
@@ -135,23 +137,20 @@ module wired_frontend #(
                      .SOURCE_WIDTH(SOURCE_WIDTH)
                    )
                    wired_tl_adapter_inst (
-                     ._WIRED_GENERAL_DEFINE(_WIRED_GENERAL_DEFINE),
-                     .bus_req_i(bus_req_i),
-                     .bus_resp_o(bus_resp_o),
-                     .snoop_i(snoop_i),
-                     .m_way_o(m_way_o),
-                     .m_addr_o(m_addr_o),
-                     .m_wstrb_o(m_wstrb_o),
-                     .m_wdata_o(m_wdata_o),
-                     .m_rdata_i(m_rdata_i),
-                     .t_addr_o(t_addr_o),
-                     .t_we_o(t_we_o),
-                     .t_wtag_o(t_wtag_o),
-                     .t_rtag_i(t_rtag_i),
-                     .TL_DECLARE_HOST_PORT(TL_DECLARE_HOST_PORT),
-                     .SOURCE_WIDTH(SOURCE_WIDTH),
-                     .SINK_WIDTH(SINK_WIDTH),
-                     .tl(tl)
+                     `_WIRED_GENERAL_CONN,
+                     .bus_req_i(bus_req),
+                     .bus_resp_o(bus_resp),
+                     .snoop_i(),
+                     .m_way_o(),
+                     .m_addr_o(),
+                     .m_wstrb_o(),
+                     .m_wdata_o(),
+                     .m_rdata_i(),
+                     .t_addr_o(),
+                     .t_we_o(),
+                     .t_wtag_o(),
+                     .t_rtag_i(),
+                     `TL_FORWARD_HOST_PORT(tl, tl)
                    );
 
   // f_d skid buf
