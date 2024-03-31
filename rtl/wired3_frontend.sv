@@ -3,8 +3,8 @@
 // Fuction module for Wired project
 // Frontend module
 module wired_frontend #(
-  parameter int unsigned SOURCE_WIDTH  = 1,
-  parameter int unsigned SINK_WIDTH    = 1,
+    parameter int unsigned SOURCE_WIDTH  = 1,
+    parameter int unsigned SINK_WIDTH    = 1,
     parameter int CPU_ID = 0
   )(
     `_WIRED_GENERAL_DEFINE,
@@ -99,6 +99,37 @@ module wired_frontend #(
   f_d_t skid_d;
   lsu_bus_req_t bus_req;
   lsu_bus_resp_t bus_resp;
+  logic [11:0]               p_addr;
+  logic [3:0][WORD_SIZE-1:0] p_rdata;
+  cache_tag_t [3:0]          p_rtag;
+  logic [1:0]  m_way;
+  logic [11:0] m_addr;
+  logic [3:0][3:0] m_wstrb;
+  logic [3:0][31:0] m_wdata;
+  logic [3:0][31:0] m_rdata;
+  logic [11:4] t_addr;
+  logic  [3:0] t_we;
+  cache_tag_t  t_wtag;
+  cache_tag_t  [3:0] t_rtag;
+  dsram_snoop_t snoop;
+  wired_cache_sram # (
+                     .WORD_SIZE(64)
+                   )
+                   wired_cache_sram_inst (
+                     `_WIRED_GENERAL_CONN,
+                     .p_addr_i(p_addr),
+                     .p_rdata_o(p_rdata),
+                     .p_rtag_o(p_rtag),
+                     .m_way_i(m_way),
+                     .m_addr_i(m_addr),
+                     .m_wstrb_i(m_wstrb),
+                     .m_wdata_i(m_wdata),
+                     .m_rdata_o(m_rdata),
+                     .t_addr_i(t_addr),
+                     .t_we_i(t_we),
+                     .t_wtag_i(t_wtag),
+                     .t_rtag_o(t_rtag)
+                   );
   wired_icache # (
                  .PACKED_SIZE(2 * $bits(bpu_predict_t))
                )
@@ -109,10 +140,6 @@ module wired_frontend #(
                  .f_mask_i(w_f.mask),
                  .f_pc_i(w_f.pc),
                  .f_pkg_i(w_f.predict),
-                 //  .c_valid_i(),
-                 //  .c_ready_o(),
-                 //  .c_addr_i(),
-                 //  .c_parm_i(),
                  .f_valid_o(f_skid_valid),
                  .f_ready_i(f_skid_ready),
                  .f_mask_o(f_raw.mask),
@@ -122,14 +149,13 @@ module wired_frontend #(
                  .f_excp_o(f_raw.excp)
                  .bus_req_o(bus_req),
                  .bus_resp_i(bus_resp),
-                 .snoop_i(),
+                 .snoop_i(snoop),
                  .csr_i(csr_i),
                  .tlb_update_i(tlb_update_i),
-                 .p_addr_o(),
-                 .p_rdata_i(),
-                 .p_tag_i(),
-                 .p_sll_i(),
-                 .flush_i()
+                 .p_addr_o(p_addr),
+                 .p_rdata_i(p_rdata),
+                 .p_tag_i(p_rtag),
+                 .flush_i(g_flush)
                );
   wired_tl_adapter # (
                      .SOURCE_WIDTH(SOURCE_WIDTH),
@@ -140,16 +166,16 @@ module wired_frontend #(
                      `_WIRED_GENERAL_CONN,
                      .bus_req_i(bus_req),
                      .bus_resp_o(bus_resp),
-                     .snoop_i(),
-                     .m_way_o(),
-                     .m_addr_o(),
-                     .m_wstrb_o(),
-                     .m_wdata_o(),
-                     .m_rdata_i(),
-                     .t_addr_o(),
-                     .t_we_o(),
-                     .t_wtag_o(),
-                     .t_rtag_i(),
+                     .snoop_o(snoop),
+                     .m_way_o(m_way),
+                     .m_addr_o(m_addr),
+                     .m_wstrb_o(m_wstrb),
+                     .m_wdata_o(m_wdata),
+                     .m_rdata_i(m_rdata),
+                     .t_addr_o(t_addr),
+                     .t_we_o(t_we),
+                     .t_wtag_o(t_wtag),
+                     .t_rtag_i(t_rtag),
                      `TL_FORWARD_HOST_PORT(tl, tl)
                    );
 
