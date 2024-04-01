@@ -143,6 +143,24 @@ case (addr_imm_type)
 endcase
 endfunction
 
+function logic[31:0] mkimm_data(input logic[2:0] data_imm_type, input logic[25:0] raw_imm);
+  // !!! CAUTIOUS !!! : DOESN'T SUPPORT IMM U16 | IMM S21 FOR NOW
+  case(data_imm_type[1:0])
+    // default/*IMM U5*/: begin
+    //   mkimm_data = {27'd0, raw_imm[15:10]};
+    // end NO NEED ANY MORE
+    default : begin
+      mkimm_data = {20'd0, raw_imm[21:10]};
+    end
+    `_IMM_S12 : begin
+      mkimm_data = {{20{raw_imm[21]}}, raw_imm[21:10]};
+    end
+    `_IMM_S20 : begin
+      mkimm_data = {{12{raw_imm[24]}}, raw_imm[24:5]};
+    end
+  endcase
+endfunction
+
 typedef struct packed{
   decode_info_p_t di; // 指令控制信息
   reg_ctrl_t      wreg;

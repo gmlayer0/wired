@@ -142,7 +142,7 @@ module wired_rename #(
         .raddr_i(r_rarid_i),
         .rdata_o(r_rename_result),
         .waddr_i(r_warid_i),
-        .we_i(r_issue),
+        .we_i(r_issue & {{(|r_warid_i[1])}, {(|r_warid_i[0])}}),
         .wdata_i(r_rename_new)
     );
     // Commit 级别表
@@ -160,7 +160,7 @@ module wired_rename #(
         .raddr_i({r_rarid_i,r_warid_i}),
         .rdata_o({cr_rename_result, cw_rename_result}),
         .waddr_i(c_warid_i),
-        .we_i(c_retire_i),
+        .we_i(c_retire_i & {{(|c_warid_i[1])}, {(|c_warid_i[0])}}),
         .wdata_i(c_rename_new)
     );
 

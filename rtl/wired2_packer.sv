@@ -12,6 +12,7 @@ module wired_packer #(
     // 来自对齐解码级
     input  logic                     valid_i,
     output logic                     ready_o, //TODO 剩余指令数 <= 1 时前级可以就绪
+    input  logic                        nz_i,
     input  logic                [1:0] bank_i,
     input  logic  [1:0][PKG_SIZE-1:0]  pkg_i,
     input  logic                [1:0] mask_i,
@@ -27,6 +28,7 @@ module wired_packer #(
   assign mask[0] = mask_i[0] & valid_i;
   assign mask[1] = mask_i[1] & valid_i;
   logic skid_busy_q;
+  logic skid_nz_q;
   logic skid_bank_q;
   logic[PKG_SIZE-1:0] skid_pkg_q;
   logic skid_en, skid_sel;
@@ -40,6 +42,7 @@ module wired_packer #(
   end
   always_ff @(posedge clk) begin
     if(skid_en) begin
+      skid_nz_q   <= nz_i;
       skid_bank_q <= bank_i[skid_sel];
       skid_pkg_q  <= pkg_i[skid_sel];
     end
@@ -51,8 +54,8 @@ module wired_packer #(
   assign pkg_o = skid_busy_q ? sel_pkg[0] : sel_pkg[1];
 
   wire [1:0] c;
-  assign c[0] = skid_bank_q == bank_i[0];
-  assign c[1] = bank_i[0] == bank_i[1];
+  assign c[0] = (skid_bank_q == bank_i[0]) && (skid_nz_q & nz_i[0]);
+  assign c[1] = (bank_i[0] == bank_i[1]) && (nz_i[0] & nz_i[1]);
 
   assign valid_o = skid_busy_q | (|mask);
 

@@ -87,7 +87,7 @@ module wired_backend #(
                                 .raddr_i(r_raddr),
                                 .rdata_o(r_rdata),
                                 .waddr_i(c_waddr),
-                                .we_i(c_we),
+                                .we_i(c_we & {{(|c_waddr[1])}, {(|c_waddr[0])}}),
                                 .wdata_i(c_wdata)
                               );
   // --- RENAME ---
@@ -117,6 +117,31 @@ module wired_backend #(
                );
   // 打包生成 P 级需要的包 pipeline_ctrl_p_t
   pipeline_ctrl_p_t [1:0] p_pkg;
+  for(genvar p = 0 ; p < 2 ; p += 1) begin
+    wire [25:0] raw_imm  = r_pkg[p].inst[25:0];
+    wire [31:0] data_imm = mkimm_data(r_pkg[p].di.imm_type, raw_imm);
+    wire [27:0] addr_imm = mkimm_addr(r_pkg[p].di.addr_imm_type, raw_imm);
+    always_comb begin
+        p_pkg[p] = '0;
+        p_pkg[p].di   = get_p_from_d(r_pkg[p].di);
+        p_pkg[p].wreg.arch_id = r_waddr[p];
+        p_pkg[p].wreg.rob_id = r_wrrid[p];
+        p_pkg[p].wtire = r_tier_id[p];
+        p_pkg[p].addr_imm = addr_imm;
+        // if(r_pkg[p].di.invtlb_en || r_pkg[p].di.mem_cacop) begin
+        p_pkg[p].op_code = raw_imm[4:0]; // invtlb / cacop
+        // end else 
+        if(r_pkg[p].di.csr_op_en || r_pkg[p].di.csr_rdcnt) begin
+            p_pkg[p].op_code = raw_imm[9:5]; // rj
+        end else begin
+            p_pkg[p].op_code[4] = r_waddr[p] == 5'd1;
+            p_pkg[p].op_code[3] = r_raddr[p][1] == 5'd1;
+        end
+        p_pkg[p].pc = r_pkg[p].pc;
+        p_pkg[p].bpu_predict = r_pkg[p].bpu_predict;
+        p_pkg[p].excp = r_pkg[p].fetch_excp;
+    end
+  end
   /* 分发级 P */
   // ROB (分发 / 提交级别)
 

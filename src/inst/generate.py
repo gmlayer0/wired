@@ -71,7 +71,9 @@ class design_parser:
             for target in node_list:
                 if(self.node_priv_signal.get(target) is not None):
                     inst_list.update(self.node_priv_signal.get(target))
-            self.node_signal[node] = [i for i in inst_list]
+            l = [i for i in inst_list]
+            l.sort()
+            self.node_signal[node] = l
 
     def gen_blank(self, times):
         return '    ' * times

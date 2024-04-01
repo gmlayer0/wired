@@ -9,8 +9,7 @@
         ["p", "lsu"],
         ["p", "alu"],
         ["p", "rob"],
-        ["r", "p"],
-        ["d", "r"],
+        ["d", "p"],
         ["Entry", "d"]
     ],
     "signal": {
@@ -36,12 +35,12 @@
         },
         "reg_type_r0": {
             "length": 2,
-            "stage": "r",
+            "stage": "d",
             "default_value": "`_REG_R0_NONE"
         },
         "reg_type_r1": {
             "length": 1,
-            "stage": "r",
+            "stage": "d",
             "default_value": "`_REG_R1_NONE"
         },
         "reg_type_w": {
@@ -51,12 +50,12 @@
         },
         "imm_type": {
             "length": 3,
-            "stage": "r",
+            "stage": "d",
             "default_value": "`_IMM_U5"
         },
         "addr_imm_type": {
             "length": 2,
-            "stage": "r",
+            "stage": "d",
             "default_value": "`_ADDR_IMM_S26"
         },
         "slot0": {
