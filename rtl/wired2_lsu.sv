@@ -1,5 +1,5 @@
 // dcache cpu side
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 module wired_lsu(
     `_WIRED_GENERAL_DEFINE,

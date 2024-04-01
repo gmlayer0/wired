@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 module wired_spillbuffer #(
     parameter int DATA_WIDTH = 32,

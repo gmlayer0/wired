@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // 注意： 这个模块并不会在复位时候清空 tlb 表项
 // 当启用 OPT 之后，需要两个周期完成表项的更新。

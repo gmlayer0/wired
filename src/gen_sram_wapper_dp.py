@@ -51,7 +51,7 @@ smic_tdpram_config = [
 
 # smic_tdpram_config = unique_configs
 
-tdpram_wrapper = '''`include "wired0_defines"
+tdpram_wrapper = '''`include "wired0_defines.svh"
 
 module wired_dpsram #(
   parameter int unsigned DATA_WIDTH = 32  ,

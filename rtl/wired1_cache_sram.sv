@@ -1,5 +1,5 @@
 // dcache cpu side
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 module wired_cache_sram#(
     parameter integer WORD_SIZE = 32            // support value including {32, 64}

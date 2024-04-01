@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // Fuction module for Wired project
 // Commit module, fetch all static and dynamic information about instruction execution.

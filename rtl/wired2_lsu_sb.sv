@@ -1,5 +1,5 @@
 // dcache cpu side
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // 为 lsu 设计的 sb，存在四个表项
 module wired_lsu_sb(

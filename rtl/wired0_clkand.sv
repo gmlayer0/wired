@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 module wired0_clock_and (
     input clk_i,

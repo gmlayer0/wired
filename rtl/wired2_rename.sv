@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // Fuction module for Wired project
 // This module take two inst register infomation as input(combinational)

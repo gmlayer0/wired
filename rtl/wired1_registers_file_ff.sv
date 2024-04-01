@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 module wired_registers_file_ff #(
     parameter int unsigned DATA_WIDTH = 32,

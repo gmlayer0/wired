@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
@@ -12,7 +12,7 @@
 ///   in_i = 000_0001, empty_o = 0, cnt_o = 0 (mode = 0)
 ///   in_i = 000_1000, empty_o = 0, cnt_o = 3 (mode = 0)
 /// Furthermore, this unit contains a more efficient implementation for Verilator (simulation only).
-/// This speeds up simulation significantly.`include "wired0_defines"
+/// This speeds up simulation significantly.`include "wired0_defines.svh"
 
 module wired_count_leading #(
     /// The width of the input vector.

@@ -1,5 +1,5 @@
 // dcache bus side
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // include tilelink header
 `include "tl_util.svh"

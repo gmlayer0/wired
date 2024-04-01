@@ -25,7 +25,7 @@ for root, dirs, files in os.walk('../rtl'):
     for file_name in files:
         path = os.path.join(root, file_name)
         ext_name = os.path.splitext(path)[1]
-        if (ext_name == '.sv' or ext_name == '.svh' or ext_name == '.v' or ext_name == '.vh') and 'deperated' not in path and 'logs/annotated/' not in path and 'decoder.sv' not in path and 'decoder.svh' not in path:
+        if (ext_name == '.sv' or ext_name == '.svh' or ext_name == '.v' or ext_name == '.vh') and 'deperated' not in path and 'logs/annotated/' not in path:
             with open(path) as f:
                 f = f.read()
                 f = re.findall(r'--JSON--(.*)--JSON--',f)

@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 module wired_clock_gate (
     `_WIRED_GENERAL_DEFINE

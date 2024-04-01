@@ -1,5 +1,5 @@
 // dcache cpu side
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // 为 lsu 设计的 TAG Tracker，实时检查对于 Cache 的写情况，并更新 hit 状态
 module wired_lsu_hit_snop(

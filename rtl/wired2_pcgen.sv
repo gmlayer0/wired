@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 function automatic logic[1:0] gen_next_lphr(input logic[1:0] old, input logic direction);
   case(old)

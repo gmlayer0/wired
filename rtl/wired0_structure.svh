@@ -3,7 +3,7 @@
 
 // 此文件中声明了 WIRED 工程将要使用到的全部 structure
 
-`include "decoder.svh"
+`include "wired0_decoder.svh"
 
 typedef logic[31:0] word_t;
 

@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // 这个模块在一周期后输出查找结果
 // 后续可能的优化是将此模块对 TLB 的查找放在 M1 级别，

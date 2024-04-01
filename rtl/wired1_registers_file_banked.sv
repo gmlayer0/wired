@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // BANKED REGISTER FILE
 // BANKED-WPORT

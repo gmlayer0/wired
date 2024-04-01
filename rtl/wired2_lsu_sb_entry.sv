@@ -1,5 +1,5 @@
 // dcache cpu side
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 // 为 lsu 设计的 sb 单个表项实现
 // fun fact: this module does not need to be reset actually.

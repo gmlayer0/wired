@@ -1,4 +1,4 @@
-`include "wired0_defines"
+`include "wired0_defines.svh"
 
 module wired_fifo #(
     parameter int unsigned DATA_WIDTH = 32,
