@@ -114,7 +114,7 @@ typedef struct packed {
     llsc_inst_t llsc_inst;
     mem_read_t mem_read;
     mem_write_t mem_write;
-} decode_info_common_t;
+} decode_info_lsu_common_t;
 
 typedef struct packed {
     dbarrier_t dbarrier;
@@ -126,10 +126,6 @@ typedef struct packed {
 } decode_info_c_t;
 
 typedef struct packed {
-    dbarrier_t dbarrier;
-    llsc_inst_t llsc_inst;
-    mem_read_t mem_read;
-    mem_write_t mem_write;
 } decode_info_mdu_t;
 
 typedef struct packed {
@@ -145,10 +141,6 @@ typedef struct packed {
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
     cmp_type_t cmp_type;
-    dbarrier_t dbarrier;
-    llsc_inst_t llsc_inst;
-    mem_read_t mem_read;
-    mem_write_t mem_write;
     target_type_t target_type;
 } decode_info_alu_t;
 
@@ -242,17 +234,8 @@ typedef struct packed {
     wait_inst_t wait_inst;
 } decode_info_d_t;
 
-function automatic decode_info_common_t get_common_from_mdu(input decode_info_mdu_t mdu);
-    decode_info_common_t ret;
-    ret.dbarrier = mdu.dbarrier;
-    ret.llsc_inst = mdu.llsc_inst;
-    ret.mem_read = mdu.mem_read;
-    ret.mem_write = mdu.mem_write;
-    return ret;
-endfunction
-
-function automatic decode_info_common_t get_common_from_lsu(input decode_info_lsu_t lsu);
-    decode_info_common_t ret;
+function automatic decode_info_lsu_common_t get_lsu_common_from_lsu(input decode_info_lsu_t lsu);
+    decode_info_lsu_common_t ret;
     ret.dbarrier = lsu.dbarrier;
     ret.llsc_inst = lsu.llsc_inst;
     ret.mem_read = lsu.mem_read;
@@ -260,17 +243,8 @@ function automatic decode_info_common_t get_common_from_lsu(input decode_info_ls
     return ret;
 endfunction
 
-function automatic decode_info_common_t get_common_from_alu(input decode_info_alu_t alu);
-    decode_info_common_t ret;
-    ret.dbarrier = alu.dbarrier;
-    ret.llsc_inst = alu.llsc_inst;
-    ret.mem_read = alu.mem_read;
-    ret.mem_write = alu.mem_write;
-    return ret;
-endfunction
-
-function automatic decode_info_common_t get_common_from_c(input decode_info_c_t c);
-    decode_info_common_t ret;
+function automatic decode_info_lsu_common_t get_lsu_common_from_c(input decode_info_c_t c);
+    decode_info_lsu_common_t ret;
     ret.dbarrier = c.dbarrier;
     ret.llsc_inst = c.llsc_inst;
     ret.mem_read = c.mem_read;
@@ -291,10 +265,6 @@ endfunction
 
 function automatic decode_info_mdu_t get_mdu_from_p(input decode_info_p_t p);
     decode_info_mdu_t ret;
-    ret.dbarrier = p.dbarrier;
-    ret.llsc_inst = p.llsc_inst;
-    ret.mem_read = p.mem_read;
-    ret.mem_write = p.mem_write;
     return ret;
 endfunction
 
@@ -314,10 +284,6 @@ function automatic decode_info_alu_t get_alu_from_p(input decode_info_p_t p);
     ret.alu_grand_op = p.alu_grand_op;
     ret.alu_op = p.alu_op;
     ret.cmp_type = p.cmp_type;
-    ret.dbarrier = p.dbarrier;
-    ret.llsc_inst = p.llsc_inst;
-    ret.mem_read = p.mem_read;
-    ret.mem_write = p.mem_write;
     ret.target_type = p.target_type;
     return ret;
 endfunction

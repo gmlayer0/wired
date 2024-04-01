@@ -107,7 +107,7 @@ module wired_iq_entry #(
         // 背靠背唤醒机制
         logic [FORWARD_COUNT-1:0] b2b_hit;
         for(genvar j = 0 ; j < FORWARD_COUNT ; j++) begin
-            assign b2b_hit[j] = forward_valid_i[j] && forward_rid_i[j] == rid_q;
+            assign b2b_hit[j] = b2b_valid_i[j] && forward_rid_i[j] == rid_q;
         end
         always_ff @(posedge clk) begin
             b2b_sel_q[i] <= b2b_hit;

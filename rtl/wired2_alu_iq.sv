@@ -16,8 +16,7 @@ module wired_alu_iq #(
     // 连接到 CDB ARBITER 的端口，做仲裁(调度为固定优先级别 ALU > LSU > MDU)
     // 因此来自 ALU 的两条指令几乎永远可以同时提交到 CDB
     // 但需要考虑 ROB 的 BANK CONFLICT 问题。
-    output pipeline_cdb_t [1:0] cdb_payload_o,
-    output logic          [1:0] cdb_valid_o,
+    output pipeline_cdb_t [1:0] cdb_o,
     input  logic          [1:0] cdb_ready_i, // 这里可以接 FIFO
 
     // CDB 嗅探端口
@@ -46,10 +45,10 @@ module wired_alu_iq #(
         for(genvar j = 0 ; j < IQ_SIZE ; j++) begin : GENFIRE_PER_SLOT
             localparam integer PIO_NOW  = i == 0 ? (FIREPIO[j]) : (IQ_SIZE-1-FIREPIO[j]);
             if(j == 0) begin
-                assign fire_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW];
+                assign fire_sel_oh[i][PIO_NOW] = fire_rdy_q[PIO_NOW];
             end else if(j < FIRERANGE) begin
                 localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (IQ_SIZE-1-UPDPIO[j-1]);
-                assign fire_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW] & ~upd_sel_oh[i][PIO_PREV];
+                assign fire_sel_oh[i][PIO_NOW] = fire_rdy_q[PIO_NOW] & ~upd_sel_oh[i][PIO_PREV];
             end else begin
                 assign fire_sel_oh[i][PIO_NOW] = '0;
             end
@@ -84,9 +83,10 @@ module wired_alu_iq #(
 
     // Reserve station static entry 定义
     typedef struct packed {
-        alu_grand_op_t gop;
-        alu_op_t op;
+        decode_info_alu_t di;
         logic[31:0] pc;
+        logic[27:0] addr_imm;
+        rob_rid_t wreg;
     } iq_static_t;
     // 输入给 IQ 的 static 信息
     iq_static_t [1:0] p_static;
@@ -96,16 +96,37 @@ module wired_alu_iq #(
     iq_static_t [IQ_SIZE-1:0] iq_static;
     logic [IQ_SIZE-1:0][1:0][1:0] b2b_src; // IQ_INDEX REG_INDEX SRC_INDEX
 
+    logic [1:0] excute_valid; // 标记 Excute 级的两个执行槽是否有效
+    logic       excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令，齐步走信号
+    logic [1:0] b2b_valid;
+    rob_rid_t [1:0] b2b_rid;
+    logic [1:0] b2b_valid_d, b2b_valid_q;
+    assign b2b_valid = excute_ready ? b2b_valid_d : b2b_valid_q;
+    always_ff @(posedge clk) begin
+        if(!rst_n || flush_i) begin
+            b2b_valid_q <= '0;
+        end else begin
+            if(excute_ready) b2b_valid_q <= b2b_valid_d;
+        end
+    end
+    rob_rid_t [1:0] b2b_rid_d, b2b_rid_q;
+    assign b2b_rid = excute_ready ? b2b_rid_d : b2b_rid_q;
+    always_ff @(posedge clk) begin
+        if(excute_ready) b2b_rid_q <= b2b_rid_d;
+    end
+
     // 解包信息
     for(genvar i = 0 ; i < 2 ; i += 1) begin
         always_comb begin
-            p_static[i].gop = p_ctrl_i[i].di.alu_grand_op;
-            p_static[i].op  = p_ctrl_i[i].di.alu_op;
-            p_static[i].pc  = p_ctrl_i[i].pc;
+            p_static[i].di       = get_alu_from_p(p_ctrl_i[i].di);
+            p_static[i].pc       = p_ctrl_i[i].pc;
+            p_static[i].wreg     = p_ctrl_i[i].wreg.rob_id;
+            p_static[i].addr_imm = p_ctrl_i[i].addr_imm;
         end
     end
 
     // 例化 Reserve station entry
+    // 与 Excute Unit 的握手信号
     for(genvar i = 0 ; i < IQ_SIZE ; i += 1) begin
         wire [1:0] update_by;
         for(genvar j = 0 ; j < IQ_SIZE ; j += 1) begin
@@ -118,12 +139,12 @@ module wired_alu_iq #(
         )
         wired_iq_entry_inst (
             `_WIRED_GENERAL_CONN,
-            .sel_i(ready_sel[0][i] | ready_sel[1][i] | flush_i),
+            .sel_i(((fire_sel_oh[0][i] | fire_sel_oh[1][i]) & excute_ready) | flush_i),
             .updata_i(|update_by),
             .data_i(update_by[1] ? p_data_i[1] : p_data_i[0]),
             .payload_i(update_by[0] ? p_static[0] : p_static[1]),
-            .b2b_valid_i(),
-            .b2b_rid_i(),
+            .b2b_valid_i(b2b_valid),
+            .b2b_rid_i(b2b_rid),
             .cdb_i(cdb_i),
             .empty_o(empty_q[i]),
             .ready_o(fire_rdy_q[i]),
@@ -132,40 +153,119 @@ module wired_alu_iq #(
             .payload_o(iq_static[i])
         );
     end
-
-    iq_static_t [1:0] sel_static_q, sel_static;
-    logic [1:0][1:0] sel_forward_q, sel_forward;
-    rob_rid_t [1:0] sel_rid_q, sel_rob;
-    word_t [1:0] sel_data_q, sel_data, alu_data;
-
+    iq_static_t [1:0] sel_static_q,  sel_static;
+    logic [1:0][1:0]  sel_forward_q, sel_forward;
+    word_t [1:0][1:0] sel_data_q,    sel_data;
+    word_t [1:0]      fwd_data_q,    fwd_data; // TODO: FINISHME
     // 选择两个用于 ALU 输入的 data 和 static
-
-    // 握手控制，主要与 CDB 有关
-    logic [1:0] excute_valid; // 标记 Excute 级的两个执行槽是否有效
-    logic [1:0] excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令
-
+    for(genvar s = 0 ; s < 2 ; s += 1) begin
+        always_comb begin
+            sel_static[s] = '0;
+            sel_forward[s] = '0;
+            sel_data[s] = '0;
+            for(integer i = 0 ; i < IQ_SIZE ; i += 1) begin
+                if(fire_sel_oh[s][i]) begin
+                    sel_static[s]  |= iq_static[i];
+                    sel_forward[s] |= b2b_src[i];
+                    sel_data[s]    |= iq_data[i];
+                    b2b_valid_d[s] |= '1;
+                    b2b_rid_d[s]   |= iq_static[i].wreg;
+                end
+            end
+        end
+        assign excute_valid[0] = |fire_rdy_q[5:0];
+        assign excute_valid[1] = (|fire_rdy_q[7:2]) && (fire_sel_oh[0] != fire_sel_oh[1]);
+    end
+    always_ff @(posedge clk) begin
+        if(excute_ready) begin
+            sel_static_q  <= sel_static;
+            sel_forward_q <= sel_forward;
+            sel_data_q    <= sel_data;
+            fwd_data_q    <= fwd_data;
+        end
+    end
+    logic [1:0] excute_valid_q;
+    logic [1:0] l_excute_ready;
+    wire  [1:0] fifo_ready;
+    for(genvar p = 0 ; p < 2 ; p += 1) begin
+        always_ff @(posedge clk) begin
+            if(!rst_n || flush_i) begin
+                excute_valid_q[p] <= '0;
+            end else begin
+                if(excute_ready) begin
+                    excute_valid_q[p] <= excute_valid[p];
+                end else begin
+                    if(excute_valid_q[p] && fifo_ready[p]) begin
+                        excute_valid_q[p] <= '0;
+                    end
+                end
+            end
+        end
+        assign l_excute_ready[p] = (!excute_valid_q[p]) || fifo_ready;
+    end
+    assign excute_ready = &l_excute_ready;
     // 例化两个 ALU 和 jump 模块 用于处理所有计算指令以及分支指令
-    for(genvar i = 0 ; i < 2 ; i += 1) begin
+    logic[1:0]       ex_jump;
+    rob_rid_t[1:0]   ex_rid;
+    logic[1:0][31:0] ex_jump_target;
+    logic[1:0][31:0] ex_wdata;
+    assign fwd_data = ex_wdata;
+    for(genvar p = 0 ; p < 2 ; p += 1) begin
+        word_t [1:0] real_data; // 转发后的数据
+        always_comb begin
+            real_data[p] = (|sel_forward_q[p]) ? '0 : sel_data_q[p];
+            for(integer i = 0 ; i < 2 ; i += 1) begin
+                real_data[p] |= sel_forward_q[p][i] ? fwd_data_q : '0;
+            end
+        end
         wired_alu  wired_alu_inst (
-            .r0_i(),
-            .r1_i(),
-            .pc_i(),
-            .grand_op_i(),
-            .op_i(),
-            .res_o()
+            .r0_i(real_data[0]),
+            .r1_i(real_data[1]),
+            .pc_i(sel_static_q[p].pc),
+            .grand_op_i(sel_static_q[p].di.grand_op),
+            .op_i(sel_static_q[p].di.alu_op),
+            .res_o(ex_wdata[p])
         );
         wired_jump  wired_jump_inst (
-            .r0_i(),
-            .r1_i(),
-            .pc_i(),
-            .addr_imm_i(),
-            .target_type_i(),
-            .cmp_type_i(),
-            .jump_o(),
-            .jump_target_o()
+            .r0_i(real_data[0]),
+            .r1_i(real_data[1]),
+            .pc_i(sel_static_q[p].pc),
+            .addr_imm_i(sel_static_q[p].addr_imm),
+            .target_type_i(sel_static_q[p].di.target_type),
+            .cmp_type_i(sel_static_q[p].di.cmp_type),
+            .jump_o(ex_jump[p]),
+            .jump_target_o(ex_jump_target[p])
         );
     end
 
-    // 连接到 CDB 的两个 skid buf
+    // 连接到 CDB 的两个 FIFO
+    for(genvar p = 0 ; p < 2 ; p += 1) begin
+        logic c_jump;
+        rob_rid_t c_rid;
+        logic[31:0] c_jump_target;
+        logic[31:0] c_wdata;
+        wired_fifo #(
+            .DATA_WIDTH($bits(rob_rid_t) + 32 + 32 + 1), // rid, wdata, jumppc, jump
+            .DEPTH(2)
+        )
+        wired_pkg_fifo(
+            .clk(clk),
+            .rst_n(rst_n && !g_flush),
+            .inport_valid_i(excute_valid_q[p]),
+            .inport_ready_o(fifo_ready[p]),
+            .inport_payload_i({ex_rid[p], ex_wdata[p], ex_jump_target[p], ex_jump[p]}),
+            .outport_valid_o(cdb_o[p].valid),
+            .outport_ready_i(cdb_ready_i[p]),
+            .outport_payload_o({c_rid, c_wdata, c_jump_target, c_jump})
+        );
+        assign cdb_o[p].excp              = '0;
+        assign cdb_o[p].need_jump         = c_jump;
+        assign cdb_o[p].target_addr       = c_jump_target;
+        assign cdb_o[p].uncached          = '0;
+        assign cdb_o[p].store_buffer      = '0;
+        assign cdb_o[p].store_conditional = '0;
+        assign cdb_o[p].wdata             = c_wdata;
+        assign cdb_o[p].wid               = c_rid;
+    end
 
 endmodule

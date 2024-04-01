@@ -16,12 +16,12 @@
         },
         "mem_write": {
             "length": 1,
-            "stage": "common",
+            "stage": "lsu_common",
             "default_value": 0
         },
         "mem_read": {
             "length": 1,
-            "stage": "common",
+            "stage": "lsu_common",
             "default_value": 0
         },
         "mem_cacop": {
@@ -31,12 +31,12 @@
         },
         "llsc_inst": {
             "length": 1,
-            "stage": "common",
+            "stage": "lsu_common",
             "default_value": 0
         },
         "dbarrier": {
             "length": 1,
-            "stage": "common",
+            "stage": "lsu_common",
             "default_value": 0
         }
     },

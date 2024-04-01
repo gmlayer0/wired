@@ -144,9 +144,26 @@ module wired_backend #(
   end
   /* 分发级 P */
   // ROB (分发 / 提交级别)
+  wired_rob  wired_rob_inst (
+    `_WIRED_GENERAL_CONN,
+    .p_rrrid_i(),
+    .p_rob_valid_o(),
+    .p_rrdata_o(),
+    .p_valid_i(),
+    .p_wrrid_i(),
+    .p_winfo_i(),
 
-  // Reserve Station（分发 / ROB 写回）
+    .cdb_i(),
+    .c_rrrid_i(),
+    .c_rob_valid_o(),
+    .c_rob_entry_o(),
+    .c_retire_i()
+  );
 
-  // 执行单元
+  // IQ（分发 / ROB 写回）
+
+  // CDB ARBITER
+
+  // COMMIT 流水线 
 
 endmodule
