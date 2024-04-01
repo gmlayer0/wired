@@ -118,16 +118,6 @@ typedef struct packed {
 // Backend Begin
 // 解码出来的寄存器信息
 
-// 输入到 Rename 级的指令流
-typedef struct packed {
-  decode_info_r_t di;
-  logic[25:0]     imm_domain;
-  reg_info_t              ri;
-  logic[31:0]             pc;
-  bpu_predict_t  bpu_predict;
-  static_excp_t         excp;
-} pipeline_ctrl_r_t;
-
 typedef struct packed {
     arch_rid_t arch_id;
     rob_rid_t  rob_id;

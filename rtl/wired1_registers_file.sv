@@ -6,6 +6,7 @@ module wired_registers_file #(
     parameter int unsigned R_PORT_COUNT = 2,
     parameter REGISTERS_FILE_TYPE = "ff", // optional: ff, latch
     parameter bit NEED_RESET = 0,
+    parameter bit NEED_FORWARD = 0,
     parameter logic[DEPTH-1:0][DATA_WIDTH-1:0] RESET_VAL = '0,
     // DO NOT MODIFY
     parameter type T = logic[DATA_WIDTH - 1 : 0],
@@ -53,7 +54,7 @@ module wired_registers_file #(
 
     // Read port generation
     for(genvar i = 0 ; i < R_PORT_COUNT ; i++) begin
-        assign rdata_o[i] = regfiles[raddr_i[i]];
+        assign rdata_o[i] = (NEED_FORWARD && raddr_i[i] == waddr_i) ? wdata_i : regfiles[raddr_i[i]];
     end
 
 endmodule

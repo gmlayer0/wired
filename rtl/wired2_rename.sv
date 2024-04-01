@@ -4,11 +4,9 @@
 // This module take two inst register infomation as input(combinational)
 // And generate all register id after rename.
 module wired_rename #(
-    parameter int unsigned DATA_WIDTH = 32,
     parameter int unsigned DEPTH = 32,
 
     // DO NOT MODIFY
-    parameter type T = logic[DATA_WIDTH - 1 : 0],
     parameter int unsigned ADDR_DEPTH   = (DEPTH > 1) ? $clog2(DEPTH) : 1
 )(
     `_WIRED_GENERAL_DEFINE,
@@ -18,11 +16,14 @@ module wired_rename #(
     output rob_rid_t[3:0] r_rrrid_o,
     output    logic [3:0] r_prf_valid_o, // PRF 中存储的值是有效的
 
-    input     logic [1:0] r_issue_i,
+    input     logic [1:0] r_mask_i,
     output    logic       r_ready_o,     // 发射就绪，注意，发射条件为 指令到达 P 级时，保证依然有两个 ROB 表项可用
     input arch_rid_t[1:0] r_warid_i,
     output rob_rid_t[1:0] r_wrrid_o,
     output    logic [1:0] r_tier_id_o,   // 提交时使用的 tier id
+
+    // 来自 P 级的Ready信号
+    input     logic       p_ready_i,
 
     // 连接到 COMMIT 级别的端口
     input     logic [1:0] c_retire_i,
@@ -36,7 +37,7 @@ module wired_rename #(
     output    logic       empty_o        // ROB 清空信号
 );
     logic[1:0] r_issue; // 指令实际发射
-    assign r_issue = {r_ready_o, r_ready_o} & r_issue_i;
+    assign r_issue = {r_ready_o, r_ready_o} & r_mask_i;
 
     // ROB 计数逻辑
     // 注意 ROB 共计 64 项目，SKIDBUF 中可能存储两条指令
@@ -59,11 +60,13 @@ module wired_rename #(
     end
 
     // r_ready_o 生成逻辑
+    logic ready_q;
+    assign r_ready_o = ready_q && p_ready_i;
     always_ff @(posedge clk) begin
         if(~rst_n) begin
-            r_ready_o <= '1;
+            ready_q <= '1;
         end else begin
-            r_ready_o <= rob_count_q <= 7'd60 && (!c_flush_i);
+            ready_q <= rob_count_q <= 7'd60 && (!c_flush_i);
         end
     end
 
@@ -131,8 +134,8 @@ module wired_rename #(
         .DEPTH(1 << `_WIRED_PARAM_PRF_LEN),
         .R_PORT_COUNT(4),
         .W_PORT_COUNT(2),
-        .REGISTERS_FILE_TYPE("ff"),
-        .NEED_RESET(1)
+        .NEED_RESET(1),
+        .NEED_FORWARD(0)
     )
     r_rename_table (
         `_WIRED_GENERAL_CONN,
@@ -149,7 +152,8 @@ module wired_rename #(
         .R_PORT_COUNT(6),
         .W_PORT_COUNT(2),
         .REGISTERS_FILE_TYPE("ff"),
-        .NEED_RESET(1)
+        .NEED_RESET(1),
+        .NEED_FORWARD(1)
     )
     c_rename_table (
         `_WIRED_GENERAL_CONN,

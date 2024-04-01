@@ -10,6 +10,7 @@ module wired_registers_file_banked #(
     parameter int unsigned W_PORT_COUNT = 2,
     parameter REGISTERS_FILE_TYPE = "ff", // optional: ff, latch
     parameter bit NEED_RESET = 0,
+    parameter bit NEED_FORWARD = 0,
     parameter logic[DEPTH-1:0][DATA_WIDTH-1:0] RESET_VAL = '0,
     // DO NOT MODIFY
     parameter type T = logic[DATA_WIDTH - 1 : 0],
@@ -55,6 +56,7 @@ module wired_registers_file_banked #(
             .R_PORT_COUNT,
             .REGISTERS_FILE_TYPE,
             .NEED_RESET,
+            .NEED_FORWARD,
             .RESET_VAL
         ) slice_regfiles (
             `_WIRED_GENERAL_CONN,
