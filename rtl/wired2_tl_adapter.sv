@@ -39,16 +39,6 @@ module wired_tl_adapter import tl_pkg::*; #(
     // --- prb call inv
     logic prb_inv_cal; // prb drive
     logic prb_inv_ret; // inv drive
-    typedef enum logic[2:0] {
-        PRB_HIT_ADDR_N, // for prb inv toN
-        PRB_HIT_ADDR_B, // for prb inv toB
-        RD_ALLOC,       // for read inv, 找到一个合适的行释放并返回
-        WR_ALLOC,       // for write miss, check whether read hit, if hit, just return.
-                        // otherwise, invalidate random way and return.
-        IDX_INV,        // INDEX INVALID WRITE BACK
-        HIT_INV,        // TODO
-        IDX_INIT        // INDEXED INIT
-    } inv_parm_e;
     // payload
     inv_parm_e   prb_inv_parm; // prb drive
     logic [31:0] prb_inv_addr; // prb drive
@@ -249,11 +239,11 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
         end
         typedef struct packed {
-            logic [1:0]  size;
+            logic  [1:0] size;
             logic [31:0] addr; // 目标地址
             logic [63:0] data;
-            logic     inv_req;
-            logic        parm;
+            logic  [2:0] inv_sel;
+            inv_parm_e   parm;
         } registerd_entrys;
         registerd_entrys init = '0;
         registerd_entrys q;
@@ -272,14 +262,13 @@ module wired_tl_adapter import tl_pkg::*; #(
             d   = q;
             // inv call
             crq_inv_cal  = '0;
-            crq_inv_parm = HIT_INV;
+            crq_inv_parm = q.parm;
             crq_inv_addr = q.addr;
             // acq call
             crq_acq_cal  = '0;
-            crq_acq_wp   = '0; // crq drive, wether to get write permission
-            crq_acq_way  = '0; // crq drive
-            crq_acq_addr = '0; // crq drive
-            crq_acq_data = '0; // acq drive
+            crq_acq_wp   = q.parm == WR_ALLOC;
+            crq_acq_way  = q.inv_sel;
+            crq_acq_addr = q.addr[31:4];
             // unc call
             crq_unc_cal  = '0; // crq drive
             crq_unc_wreq = '0;
@@ -293,44 +282,41 @@ module wired_tl_adapter import tl_pkg::*; #(
             bus_resp_o.rdata = q.data;
             // cpu writeback
             crq_data_valid = '0;
-            crq_data_way = '0;
+            crq_data_way = bus_req_i.way;
             crq_data_addr = '0;
             crq_data_wstrb = '0;
             crq_data_wdata = '0;
+            if(bus_req_i.sram_wb_req) begin
+                crq_data_valid = '1;
+                crq_data_addr  = {bus_req_i.addr[11:4], 4'd0};
+                for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.addr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
+                crq_data_wdata[bus_req_i.addr[3:2]] = bus_req_i.wdata;
+            end
             case (fsm_q)
             /*S_FREE*/default:begin
                 if(bus_req_i.valid) begin
-                    unique case (1'b1)
-                        bus_req_i.uncached_load_req: begin
+                    if(bus_req_i.uncached_load_req) begin
                             fsm = S_ULD;
                             d.size = bus_req_i.size;
                             d.addr = bus_req_i.target_paddr;
-                        end
-                        bus_req_i.uncached_store_req: begin
+                    end
+                    if(bus_req_i.uncached_store_req) begin
                             fsm = S_UST;
                             d.size = bus_req_i.size;
                             d.addr = bus_req_i.target_paddr;
                             d.data[31:0] = bus_req_i.wdata;
-                        end
-                        bus_req_i.acq_read_req, bus_req_i.acq_write_req, idxinv_req, hitinv_req: begin
+                    end
+                    if(bus_req_i.inv_req != NOT_VALID_INV_PARM) begin
                             fsm = S_INV;
-                            d.inv_req = idxinv_req | hitinv_req;
-                            d.parm = bus_req_i.acq_write_req | hitinv_req;
-                        end
-                        sram_wb_req: begin
-                            bus_resp_o.ready = '1;
-                            crq_data_valid = '1;
-                            crq_data_way   = bus_req_i.way;
-                            crq_data_addr  = {bus_req_i.addr[11:4], 4'd0};
-                            for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.addr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
-                            crq_data_wdata[bus_req_i.addr[3:2]] = bus_req_i.wdata;
-                        end
-                    endcase
+                            d.size = bus_req_i.size;
+                            d.addr = bus_req_i.target_paddr;
+                            d.parm = bus_req_i.inv_req inside {IDX_INIT, IDX_INV};
+                    end
                 end
             end
             S_ULD: begin
                 crq_unc_cal = '1;
-                d.data = {tl_d.data[{q.addr[3], 1'd1}],tl_d.data[{q.addr[3], (&q.size[1:0]) ? 1'd0 : q.addr[2]}]};
+                d.data = {tl_d.data[{q.addr[3], 1'd1}], tl_d.data[q.addr[3:2]]};
                 if(crq_unc_ret) begin
                     fsm = S_RET;
                 end
@@ -345,22 +331,26 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
             S_INV: begin
                 crq_inv_cal = '1;
-                crq_inv_parm = HIT_INV;
-                if(!q.inv_req) begin
-                    // write / read request
-                    if(q.parm) begin
-                        // write
+                d.inv_sel = crq_inv_sel;
+                if(crq_inv_ret) begin
+                    if(q.parm inside {WR_ALLOC, RD_ALLOC}) begin
+                        fsm = S_ACQ;
                     end else begin
-                        // read / write-need ACQ
-                        // continue to ACQ
+                        bus_resp_o.ready = '1;
+                        fsm = S_FREE;
                     end
                 end
             end
             S_ACQ: begin
-                
+                crq_acq_cal = '1;
+                d.data = {crq_acq_data[{q.addr[3], 1'd1}], crq_acq_data[q.addr[3:2]]};
+                if(crq_acq_ret) begin
+                    fsm = S_RET;
+                end
             end
             S_RET: begin
-                
+                bus_resp_o.ready = '1;
+                fsm = S_FREE;
             end
             endcase
         end
@@ -530,9 +520,14 @@ module wired_tl_adapter import tl_pkg::*; #(
                     inv_tag = '0;
                     inv_tag.p = q.addr[31:12]; // Prb hit B still have write permission.
                     inv_tag.rp = q.parm == PRB_HIT_ADDR_B ? '1 : '0;
-                    IF(inv_tag_ready) begin
-                        // 继续前进！
-                        fsm = S_SEL;
+                    if(inv_tag_ready) begin
+                        if(q.parm == IDX_INIT) begin
+                            crq_inv_ret = '1;
+                            fsm = S_FREE;
+                        end else begin
+                            // 继续前进！
+                            fsm = S_SEL;
+                        end
                     end
                 end
                 S_SEL: begin

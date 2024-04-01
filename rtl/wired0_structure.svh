@@ -335,16 +335,26 @@ typedef struct packed {
   logic[31:0] rdata;
 } iq_lsu_resp_t;
 
+typedef enum logic[2:0] {
+  NOT_VALID_INV_PARM,
+  HIT_INV,        // HIT AND INVALIDATE
+  PRB_HIT_ADDR_N, // for prb inv toN
+  PRB_HIT_ADDR_B, // for prb inv toB
+
+  IDX_INIT,       // INDEXED INIT
+  IDX_INV,        // INDEX INVALID WRITE BACK
+  RD_ALLOC,       // for read inv, 找到一个合适的行释放并返回
+  WR_ALLOC        // for write miss, check whether read hit, if hit, just return.
+                  // otherwise, invalidate random way and return.
+} inv_parm_e;
+
 // LSU 到 Manager 的请求
 typedef struct packed {
   logic valid;
 
   logic uncached_load_req;
   logic uncached_store_req;
-  logic acq_read_req;  // 申请读权限
-  logic acq_write_req; // 申请写权限
-  logic idxinv_req;    // 行无效
-  logic hitinv_req;
+  inv_parm_e inv_req; // Cache Line 状态请求
   
   logic sram_wb_req;
 
