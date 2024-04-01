@@ -1,6 +1,6 @@
 `include "axi_util.svh"
 
-module mycpu_top
+module core_top
   (
     input           aclk,
     input           aresetn,
@@ -84,7 +84,7 @@ module mycpu_top
   assign awlock = mem_aw.lock;
   assign awcache = mem_aw.cache;
   assign awprot = mem_aw.prot;
-  assign wid = mem_w.id;
+  assign wid = 4'd0;
   assign wdata = mem_w.data;
   assign wstrb = mem_w.strb;
   assign wlast = mem_w.last;

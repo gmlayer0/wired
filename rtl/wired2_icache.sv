@@ -90,7 +90,8 @@ module wired_icache #(
   end
   // F2 段到 f1 握手
   logic f1_f2_valid, f1_f2_ready; // TODO: 握手信号，纯组合逻辑驱动
-  wire f1_valid_q = f1_f2_valid | f1_skid_busy_q;
+  logic f1_valid_q;
+  wire f1_f2_valid = f1_valid_q | f1_skid_busy_q;
   always_ff @(posedge clk)
   begin
     if(!rst_n || flush_i)

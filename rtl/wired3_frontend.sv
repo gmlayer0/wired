@@ -17,7 +17,7 @@ module wired_frontend #(
 
     // 后端反馈
     input  csr_t                       csr_i,
-    input  tlb_update_t         tlb_update_i,
+    input  tlb_update_req_t         tlb_update_i,
     input  bpu_correct_t       bpu_correct_i,
 
     // 连接到内存总线（TILELINK-C）
@@ -100,7 +100,7 @@ module wired_frontend #(
   lsu_bus_req_t bus_req;
   lsu_bus_resp_t bus_resp;
   logic [11:0]               p_addr;
-  logic [3:0][WORD_SIZE-1:0] p_rdata;
+  logic [3:0][63:0]         p_rdata;
   cache_tag_t [3:0]          p_rtag;
   logic [1:0]  m_way;
   logic [11:0] m_addr;
@@ -250,7 +250,7 @@ module wired_frontend #(
     // TODO 生成 register info : ri
     assign d_skid.p[i].pc = {d_q.pc[31:3], (i==0 ? d_q.pc[2] : 1'd1), d_q.pc[1:0]};
     assign d_skid.p[i].bpu_predict = d_q.predict[i];
-    assign d_skid.p[i].excp = d_q.excp;
+    assign d_skid.p[i].fetch_excp = d_q.excp;
   end
 
   // d_b skid buf
@@ -317,16 +317,15 @@ module wired_frontend #(
   // MMIO
   `_WIRED_HANDSHAKE_DEFINE(fifo_in, d_b_t);
   `_WIRED_HANDSHAKE_DEFINE(fifo_out, d_b_t);
-  d_b_t fifo_raw;
+  pipeline_ctrl_pack_t [1:0] fifo_raw;
   logic [1:0] fifo_mask;
   always_comb
   begin
-    fifo_in_payload = fifo_raw;
+    fifo_in_payload.p = fifo_raw;
     fifo_in_payload.mask = fifo_mask;
   end
   wired_packer # (
-                 .CPU_ID(CPU_ID),
-                 .PKG_SIZE(PKG_SIZE)
+                 .PKG_SIZE($bits(pipeline_ctrl_pack_t) * 2)
                )
                wired_packer_inst (
                 `_WIRED_GENERAL_CONN,

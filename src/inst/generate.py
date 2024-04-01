@@ -65,13 +65,13 @@ class design_parser:
             self.node_dag[relation[0]] += self.node_dag[relation[1]]
         for node in self.node_dag:
             node_list = self.node_dag[node]
-            inst_list = []
+            inst_list = set()
             if(self.node_priv_signal.get(node) is not None):
-                inst_list += self.node_priv_signal.get(node)
+                inst_list.update(self.node_priv_signal.get(node))
             for target in node_list:
                 if(self.node_priv_signal.get(target) is not None):
-                    inst_list += self.node_priv_signal.get(target)
-            self.node_signal[node] = inst_list
+                    inst_list.update(self.node_priv_signal.get(target))
+            self.node_signal[node] = [i for i in inst_list]
 
     def gen_blank(self, times):
         return '    ' * times
@@ -90,7 +90,7 @@ class design_parser:
         str_builder += 'module wired_decoder(\n'
         str_builder += '    input  logic [31:0] inst_i,\n'
         str_builder += '    output logic decode_err_o,\n'
-        str_builder += '    output is_t is_o\n'
+        str_builder += '    output decode_info_d_t is_o\n'
         # str_builder += '    output logic[31:0][7:0] inst_string_o\n'
         str_builder += ');\n\n'
         
@@ -197,6 +197,7 @@ class design_parser:
         str_builder += '''    string ret;
     logic[25:0] I26 = {inst_i[9:0], inst_i[25:10]};
     logic[20:0] I21 = {inst_i[4:0], inst_i[25:10]};
+    logic[20:0] I20 = inst_i[24:5];
     logic[15:0] I16 = inst_i[25:10];
     logic[13:0] I14 = inst_i[23:10];
     logic[11:0] I12 = inst_i[21:10];

@@ -39,7 +39,7 @@ module wired_top#(
     logic [1:0]            pkg_mask;
     pipeline_ctrl_pack_t [1:0]  pkg;
     csr_t                       csr;
-    tlb_update_t         tlb_update;
+    tlb_update_req_t         tlb_update;
     bpu_correct_t       bpu_correct;
 
   // 生成前端

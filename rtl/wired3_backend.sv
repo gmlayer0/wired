@@ -18,7 +18,7 @@ module wired_backend #(
 
     // 后端反馈
     output csr_t                       csr_o,
-    output tlb_update_t         tlb_update_o,
+    output tlb_update_req_t         tlb_update_o,
     output bpu_correct_t       bpu_correct_o,
 
     // 连接到内存总线（TILELINK-C）

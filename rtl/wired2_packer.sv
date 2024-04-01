@@ -3,7 +3,6 @@
 // Fuction module for Wired project
 // Pack Instruction in group
 module wired_packer #(
-    parameter CPU_ID = 1'd0,
     parameter int PKG_SIZE = 32
   )(
     `_WIRED_GENERAL_DEFINE,

@@ -10,14 +10,14 @@ module wired_clock_gate (
 
   always_latch
   begin
-    if (!clk_i)
+    if (!clk)
     begin
       en_latched = en_i;
     end
   end
 
   wired_clkand clkand(
-    .clk_i,
+    .clk_i(clk),
     .en_i(en_latched),
     .clk_o
   );

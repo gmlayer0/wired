@@ -115,7 +115,7 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
 
     .clk1(clk),
     .rst_n1(rst_n),
-    .addr1_i(addr1_i),
+    .addr1_i(p_correct_i.pc[11:3]),
     .en1_i('1),
     .we1_i(p_correct_i.need_update && 
           (p_correct_i.true_target_type inside {BPU_TARGET_CALL, BPU_TARGET_IMM}) &&

@@ -49,7 +49,7 @@ module wired_registers_file_banked #(
                 end
             end
         end
-        wired_register_file#(
+        wired_registers_file #(
             .DATA_WIDTH,
             .DEPTH(DEPTH/W_PORT_COUNT),
             .R_PORT_COUNT,
@@ -59,7 +59,7 @@ module wired_registers_file_banked #(
         ) slice_regfiles (
             `_WIRED_GENERAL_CONN,
             .raddr_i(raddr),
-            .raddr_o(rdata[b]),
+            .rdata_o(rdata[b]),
 
             .waddr_i(waddr),
             .we_i(we),

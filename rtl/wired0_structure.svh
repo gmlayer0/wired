@@ -110,6 +110,7 @@ typedef struct packed {
   decode_info_d_t        di;
   logic                 ine; // 解码产生
   reg_info_t             ri;
+  logic[31:0]            pc;
   bpu_predict_t bpu_predict;
   fetch_excp_t   fetch_excp;
 } pipeline_ctrl_pack_t;
@@ -298,7 +299,7 @@ function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i);
   excp_t ret;
   // ret.fetch_int = static_i.fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
   ret.adef = static_i.adef;
-  ret.itlbr = static_i.tlb;
+  ret.itlbr = static_i.tlbr;
   ret.pif = static_i.pif ;
   ret.ippi = static_i.ppi;
   ret.ine = static_i.ine ;

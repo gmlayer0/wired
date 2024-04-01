@@ -191,10 +191,10 @@ module wired_tl_adapter import tl_pkg::*; #(
         registerd_entrys q;
         always_ff @(posedge clk) begin
             if(!rst_n) begin
-                d <= init;
+                q <= init;
                 fsm_q <= S_FREE;
             end else begin
-                d <= q;
+                q <= d;
                 fsm_q <= fsm;
             end
         end
@@ -213,7 +213,7 @@ module wired_tl_adapter import tl_pkg::*; #(
                         // TODO: ADD RESOURCE PROTECTION, BUT NOT TODAY
                         fsm = S_INV;
                         d.addr = prb_b.address;
-                        d.parm = prb_b.parm;
+                        d.parm = prb_b.param;
                     end
                 end
                 S_INV: begin
@@ -298,9 +298,9 @@ module wired_tl_adapter import tl_pkg::*; #(
             crq_data_wdata = '0;
             if(bus_req_i.sram_wb_req) begin // 最最最高优先级，一定保证
                 crq_data_valid = '1;
-                crq_data_addr  = {bus_req_i.addr[11:4], 4'd0};
-                for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.addr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
-                crq_data_wdata[bus_req_i.addr[3:2]] = bus_req_i.wdata;
+                crq_data_addr  = {bus_req_i.target_paddr[11:4], 4'd0};
+                for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.target_paddr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
+                crq_data_wdata[bus_req_i.target_paddr[3:2]] = bus_req_i.wdata;
             end
             case (fsm_q)
             /*S_FREE*/default:begin
@@ -326,7 +326,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
             S_ULD: begin
                 crq_unc_cal = '1;
-                d.data = {tl_d.data[{q.addr[3], 1'd1}], tl_d.data[q.addr[3:2]]};
+                d.data = {crq_unc_data[{q.addr[3], 1'd1}], crq_unc_data[q.addr[3:2]]};
                 if(crq_unc_ret) begin
                     fsm = S_RET;
                 end
@@ -374,7 +374,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             if(~rst_n) begin
                 rnd_value_q <= 8'h24;
             end else begin
-                rnd_value <= {rnd_value[5:0], ~{rnd_value_q[7] ^ rnd_value_q[5] ^ rnd_value_q[4] ^ rnd_value_q[3]},
+                rnd_value_q <= {rnd_value_q[5:0], ~{rnd_value_q[7] ^ rnd_value_q[5] ^ rnd_value_q[4] ^ rnd_value_q[3]},
                                               ~{rnd_value_q[6] ^ rnd_value_q[4] ^ rnd_value_q[3] ^ rnd_value_q[2]}};
             end
         end
@@ -397,10 +397,12 @@ module wired_tl_adapter import tl_pkg::*; #(
         typedef struct packed {
             logic     prb_sel; // 选择来自 prb 的请求
             logic [31:0] addr;
+            logic [31:0] taddr;
             inv_parm_e  parm;
             cache_tag_t [3:0] tags;
             logic [3:0] mask;
             logic [1:0] perm;
+            logic [3:0][31:0] data;
         } registerd_entrys;
         registerd_entrys init = '0;
         registerd_entrys q;
@@ -732,10 +734,10 @@ module wired_tl_adapter import tl_pkg::*; #(
         registerd_entrys q;
         always_ff @(posedge clk) begin
             if(!rst_n) begin
-                d <= init;
+                q <= init;
                 fsm_q <= S_FREE;
             end else begin
-                d <= q;
+                q <= d;
                 fsm_q <= fsm;
             end
         end
@@ -750,7 +752,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             unc_a.size    = q.size;
             unc_a.address = q.addr[31:0];
             unc_a.source  = SOURCE_BASE;
-            unc_a.mask    = q.mask;
+            unc_a.mask    = q.strb;
             unc_a.corrupt = '0;
             unc_a.data    = q.data;
             unc_d_ready = '0;

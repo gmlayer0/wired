@@ -3,7 +3,7 @@
 module wired_decoder(
     input  logic [31:0] inst_i,
     output logic decode_err_o,
-    output is_t is_o
+    output decode_info_d_t is_o
 );
 
     always_comb begin

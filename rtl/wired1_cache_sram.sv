@@ -63,7 +63,6 @@ module wired_cache_sram#(
   begin : data_gen
     // 本地生成 m 口的访问端口
     wire [11:0] m_addr;
-    wire [3:0]  m_strb;
     wire [WORD_SIZE/8-1:0] m_strb;
     wire [WORD_SIZE-1:0]   m_wdata;
     if(WORD_SIZE == 32)
