@@ -6,7 +6,7 @@
 // L0 TLB 完全可以用 FPGA-CAM 电路进行优化
 module wired_addr_trans #(
     parameter bit FETCH_ADDR       = 1'b0           ,
-    parameter int TLB_ENTRY_NUM    = `_TLB_ENTRY_NUM
+    parameter int TLB_ENTRY_NUM    = `_WIRED_PARAM_TLB_CNT
   ) (
     `_WIRED_GENERAL_DEFINE,
     input  logic            clken_i         ,
@@ -77,15 +77,15 @@ module wired_addr_trans #(
   logic[2:0] dmw0_vseg,dmw1_vseg;
   logic[2:0] dmw0_kseg,dmw1_kseg;
   logic plv0, plv3;
-  assign plv0 = csr_i.crmd[`PLV] == 2'd0;
-  assign plv3 = csr_i.crmd[`PLV] == 2'd3;
+  assign plv0 = csr_i.crmd[`_CRMD_PLV] == 2'd0;
+  assign plv3 = csr_i.crmd[`_CRMD_PLV] == 2'd3;
 
   logic dmw0_hit, dmw1_hit;
   logic dmw_miss;
   always_comb
   begin
-    da_mode               = csr_i.crmd[`DA];
-    pg_mode               = csr_i.crmd[`PG];
+    da_mode               = csr_i.crmd[`_CRMD_DA];
+    pg_mode               = csr_i.crmd[`_CRMD_PG];
     da_fake_tlb.dmw       = 1'b1;
     da_fake_tlb.found     = 1'b1;
     da_fake_tlb.index     = 5'd0;
@@ -93,11 +93,11 @@ module wired_addr_trans #(
     da_fake_tlb.value.ppn = vaddr_i[31:12];
     da_fake_tlb.value.v   = '1;
     da_fake_tlb.value.d   = '1;
-    da_fake_tlb.value.mat = FETCH_ADDR ? csr_i.crmd[`DATF] : csr_i.crmd[`DATM];
+    da_fake_tlb.value.mat = FETCH_ADDR ? csr_i.crmd[`_CRMD_DATF] : csr_i.crmd[`_CRMD_DATM];
     da_fake_tlb.value.plv = '1;
 
-    dmw0_vseg               = csr_i.dmw0[`VSEG];
-    dmw0_kseg               = csr_i.dmw0[`PSEG];
+    dmw0_vseg               = csr_i.dmw0[`_DMW_VSEG];
+    dmw0_kseg               = csr_i.dmw0[`_DMW_PSEG];
     dmw0_fake_tlb.dmw       = dmw0_hit;
     dmw0_fake_tlb.found     = dmw0_hit;
     dmw0_fake_tlb.index     = 5'd0;
@@ -105,11 +105,11 @@ module wired_addr_trans #(
     dmw0_fake_tlb.value.ppn = {dmw0_kseg,vaddr_i[28:12]};
     dmw0_fake_tlb.value.v   = '1;
     dmw0_fake_tlb.value.d   = '1;
-    dmw0_fake_tlb.value.mat = csr_i.dmw0[`DMW_MAT];
+    dmw0_fake_tlb.value.mat = csr_i.dmw0[`_DMW_MAT];
     dmw0_fake_tlb.value.plv = csr_i.dmw0[3] ? 2'b11 : 2'b00; // TODO: check me
 
-    dmw1_vseg               = csr_i.dmw1[`VSEG];
-    dmw1_kseg               = csr_i.dmw1[`PSEG];
+    dmw1_vseg               = csr_i.dmw1[`_DMW_VSEG];
+    dmw1_kseg               = csr_i.dmw1[`_DMW_PSEG];
     dmw1_fake_tlb.dmw       = dmw1_hit;
     dmw1_fake_tlb.found     = dmw1_hit;
     dmw1_fake_tlb.index     = 5'd0;
@@ -117,7 +117,7 @@ module wired_addr_trans #(
     dmw1_fake_tlb.value.ppn = {dmw1_kseg,vaddr_i[28:12]};
     dmw1_fake_tlb.value.v   = '1;
     dmw1_fake_tlb.value.d   = '1;
-    dmw1_fake_tlb.value.mat = csr_i.dmw1[`DMW_MAT];
+    dmw1_fake_tlb.value.mat = csr_i.dmw1[`_DMW_MAT];
     dmw1_fake_tlb.value.plv = csr_i.dmw1[3] ? 2'b11 : 2'b00;
   end
 

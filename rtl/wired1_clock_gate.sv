@@ -1,7 +1,7 @@
 `include "wired0_defines.svh"
 
 module wired_clock_gate (
-    `_WIRED_GENERAL_DEFINE
+    `_WIRED_GENERAL_DEFINE,
     input  en_i,
     output clk_o
   );

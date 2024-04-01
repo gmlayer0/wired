@@ -10,10 +10,10 @@ module wired_registers_file_banked #(
     parameter int unsigned W_PORT_COUNT = 2,
     parameter REGISTERS_FILE_TYPE = "ff", // optional: ff, latch
     parameter bit NEED_RESET = 0,
-    parameter logic[DEPTH-1:0][DATA_WIDTH-1:0] RESET_VAL = '0
+    parameter logic[DEPTH-1:0][DATA_WIDTH-1:0] RESET_VAL = '0,
     // DO NOT MODIFY
     parameter type T = logic[DATA_WIDTH - 1 : 0],
-    parameter int unsigned ADDR_DEPTH    = (DEPTH > 1) ? $clog2(DEPTH) : 1
+    parameter int unsigned ADDR_DEPTH    = (DEPTH > 1) ? $clog2(DEPTH) : 1,
     parameter int unsigned BADDR_DEPTH   = $clog2(W_PORT_COUNT)
 )(
     `_WIRED_GENERAL_DEFINE,
@@ -41,7 +41,7 @@ module wired_registers_file_banked #(
             waddr = '0;
             we = '0;
             wdata = '0;
-            for(genvar p = 0 ; p < W_PORT_COUNT ; p += 1) begin
+            for(integer p = 0 ; p < W_PORT_COUNT ; p += 1) begin
                 if(waddr_i[p][BADDR_DEPTH-1:0] == b[BADDR_DEPTH-1:0] && we_i[p]) begin
                     waddr |= waddr_i[p][ADDR_DEPTH-1:BADDR_DEPTH];
                     we    |= '1;
@@ -62,7 +62,7 @@ module wired_registers_file_banked #(
             .raddr_o(rdata[b]),
 
             .waddr_i(waddr),
-            .we_i(we)
+            .we_i(we),
             .wdata_i(wdata)
         );
     end

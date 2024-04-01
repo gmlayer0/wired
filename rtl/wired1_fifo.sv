@@ -34,7 +34,7 @@ module wired_fifo #(
     // 握手信号
     wire ready, valid;
     assign ready = cnt < DEPTH;
-    assign valid = cnt > 1'd0);
+    assign valid = cnt > 1'd0;
     `_WIRED_FF_RSTABLE(ready, '1)
     `_WIRED_FF_RSTABLE(valid, '0)
 

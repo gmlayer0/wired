@@ -4,7 +4,7 @@ module wired_registers_file_latch #(
     parameter int unsigned DATA_WIDTH = 32,
     parameter int unsigned DEPTH = 32,
     parameter bit NEED_RESET = 0,
-    parameter logic[DATA_WIDTH-1:0] RESET_VAL = '0
+    parameter logic[DATA_WIDTH-1:0] RESET_VAL = '0,
 
     // DO NOT MODIFY
     parameter type T = logic[DATA_WIDTH - 1 : 0],

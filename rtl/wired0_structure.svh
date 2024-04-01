@@ -294,7 +294,7 @@ function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry
   return ret;
 endfunction
 
-function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i) begin
+function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i);
   excp_t ret;
   // ret.fetch_int = static_i.fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
   ret.adef = static_i.adef;
@@ -312,21 +312,16 @@ function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i) 
   ret.ale = lsu_i.ale;
   ret.tlbr = lsu_i.tlbr;
   return ret;
-end
+endfunction
 
-function automatic logic[31:0] gen_mask_word(logic [31:0] o, logic [31:0] n, logic [3:0] s) begin
+function automatic logic[31:0] gen_mask_word(logic [31:0] o, logic [31:0] n, logic [3:0] s);
   logic [31:0] r;
-  r[7:0]   = s[0] ? n[7:0];
-  r[15:8]  = s[1] ? n[15:8];
-  r[23:16] = s[2] ? n[23:16];
-  r[31:24] = s[3] ? n[31:24];
+  r[7:0]   = s[0] ? n[7:0] : o[7:0];
+  r[15:8]  = s[1] ? n[15:8] : o[15:8];
+  r[23:16] = s[2] ? n[23:16] : o[23:16];
+  r[31:24] = s[3] ? n[31:24] : o[31:24];
   return r;
-end
-
-// Issue Queue Entry
-typedef struct packed {
-  
-} iq_alu_static_t;
+endfunction
 
 // LSU IQ 到 LSU 的请求
 typedef struct packed {

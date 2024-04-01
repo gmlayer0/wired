@@ -6,7 +6,7 @@ module wired_registers_file #(
     parameter int unsigned R_PORT_COUNT = 2,
     parameter REGISTERS_FILE_TYPE = "ff", // optional: ff, latch
     parameter bit NEED_RESET = 0,
-    parameter logic[DEPTH-1:0][DATA_WIDTH-1:0] RESET_VAL = '0
+    parameter logic[DEPTH-1:0][DATA_WIDTH-1:0] RESET_VAL = '0,
     // DO NOT MODIFY
     parameter type T = logic[DATA_WIDTH - 1 : 0],
     parameter int unsigned ADDR_DEPTH   = (DEPTH > 1) ? $clog2(DEPTH) : 1
