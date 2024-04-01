@@ -47,8 +47,8 @@ module wired_commit (
     rob_rid_t f_rob_ptr1_q;
     always_ff @(posedge clk) begin
         if(~rst_n) begin
-            f_rob_ptr0_q <= `_WIRED_PARAM_ROB_LENd'0;
-            f_rob_ptr1_q <= `_WIRED_PARAM_ROB_LENd'1;
+            f_rob_ptr0_q <= `_WIRED_PARAM_ROB_LEN'd0;
+            f_rob_ptr1_q <= `_WIRED_PARAM_ROB_LEN'd1;
         end else if(f_skid_ready_q) begin
             f_rob_ptr0_q <= f_rob_ptr0_q + f_valid[0] + f_valid[1];
             f_rob_ptr1_q <= f_rob_ptr1_q + f_valid[0] + f_valid[1];
@@ -104,35 +104,35 @@ module wired_commit (
             h_flushtarget = csr_q.era;
         end
         case(h_entry[0].csr_id[8:0])
-        `_CSR_CRMD      h_csr_rdata = csr_q.crmd;
-        `_CSR_PRMD      h_csr_rdata = csr_q.prmd;
-        `_CSR_EUEN      h_csr_rdata = csr_q.euen;
-        `_CSR_ECTL      h_csr_rdata = csr_q.ectl;
-        `_CSR_ESTAT     h_csr_rdata = csr_q.estat;
-        `_CSR_ERA       h_csr_rdata = csr_q.era;
-        `_CSR_BADV      h_csr_rdata = csr_q.badv;
-        `_CSR_EENTRY    h_csr_rdata = csr_q.eentry;
-        `_CSR_TLBIDX    h_csr_rdata = csr_q.tlbidx;
-        `_CSR_TLBEHI    h_csr_rdata = csr_q.tlbehi;
-        `_CSR_TLBELO0   h_csr_rdata = csr_q.tlbelo0;
-        `_CSR_TLBELO1   h_csr_rdata = csr_q.tlbelo1;
-        `_CSR_ASID      h_csr_rdata = csr_q.asid;
-        `_CSR_PGDL      h_csr_rdata = csr_q.pgdl;
-        `_CSR_PGDH      h_csr_rdata = csr_q.pgdh;
-        `_CSR_PGD       h_csr_rdata = {csr_q.badv[31] ? csr_q.pgdh[31:12] : csr_q.pgdl[31:12] , 12'd0};
-        `_CSR_CPUID     h_csr_rdata = csr_q.cpuid;
-        `_CSR_SAVE0     h_csr_rdata = csr_q.save0;
-        `_CSR_SAVE1     h_csr_rdata = csr_q.save1;
-        `_CSR_SAVE2     h_csr_rdata = csr_q.save2;
-        `_CSR_SAVE3     h_csr_rdata = csr_q.save3;
-        `_CSR_TID       h_csr_rdata = csr_q.tid;
-        `_CSR_TCFG      h_csr_rdata = csr_q.tcfg;
-        `_CSR_TVAL      h_csr_rdata = csr_q.tval;
-        `_CSR_TICLR     h_csr_rdata = csr_q.ticlr;
-        `_CSR_LLBCTL    h_csr_rdata = {csr_q.llbctl, 1'b0, csr_q.llbit};
-        `_CSR_TLBRENTRY h_csr_rdata = csr_q.tlbrentry;
-        `_CSR_DMW0      h_csr_rdata = csr_q.dmw0;
-        `_CSR_DMW1      h_csr_rdata = csr_q.dmw1;
+        `_CSR_CRMD      : h_csr_rdata = csr_q.crmd;
+        `_CSR_PRMD      : h_csr_rdata = csr_q.prmd;
+        `_CSR_EUEN      : h_csr_rdata = csr_q.euen;
+        `_CSR_ECTL      : h_csr_rdata = csr_q.ectl;
+        `_CSR_ESTAT     : h_csr_rdata = csr_q.estat;
+        `_CSR_ERA       : h_csr_rdata = csr_q.era;
+        `_CSR_BADV      : h_csr_rdata = csr_q.badv;
+        `_CSR_EENTRY    : h_csr_rdata = csr_q.eentry;
+        `_CSR_TLBIDX    : h_csr_rdata = csr_q.tlbidx;
+        `_CSR_TLBEHI    : h_csr_rdata = csr_q.tlbehi;
+        `_CSR_TLBELO0   : h_csr_rdata = csr_q.tlbelo0;
+        `_CSR_TLBELO1   : h_csr_rdata = csr_q.tlbelo1;
+        `_CSR_ASID      : h_csr_rdata = csr_q.asid;
+        `_CSR_PGDL      : h_csr_rdata = csr_q.pgdl;
+        `_CSR_PGDH      : h_csr_rdata = csr_q.pgdh;
+        `_CSR_PGD       : h_csr_rdata = {csr_q.badv[31] ? csr_q.pgdh[31:12] : csr_q.pgdl[31:12] , 12'd0};
+        `_CSR_CPUID     : h_csr_rdata = csr_q.cpuid;
+        `_CSR_SAVE0     : h_csr_rdata = csr_q.save0;
+        `_CSR_SAVE1     : h_csr_rdata = csr_q.save1;
+        `_CSR_SAVE2     : h_csr_rdata = csr_q.save2;
+        `_CSR_SAVE3     : h_csr_rdata = csr_q.save3;
+        `_CSR_TID       : h_csr_rdata = csr_q.tid;
+        `_CSR_TCFG      : h_csr_rdata = csr_q.tcfg;
+        `_CSR_TVAL      : h_csr_rdata = csr_q.tval;
+        `_CSR_TICLR     : h_csr_rdata = csr_q.ticlr;
+        `_CSR_LLBCTL    : h_csr_rdata = {csr_q.llbctl, 1'b0, csr_q.llbit};
+        `_CSR_TLBRENTRY : h_csr_rdata = csr_q.tlbrentry;
+        `_CSR_DMW0      : h_csr_rdata = csr_q.dmw0;
+        `_CSR_DMW1      : h_csr_rdata = csr_q.dmw1;
         endcase
         // 特殊处理 rdcnt 命令
         if(h_entry[0].di.csr_rdcnt[0] /*== `_RDCNT_ID_VLOW*/) h_csr_rdata = (|h_entry[0].op_code) ? csr_q.tid : timer_64_q[31:0];
@@ -180,7 +180,7 @@ module wired_commit (
         // 注意，这个路径可以配置为 multicycle 以优化性能。
         assign h_tlb_hit_srch[i] = (tlb_entrys_q[i].key.e) && // E
                                    (tlb_entrys_q[i].key.g || tlb_entrys_q[i].key.asid == csr_q.asid[9:0]) && // ASID MATHC
-                                   (tlb_entrys_q[i].key.vppn[18:10] == csr_q.tlbehi[31:23]) // HI-VPN MATCH
+                                   (tlb_entrys_q[i].key.vppn[18:10] == csr_q.tlbehi[31:23]) && // HI-VPN MATCH
                                    (tlb_entrys_q[i].key.vppn[9:0] == csr_q.tlbehi[22:13] || tlb_entrys_q[i].key.huge_page) // LO-VPN MATCH
                                    ;
     end
@@ -600,7 +600,7 @@ module wired_commit (
                     if(h_entry_q[0].jump_inst) begin
                         // 特殊处理未命中情况，刷新流水线，重定向控制流
                         if( (h_entry_q[0].need_jump && (!h_entry_q[0].bpu_predict.taken || h_entry_q[0].bpu_predict.predict_pc != h_entry_q[0].target_addr)) ||
-                        ||  (!h_entry_q[0].need_jump && h_entry_q[0].bpu_predict.taken)) begin
+                           (!h_entry_q[0].need_jump && h_entry_q[0].bpu_predict.taken)) begin
                             l_commit = 2'b01;
                             f_upd.miss = '1;
                             f_upd.need_update = '1;
@@ -618,35 +618,35 @@ module wired_commit (
                     if(h_entry_q[0].di.csr_op_en) begin
                         l_data[0] = h_csr_rdata_q; // 强制刷新 csr 数据
                         case(h_entry_q[0].csr_id[8:0])
-                        `_CSR_CRMD:      begin _MW(crmd, `_CRMD_PLV);_MW(crmd, `_CRMD_IE);_MW(crmd, `_CRMD_DA);_MW(crmd, `_CRMD_PG);_MW(crmd, `_CRMD_DATF);_MW(crmd, `_CRMD_DATM); end
-                        `_CSR_PRMD:      begin _MW(prmd, `_PRMD_PPLV);_MW(prmd, `_PRMD_PIE); end
-                        `_CSR_EUEN:      begin _MW(euen, `_EUEN_FPE); end
-                        `_CSR_ECTL:      begin _MW(ectl, `_ECTL_LIE1);_MW(ectl, `_ECTL_LIE2); end
-                        // `_CSR_ESTAT:     begin _MW(); end // TODO: FIXME: WRITE TO FRONTEND, NOT DIRECTLY ESTAT
-                        `_CSR_ERA:       begin _MW(era, 31:0); end
-                        `_CSR_BADV:      begin _MW(badv, 31:0); end
-                        `_CSR_EENTRY:    begin _MW(eentry, `_EENTRY_VA); end
-                        `_CSR_TLBIDX:    begin _MW(tlbidx, `_TLBIDX_INDEX);_MW(tlbidx, `_TLBIDX_PS);_MW(tlbidx, `_TLBIDX_NE); end
-                        `_CSR_TLBEHI:    begin _MW(tlbehi, `_TLBEHI_VPPN); end
-                        `_CSR_TLBELO0:   begin _MW(tlbelo0, 31:8);_MW(tlbelo0, 6:0); end
-                        `_CSR_TLBELO1:   begin _MW(tlbelo1, 31:8);_MW(tlbelo1, 6:0); end
-                        `_CSR_ASID:      begin _MW(asid, `_ASID); end
-                        `_CSR_PGDL:      begin _MW(pgdl, `_PGD_BASE); end
-                        `_CSR_PGDH:      begin _MW(pgdh, `_PGD_BASE); end
-                        // `_CSR_PGD:       begin _MW(); end // 只读
-                        // `_CSR_CPUID:     begin _MW(); end // 只读
-                        `_CSR_SAVE0:     begin _MW(save0, 31:0); end
-                        `_CSR_SAVE1:     begin _MW(save1, 31:0); end
-                        `_CSR_SAVE2:     begin _MW(save2, 31:0); end
-                        `_CSR_SAVE3:     begin _MW(save3, 31:0); end
-                        `_CSR_TID:       begin _MW(tid, 31:0); end
-                        `_CSR_TCFG:      begin _MW(tcfg,31:0);csr.tval[1:0] = '0;_MW(tval,`_TCFG_INITVAL); end
-                        // `_CSR_TVAL:      begin _MW(); end // 只读
-                        // `_CSR_TICLR:     begin _MW(); end // TODO: FIXME: WRITE TO FRONTEND, NOT DIRECTLY ESTAT
-                        `_CSR_LLBCTL:    begin _MW(llbctl, `_LLBCT_KLO); if(csr_wdata[`_LLBCT_WCLLB]) csr.llbit = 1'b0; end
-                        `_CSR_TLBRENTRY: begin _MW(tlbrentry, `_TLBRENTRY_PA); end
-                        `_CSR_DMW0:      begin _MW(dmw0,`_DMW_PLV0);_MW(dmw0,`_DMW_PLV3);_MW(dmw0,`_DMW_MAT);_MW(dmw0,`_DMW_PSEG);_MW(dmw0,`_DMW_VSEG); end
-                        `_CSR_DMW1:      begin _MW(dmw1,`_DMW_PLV0);_MW(dmw1,`_DMW_PLV3);_MW(dmw1,`_DMW_MAT);_MW(dmw1,`_DMW_PSEG);_MW(dmw1,`_DMW_VSEG); end
+                        `_CSR_CRMD:      begin `_MW(crmd, `_CRMD_PLV);`_MW(crmd, `_CRMD_IE);`_MW(crmd, `_CRMD_DA);`_MW(crmd, `_CRMD_PG);`_MW(crmd, `_CRMD_DATF);`_MW(crmd, `_CRMD_DATM); end
+                        `_CSR_PRMD:      begin `_MW(prmd, `_PRMD_PPLV);`_MW(prmd, `_PRMD_PIE); end
+                        `_CSR_EUEN:      begin `_MW(euen, `_EUEN_FPE); end
+                        `_CSR_ECTL:      begin `_MW(ectl, `_ECTL_LIE1);`_MW(ectl, `_ECTL_LIE2); end
+                        // `_CSR_ESTAT:     begin `_MW(); end // TODO: FIXME: WRITE TO FRONTEND, NOT DIRECTLY ESTAT
+                        `_CSR_ERA:       begin `_MW(era, 31:0); end
+                        `_CSR_BADV:      begin `_MW(badv, 31:0); end
+                        `_CSR_EENTRY:    begin `_MW(eentry, `_EENTRY_VA); end
+                        `_CSR_TLBIDX:    begin `_MW(tlbidx, `_TLBIDX_INDEX);`_MW(tlbidx, `_TLBIDX_PS);`_MW(tlbidx, `_TLBIDX_NE); end
+                        `_CSR_TLBEHI:    begin `_MW(tlbehi, `_TLBEHI_VPPN); end
+                        `_CSR_TLBELO0:   begin `_MW(tlbelo0, 31:8);`_MW(tlbelo0, 6:0); end
+                        `_CSR_TLBELO1:   begin `_MW(tlbelo1, 31:8);`_MW(tlbelo1, 6:0); end
+                        `_CSR_ASID:      begin `_MW(asid, `_ASID); end
+                        `_CSR_PGDL:      begin `_MW(pgdl, `_PGD_BASE); end
+                        `_CSR_PGDH:      begin `_MW(pgdh, `_PGD_BASE); end
+                        // `_CSR_PGD:       begin `_MW(); end // 只读
+                        // `_CSR_CPUID:     begin `_MW(); end // 只读
+                        `_CSR_SAVE0:     begin `_MW(save0, 31:0); end
+                        `_CSR_SAVE1:     begin `_MW(save1, 31:0); end
+                        `_CSR_SAVE2:     begin `_MW(save2, 31:0); end
+                        `_CSR_SAVE3:     begin `_MW(save3, 31:0); end
+                        `_CSR_TID:       begin `_MW(tid, 31:0); end
+                        `_CSR_TCFG:      begin `_MW(tcfg,31:0);csr.tval[1:0] = '0;`_MW(tval,`_TCFG_INITVAL); end
+                        // `_CSR_TVAL:      begin `_MW(); end // 只读
+                        // `_CSR_TICLR:     begin `_MW(); end // TODO: FIXME: WRITE TO FRONTEND, NOT DIRECTLY ESTAT
+                        `_CSR_LLBCTL:    begin `_MW(llbctl, `_LLBCT_KLO); if(csr_wdata[`_LLBCT_WCLLB]) csr.llbit = 1'b0; end
+                        `_CSR_TLBRENTRY: begin `_MW(tlbrentry, `_TLBRENTRY_PA); end
+                        `_CSR_DMW0:      begin `_MW(dmw0,`_DMW_PLV0);`_MW(dmw0,`_DMW_PLV3);`_MW(dmw0,`_DMW_MAT);`_MW(dmw0,`_DMW_PSEG);`_MW(dmw0,`_DMW_VSEG); end
+                        `_CSR_DMW1:      begin `_MW(dmw1,`_DMW_PLV0);`_MW(dmw1,`_DMW_PLV3);`_MW(dmw1,`_DMW_MAT);`_MW(dmw1,`_DMW_PSEG);`_MW(dmw1,`_DMW_VSEG); end
                         endcase
                     end
 `undef _MW

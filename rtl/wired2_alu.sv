@@ -81,7 +81,7 @@ module wired_alu (
   assign r0 = {{~r0_i[31] & ext},r0_i};
   assign sub_r = r1 - r0;
 
-  always_comb begi
+  always_comb begin
   case (op_i)
     default: /*_ALU_STYPE_ADD*/
     begin
