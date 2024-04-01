@@ -2,14 +2,27 @@
 
 // Fuction module for Wired project
 module wired_backend #(
-    parameter CPU_ID = 1'd0
+    parameter int unsigned SOURCE_WIDTH  = 1,
+    parameter int unsigned SINK_WIDTH    = 1,
+    parameter int CPU_ID = 0
 )(
     `_WIRED_GENERAL_DEFINE,
 
-    // 连接到前端（中断由前端输入，打在指令包中）
+    input [8:0] interrupt_i, // 输入中断
+
+    // 来自前端（中断由前端输入，打在指令包中）
+    input  logic                 pkg_valid_i,
+    output logic                 pkg_ready_o,
+    input  logic [1:0]            pkg_mask_i,
+    input  pipeline_ctrl_pack_t [1:0]  pkg_i,
+
+    // 后端反馈
+    output csr_t                       csr_o,
+    output tlb_update_t         tlb_update_o,
+    output bpu_correct_t       bpu_correct_o,
 
     // 连接到内存总线（TILELINK-C）
-
+    `TL_DECLARE_HOST_PORT(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl)
 );
 
     /* 解码级 / WAW 冲突解除 D */

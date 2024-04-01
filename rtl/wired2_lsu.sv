@@ -110,6 +110,7 @@ module wired_lsu(
     m1_pack_t m1_raw, m1_nosnop, m1; // m1_raw 直接来自输入打一拍， m1_nosnop 在 skid 与 raw 之间进行选择，经过 snoop 得到 m1
     m1_pack_t m1_skid_q;
     assign iq_m1_ready = !m1_skid_valid_q;
+    asssign p_addr_o = m1_skid_valid_q ? m1_req_q.vaddr[11:0] : lsu_req_i.vaddr[11:0];
 
     // m1_raw 逻辑
     logic m1_tlb_no_excp; // TODO:对于 (sc && llbit == '0) || (cacheop && no_addr_trans)不触发异常

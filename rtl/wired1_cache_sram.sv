@@ -24,33 +24,29 @@ module wired_cache_sram#(
   // 四路 TAGSRAM 生成
   for(genvar w = 0 ; w < 4 ; w += 1)
   begin : tag_gen
-    wire conflict = (p_addr_i[11:4] == t_addr_i[11:4]) && t_we_i[w];
-    logic conflict_q;
-    cache_tag_t raw_rtag_0, raw_rtag_1;
-    assign p_rtag_o[w] = conflict_q ? raw_rtag_1 : raw_rtag_0;
-    assign t_rtag_o[w] = raw_rtag_1;
-    always_ff @(posedge clk)
-    begin
-      conflict_q <= conflict;
-    end
+    cache_tag_t raw_rtag_0, raw_rtag_1; // SRAM 原始输出
+    wire conflict = (p_addr_i[11:4] == t_addr_i[11:4]) && t_we_i[w]; // SRAM 输入端口读写冲突
+    reg  conflict_q;                                                 // SRAM 输出端口读写冲突
+    always_ff @(posedge clk) conflict_q <= conflict;                 // 输入到输出有一周期延迟
+    assign p_rtag_o[w] = conflict_q ? raw_rtag_1 : raw_rtag_0; // 端口0（只读）实际输出
+    assign t_rtag_o[w] = raw_rtag_1;                           // 端口1（读写）实际输出
     wired_dpsram # (
                    .DATA_WIDTH($bits(cache_tag_t)),
-                   .DATA_DEPTH(1024),
+                   .DATA_DEPTH(256),
                    .BYTE_SIZE($bits(cache_tag_t))
                  )
-                 wired_dpsram_inst (
-                   .clk0(clk),
-                   .rst_n0(rst_n),
+                 wired_dpsram_inst ( // 例化 TAG RAM
+                   .clk0(clk),.rst_n0(rst_n),.clk1(clk),.rst_n1(rst_n),
+                   // 端口 0，只读
                    .addr0_i(p_addr_i[11:4]),
-                   .en0_i(!conflict),
+                   .en0_i(!conflict), // 出现冲突时，不使能
                    .we0_i('0),
                    .wdata0_i('0),
                    .rdata0_o(raw_rtag_0),
-                   .clk1(clk),
-                   .rst_n1(rst_n),
+                   // 端口 1，读写
                    .addr1_i(t_addr_i[11:4]),
-                   .en1_i('1),
-                   .we1_i(t_we_i[w]),
+                   .en1_i('1),        // 一直使能
+                   .we1_i(t_we_i[w]), // 写使能信号
                    .wdata1_i(t_wtag_i),
                    .rdata1_o(raw_rtag_1)
                  );

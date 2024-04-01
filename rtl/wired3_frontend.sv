@@ -160,7 +160,7 @@ module wired_frontend #(
   wired_tl_adapter # (
                      .SOURCE_WIDTH(SOURCE_WIDTH),
                      .SINK_WIDTH(SINK_WIDTH),
-                     .SOURCE_WIDTH(SOURCE_WIDTH)
+                     .SOURCE_BASE(2 * CPU_ID + 1)
                    )
                    wired_tl_adapter_inst (
                      `_WIRED_GENERAL_CONN,
