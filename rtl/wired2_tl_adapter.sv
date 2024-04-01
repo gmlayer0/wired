@@ -348,7 +348,12 @@ module wired_tl_adapter import tl_pkg::*; #(
                 crq_inv_parm = HIT_INV;
                 if(!q.inv_req) begin
                     // write / read request
-                    
+                    if(q.parm) begin
+                        // write
+                    end else begin
+                        // read / write-need ACQ
+                        // continue to ACQ
+                    end
                 end
             end
             S_ACQ: begin
@@ -432,10 +437,17 @@ module wired_tl_adapter import tl_pkg::*; #(
             inv_tag = '0;
             case (fsm_q)
                 /*S_FREE*/default: begin
-                    if(prb_inv_ret) begin // 这个优先级比较高哦
+                    if(prb_inv_cal) begin // 这个优先级比较高哦
+                        fsm = S_RTAG0;
                         d.prb_sel = '1;
                         d.addr = prb_inv_addr;
                         d.parm = prb_inv_parm;
+                        d.mask = '0;
+                    end else if(crq_inv_cal) begin
+                        fsm = S_RTAG0;
+                        d.prb_sel = '0;
+                        d.addr = crq_inv_addr;
+                        d.parm = crq_inv_parm;
                         if(d.parm inside {IDX_INV, IDX_INIT}) begin
                             d.mask = d.addr[15:12];
                         end else begin
@@ -468,7 +480,7 @@ module wired_tl_adapter import tl_pkg::*; #(
                     for(integer i = 0 ; i < 4 ; i += 1) begin
                         if(!q.tags[i].rp && (d.mask == '0)) begin
                             d.mask[i] = '1;
-                            crq_inv_sel = {1'b1, i[1:0]};
+                            crq_inv_sel = {1'b0, i[1:0]};
                         end
                     end
                     if(d.mask == '0) begin
@@ -477,6 +489,7 @@ module wired_tl_adapter import tl_pkg::*; #(
                         fsm = S_WTAG;
                     end else begin
                         // 不用再继续走了，返回空闲项目就行
+                        // crq_inv_sel 已经填写
                         crq_inv_ret = '1;
                         fsm = S_FREE;
                     end
@@ -485,11 +498,13 @@ module wired_tl_adapter import tl_pkg::*; #(
                     for(integer i = 0 ; i < 4 ; i += 1) begin
                         if(q.tags[i].rp && q.tags[i].p == q.addr[31:12]) begin
                             d.mask[i] = '1; // hit logic 
+                            crq_inv_sel = {1'b1, i[1:0]};
                         end
                     end
                     if((d.mask == '0)) begin
                         if(q.parm inside {PRB_HIT_ADDR_N, PRB_HIT_ADDR_B}) begin
-                            // 没有命中项目，对于 probe 请求，直接返回 C 即可
+                            // 没有命中项目，对于 probe 请求，直接返回 C 即可 NtoN
+                            d.perm = '0;
                             fsm = S_TLC;
                         end else begin
                             // 对于写请求，继续进行 ASEL 工作
@@ -497,15 +512,23 @@ module wired_tl_adapter import tl_pkg::*; #(
                         end
                     end else begin
                         // 存在命中项目，即至少存在 rp == '1
-                        fsm = S_WTAG;
+                        if(q.parm == WR_ALLOC) begin
+                            // 直接返回
+                            // crq_inv_sel 已经填写
+                            crq_inv_ret = '1;
+                            fsm = S_FREE;
+                        end else begin
+                            fsm = S_WTAG;
+                        end
                     end
                 end
                 S_WTAG: begin
                     // 所有 mask 的 TAG 都需要在这里被无效化
                     inv_tag_valid = '1;
-                    inv_tag_we = q.mask;
+                    inv_tag_we = q.mask; // 对于 match 不可能 multi hit，但对于 index 有可能。
                     inv_tag_set = q.addr[11:4];
                     inv_tag = '0;
+                    inv_tag.p = q.addr[31:12]; // Prb hit B still have write permission.
                     inv_tag.rp = q.parm == PRB_HIT_ADDR_B ? '1 : '0;
                     IF(inv_tag_ready) begin
                         // 继续前进！
@@ -560,8 +583,14 @@ module wired_tl_adapter import tl_pkg::*; #(
                     // 等待
                     if(inv_d_valid && inv_d.opcode == tl_pkg::ReleaseAck) begin
                         inv_d_ready = '1;
-                        if(q.mask != 0) fsm = S_SEL;
-                        else fsm = S_FREE;
+                        if(q.mask != 0) begin
+                            fsm = S_SEL;
+                        end
+                        else begin
+                            crq_inv_sel = {1'b0, q.taddr[1:0]};
+                            crq_inv_ret = '1;
+                            fsm = S_FREE;
+                        end
                     end
                 end
             endcase
