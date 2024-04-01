@@ -543,11 +543,11 @@ module wired_tl_adapter import tl_pkg::*; #(
                 S_SEL: begin
                     for(integer i = 3 ; i >= 0 ; i -= 1) begin
                         if(d.mask[i]) begin
-                            d.perm  = {q.tags[i].wp, q.tags[i].rp}
+                            d.perm  = {q.tags[i].wp, q.tags[i].rp};
                             d.taddr = {q.tags[i].p, q.addr[11:4],2'd0,i[1:0]};
                         end
                     end
-                    d.mask[d.taddr[1:0]] == '0;
+                    d.mask[d.taddr[1:0]] = '0;
                     if(d.perm[1]) fsm = S_RDAT0;
                     else fsm = S_TLC;
                 end
@@ -757,7 +757,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             crq_unc_data = unc_d.data;
             crq_unc_ret = '0;
             case (fsm_q)
-                /*S_FREE*/default: begin\
+                /*S_FREE*/default: begin
                     if(crq_unc_cal) begin
                         fsm = S_TLA;
                         d.addr = crq_unc_addr;

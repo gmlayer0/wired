@@ -14,7 +14,7 @@ typedef enum logic[1:0] {
   BPU_TARGET_CALL,
   BPU_TARGET_RETURN,
   BPU_TARGET_IMM
-} bpu_target_type_t;
+} bpu_target_type_e;
 typedef struct packed {
     logic taken;
     logic tid;  // 跳转生命周期 ID，后端仅接受有效的 Tier ID。每次重定向控制流的时候，也会修改前后端的 tier id。
@@ -23,7 +23,7 @@ typedef struct packed {
     logic [                31:0]           predict_pc ;
     logic [                 1:0]           lphr       ;
     logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history    ;
-    bpu_target_type_t                      target_type;
+    bpu_target_type_e                      target_type;
     logic                                  dir_type   ;
     logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0] ras_ptr;
 } bpu_predict_t;
@@ -37,7 +37,7 @@ typedef struct packed {
     logic [31:0]                            btb_target;
     logic [1:0]                            lphr       ;
     logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history    ;
-    bpu_target_type_t                 true_target_type;
+    bpu_target_type_e                 true_target_type;
     logic                         true_conditional_jmp;
     logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0]     ras_ptr;
     logic need_update;

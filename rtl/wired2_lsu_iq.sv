@@ -1,8 +1,8 @@
 `include "wired0_defines.svh"
 
 // Fuction module for Wired project
-// alu issue queue + alu
-module wired_alu_iq #(
+// lsu issue queue + lsu
+module wired_lsu_iq #(
     parameter int IQ_SIZE = `_WIRED_PARAM_INT_IQ_DEPTH
 )(
     `_WIRED_GENERAL_DEFINE,

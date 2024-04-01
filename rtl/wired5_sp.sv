@@ -1,7 +1,7 @@
 // 此文件是核心的顶层
 `include "wired0_defines.svh"
 
-module wired_sp #(
+module wired_sp (
     `_WIRED_GENERAL_DEFINE,
     input [7:0] interrupt_i, // 输入中断
     // 连接到内存总线（AXI-32）
@@ -18,8 +18,8 @@ module wired_sp #(
                  tl_axi_adapter_inst (
                    .clk_i(clk),
                    .rst_ni(rst_n),
-                   `TL_CONNECT_DEVICE_PORT(host, tl32)
-                   `AXI_FORWARD_HOST_PORT(device, mem),
+                   `TL_CONNECT_DEVICE_PORT(host, tl32),
+                   `AXI_FORWARD_HOST_PORT(device, mem)
                  );
   // 转换 TL128 - TL32
   tl_adapter #(

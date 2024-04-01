@@ -158,8 +158,7 @@
         "mul.w": {
             "opcode": "00000000000111000",
             "need_mul": 1,
-            "alu_grand_op": "`_ALU_GTYPE_MUL",
-            "alu_op": "`_MUL_TYPE_MULL",
+            "alu_op": "`_MDU_TYPE_MULL",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
@@ -169,8 +168,7 @@
         "mulh.w": {
             "opcode": "00000000000111001",
             "need_mul": 1,
-            "alu_grand_op": "`_ALU_GTYPE_MUL",
-            "alu_op": "`_MUL_TYPE_MULH",
+            "alu_op": "`_MDU_TYPE_MULH",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
@@ -180,8 +178,7 @@
         "mulh.wu": {
             "opcode": "00000000000111010",
             "need_mul": 1,
-            "alu_grand_op": "`_ALU_GTYPE_MUL",
-            "alu_op": "`_MUL_TYPE_MULHU",
+            "alu_op": "`_MDU_TYPE_MULHU",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
@@ -191,7 +188,7 @@
         "div.w": {
             "opcode": "00000000001000000",
             "need_div": 1,
-            "alu_op": "`_DIV_TYPE_DIV",
+            "alu_op": "`_MDU_TYPE_DIV",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
@@ -201,7 +198,7 @@
         "mod.w": {
             "opcode": "00000000001000001",
             "need_div": 1,
-            "alu_op": "`_DIV_TYPE_MOD",
+            "alu_op": "`_MDU_TYPE_MOD",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
@@ -211,7 +208,7 @@
         "div.wu": {
             "opcode": "00000000001000010",
             "need_div": 1,
-            "alu_op": "`_DIV_TYPE_DIVU",
+            "alu_op": "`_MDU_TYPE_DIVU",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
@@ -221,7 +218,7 @@
         "mod.wu": {
             "opcode": "00000000001000011",
             "need_div": 1,
-            "alu_op": "`_DIV_TYPE_MODU",
+            "alu_op": "`_MDU_TYPE_MODU",
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",

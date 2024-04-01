@@ -21,7 +21,7 @@ module wired_registers_file_latch #(
   // 全局时钟使能
   wire clk_int;
   wired_clock_gate gclock_gate (
-    .clk_i(clk_i),
+    `_WIRED_GENERAL_CONN,
     .en_i(we_i || (NEED_RESET && !rst_n)),
     .clk_o(clk_int)
   );
@@ -42,7 +42,7 @@ module wired_registers_file_latch #(
   wire [DEPTH - 1 : 0] mem_clock;
   for(genvar i = 0 ; i < DEPTH ; i++) begin
     wired_clock_gate iclock_gate (
-      .clk_i(clk_int),
+      `_WIRED_GENERAL_CONN,
       .en_i(addr_decode[i[$clog2(DEPTH)-1:0]]),
       .clk_o(mem_clock[i[$clog2(DEPTH)-1:0]])
     );

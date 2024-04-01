@@ -16,7 +16,7 @@ module wired_clock_gate (
     end
   end
 
-  wired0_clkand clkand(
+  wired_clkand clkand(
     .clk_i,
     .en_i(en_latched),
     .clk_o

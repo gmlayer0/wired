@@ -466,8 +466,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.alu_grand_op = `_ALU_GTYPE_MUL;
-                is_o.alu_op = `_MUL_TYPE_MULL;
+                is_o.alu_op = `_MDU_TYPE_MULL;
             end
             32'b00000000000111001???????????????: begin
                 decode_err_o = 1'b0;
@@ -475,8 +474,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.alu_grand_op = `_ALU_GTYPE_MUL;
-                is_o.alu_op = `_MUL_TYPE_MULH;
+                is_o.alu_op = `_MDU_TYPE_MULH;
             end
             32'b00000000000111010???????????????: begin
                 decode_err_o = 1'b0;
@@ -484,8 +482,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.alu_grand_op = `_ALU_GTYPE_MUL;
-                is_o.alu_op = `_MUL_TYPE_MULHU;
+                is_o.alu_op = `_MDU_TYPE_MULHU;
             end
             32'b00000000001000000???????????????: begin
                 decode_err_o = 1'b0;
@@ -493,7 +490,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.alu_op = `_DIV_TYPE_DIV;
+                is_o.alu_op = `_MDU_TYPE_DIV;
             end
             32'b00000000001000001???????????????: begin
                 decode_err_o = 1'b0;
@@ -501,7 +498,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.alu_op = `_DIV_TYPE_MOD;
+                is_o.alu_op = `_MDU_TYPE_MOD;
             end
             32'b00000000001000010???????????????: begin
                 decode_err_o = 1'b0;
@@ -509,7 +506,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.alu_op = `_DIV_TYPE_DIVU;
+                is_o.alu_op = `_MDU_TYPE_DIVU;
             end
             32'b00000000001000011???????????????: begin
                 decode_err_o = 1'b0;
@@ -517,7 +514,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.alu_op = `_DIV_TYPE_MODU;
+                is_o.alu_op = `_MDU_TYPE_MODU;
             end
             32'b00000000001010100???????????????: begin
                 decode_err_o = 1'b0;

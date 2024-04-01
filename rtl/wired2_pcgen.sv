@@ -31,7 +31,7 @@ module wired_pcgen (
 
   output logic  [31:0]       p_pc_o,
   output logic  [1:0]        p_mask_o,
-  output bpu_predict_t [1:0] p_predict_o,
+  output bpu_predict_t [1:0] p_predict_o
 
 );
 

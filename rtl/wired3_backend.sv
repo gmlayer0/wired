@@ -24,24 +24,6 @@ module wired_backend #(
     // 连接到内存总线（TILELINK-C）
     `TL_DECLARE_HOST_PORT(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl)
 );
-
-    /* 解码级 / WAW 冲突解除 D */
-    
-    // --- 来自前端的输入及握手 ---
-    logic [1:0] fd_valid, fd_ready, dr_valid, dr_ready;
-    // --- 插入特殊的 FIFO，阻断前后端握手长延迟 ---
-    logic [1:0][31:0] d_inst_q, d_inst;
-    // --- 输出的 payload 定义 ---
-    logic [1:0] d_decode_err;
-    d_t [1:0] d_decode_info;
-    for(genvar i = 0 ; i < 2 ; i++) begin : gen_decoder
-        wired_decoder decoder(
-            .inst_i(d_inst[i]),
-            .decode_err_o(d_decode_err[i]),
-            .is_o(d_decode_info[i])
-        );
-    end
-
     /* 重命名级 R */
 
     // --- ARF ---

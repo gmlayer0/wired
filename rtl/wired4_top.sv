@@ -24,7 +24,7 @@ module wired_top#(
 
                  .NumSourceRange(1),
                  .SourceBase(1'd1),
-                 .SourceMask('1 - SOURCE_WIDTH'd1),
+                 .SourceMask('1 - 1),
                  .SourceLink(1'd1)
                ) socket (
                  .clk_i(clk),
@@ -66,7 +66,7 @@ module wired_top#(
                 )
                 wired_backend_inst (
                   `_WIRED_GENERAL_CONN,
-                  .interrupt_i(interrupt_i)
+                  .interrupt_i(interrupt_i),
                   .pkg_valid_i(pkg_valid),
                   .pkg_ready_o(pkg_ready),
                   .pkg_mask_i(pkg_mask),

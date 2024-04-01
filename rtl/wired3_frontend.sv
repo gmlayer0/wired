@@ -146,7 +146,7 @@ module wired_frontend #(
                  .f_pc_o(f_raw.pc),
                  .f_inst_o(f_raw.inst),
                  .f_pkg_o(f_raw.predict),
-                 .f_excp_o(f_raw.excp)
+                 .f_excp_o(f_raw.excp),
                  .bus_req_o(bus_req),
                  .bus_resp_i(bus_resp),
                  .snoop_i(snoop),
@@ -308,7 +308,7 @@ module wired_frontend #(
     end
   end
   d_b_t b_q;
-  always_ff @(posedge)
+  always_ff @(posedge clk)
   begin
     if(skid_b_ready)
       b_q <= d_b;
@@ -329,7 +329,7 @@ module wired_frontend #(
                  .PKG_SIZE(PKG_SIZE)
                )
                wired_packer_inst (
-                 ._WIRED_GENERAL_DEFINE(_WIRED_GENERAL_DEFINE),
+                `_WIRED_GENERAL_CONN,
                  .flush_i(g_flush),
                  .valid_i(b_valid_q),
                  .ready_o(b_ready),
@@ -346,14 +346,15 @@ module wired_frontend #(
   wired_fifo #(
                .DATA_WIDTH($bits(d_b_t)),
                .DEPTH(8)
-             )(
+             )
+             wired_pkg_fifo(
                .clk(clk),
                .rst_n(rst_n && !g_flush),
                `_WIRED_INPORT_CONN(inport, fifo_in),
-               `_WIRED_OUTPORT_CONN(outport, fifo_out),
+               `_WIRED_OUTPORT_CONN(outport, fifo_out)
              );
-  assign pkg_o = fifo_out.p;
-  assign pkg_mask_o = fifo_out.mask;
+  assign pkg_o = fifo_out_payload.p;
+  assign pkg_mask_o = fifo_out_payload.mask;
   assign pkg_valid_o = fifo_out_valid;
   assign fifo_out_ready = pkg_ready_i;
 
