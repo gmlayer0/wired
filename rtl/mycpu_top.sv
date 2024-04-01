@@ -1,3 +1,5 @@
+`include "axi_util.svh"
+
 module mycpu_top
   (
     input           aclk,

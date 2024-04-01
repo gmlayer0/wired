@@ -17,9 +17,10 @@ with open('compile_settings.json') as f:
 
 print(module_def)
 
-sv_file_list = {'./inst/wired2_decoder.sv':os.path.join(target_path, 'wired2_decoder.sv'),'./inst/wired0_decoder.svh':os.path.join(target_path, 'wired0_decoder.svh')}
+sv_file_list = {}
+# sv_file_list = {'./inst/wired2_decoder.sv':os.path.join(target_path, 'wired2_decoder.sv'),'./inst/wired0_decoder.svh':os.path.join(target_path, 'wired0_decoder.svh')}
 # sv_file_list = {'./simple-decoder/rtl/decoder.sv':os.path.join(target_path, 'decoder.sv'),'./simple-decoder/rtl/decoder.svh':os.path.join(target_path, 'decoder.svh')}
-os.system("cd inst/ && python3 gen_decoder.py")
+os.system("cd inst/ && python3 generate.py -m")
 for root, dirs, files in os.walk('../rtl'):
     for file_name in files:
         path = os.path.join(root, file_name)
