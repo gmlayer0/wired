@@ -66,7 +66,7 @@ module wired_rename #(
         if(~rst_n) begin
             ready_q <= '1;
         end else begin
-            ready_q <= rob_count_q <= 7'd60 && (!c_flush_i);
+            ready_q <= (rob_count_q <= 7'd60) && (!c_flush_i);
         end
     end
 

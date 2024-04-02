@@ -21,7 +21,7 @@ module wired_lsu_iq #(
     input  logic          cdb_ready_i, // 这里可以接 FIFO
 
     // CDB 嗅探端口
-    input pipeline_cdb_data_t [1:0] cdb_i,
+    input pipeline_cdb_t [1:0] cdb_i,
 
     // FLUSH 端口
     input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
