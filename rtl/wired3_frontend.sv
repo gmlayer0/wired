@@ -130,7 +130,7 @@ module wired_frontend #(
             logic   [1:0][31:0]    inst;
             logic         [1:0]    mask;
             bpu_predict_t [1:0] predict;
-            static_excp_t          excp;
+            fetch_excp_t           excp;
           } f_d_t;
   f_d_t f_raw, f_skid, f_d;
   always_comb

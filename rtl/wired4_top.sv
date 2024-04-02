@@ -1,8 +1,8 @@
 // 此文件是核心的顶层
 `include "wired0_defines.svh"
 
-module wired_top#(
-    parameter int unsigned SOURCE_WIDTH  = 1,
+module wired_top #(
+    parameter int unsigned SOURCE_WIDTH  = 2,
     parameter int unsigned SINK_WIDTH    = 1,
     parameter int CPU_ID = 0
   )(
@@ -61,6 +61,8 @@ module wired_top#(
 
   // 生成后端
   wired_backend # (
+                  .SOURCE_WIDTH(SOURCE_WIDTH),
+                  .SINK_WIDTH(SINK_WIDTH),
                   .CPU_ID(CPU_ID)
                 )
                 wired_backend_inst (

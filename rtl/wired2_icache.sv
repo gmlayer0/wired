@@ -43,7 +43,7 @@ module wired_icache #(
 
     // SRAM 读端口 TODO CONN
     output logic [11:0]       p_addr_o,
-    input  logic [3:0][64:0]  p_rdata_i,
+    input  logic [3:0][63:0]  p_rdata_i,
     input  cache_tag_t [3:0]  p_tag_i,
 
     // 无效化端口

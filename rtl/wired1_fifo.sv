@@ -27,8 +27,8 @@ module wired_fifo #(
     `_WIRED_FF_RSTABLE_EN(wptr, '0, '1)
     `_WIRED_FF_RSTABLE_EN(rptr, '0, '1)
     `_WIRED_FF_RSTABLE_EN(cnt, '0, '1)
-    assign wptr = push ? ((wptr_q == DEPTH - 1) ? '0 : (wptr_q + 1'd1)) : wptr_q;
-    assign rptr = pop ? ((rptr_q == DEPTH - 1) ? '0 : (rptr_q + 1'd1)) : rptr_q;
+    assign wptr = push ? (wptr_q + 1'd1) : wptr_q;
+    assign rptr = pop  ? (rptr_q + 1'd1) : rptr_q;
     assign cnt  = cnt_q + (push ? 1'd1 : 1'd0) - (pop ? 1'd1 : 1'd0);
 
     // 握手信号

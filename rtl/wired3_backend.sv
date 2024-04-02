@@ -155,7 +155,7 @@ module wired_backend #(
         // if(r_pkg[p].di.invtlb_en || r_pkg[p].di.mem_cacop) begin
         r_p_pkg[p].op_code = raw_imm[4:0]; // invtlb / cacop
         // end else 
-        if(r_pkg[p].di.csr_op_en || r_pkg[p].di.csr_rdcnt) begin
+        if(r_pkg[p].di.csr_op_en || (r_pkg[p].di.csr_rdcnt != '0)) begin
             r_p_pkg[p].op_code = raw_imm[9:5]; // rj
         end else begin
             r_p_pkg[p].op_code[4] = r_waddr[p] == 5'd1;
@@ -211,7 +211,7 @@ module wired_backend #(
       for(integer i = 0 ; i < 2 ; i += 1) begin
         p_data[p].valid[i] |= p_rob_valid[p][i];
         if(!p_data_q[p].valid[i] && p_rob_valid[p][i]) begin
-          p_data[p].rdata[i] = p_rob_data[p];
+          p_data[p].rdata[i] = p_rob_data[p][i];
         end
         if(!p_data_q[p].valid[i] &&
             cdb[p_data_q[p].rreg[i][0]].valid &&

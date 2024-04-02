@@ -31,7 +31,7 @@ module wired_registers_file_banked #(
     wire [W_PORT_COUNT-1:0][R_PORT_COUNT-1:0][DATA_WIDTH-1:0] rdata;
     for(genvar r = 0 ; r < R_PORT_COUNT ; r += 1) begin
         assign raddr[r] = raddr_i[r][ADDR_DEPTH-1:BADDR_DEPTH];
-        assign rdata_o[r] = rdata[raddr_i[BADDR_DEPTH-1:0]][r];
+        assign rdata_o[r] = rdata[raddr_i[r][BADDR_DEPTH-1:0]][r];
     end
 
     for(genvar b = 0 ; b < W_PORT_COUNT ; b += 1) begin

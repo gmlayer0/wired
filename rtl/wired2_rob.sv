@@ -110,7 +110,7 @@ module wired_rob (
     assign p_wrrid_i[p] = p_ctrl_i[p].wreg.rob_id;
     always_comb begin
         p_winfo_i[p] = '0;
-        p_winfo_i[p].di = p_ctrl_i[p].di; // 指令控制信息
+        p_winfo_i[p].di = get_rob_from_p(p_ctrl_i[p].di); // 指令控制信息
         p_winfo_i[p].wreg = p_ctrl_i[p].wreg.arch_id;
         // p_winfo_i[p].rreg = p_data_i[p].rreg[i];        // 重命名后的读寄存器
         p_winfo_i[p].wtier = p_ctrl_i[p].wtier;       // 写寄存器 tier id
