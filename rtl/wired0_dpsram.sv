@@ -92,7 +92,7 @@ module wired_dpsram #(
         for(integer i = 0 ; i < (DATA_WIDTH/BYTE_SIZE) ; i++) begin
             if(we0_i[i]) begin
                 rdata0_split_q[i] <= wdata0_split[i];
-                // sim_ram[addr0_i][i] <= wdata0_split[i]; ONLY 1 PORT IS FOR WRITE.
+                sim_ram[addr0_i][i] <= wdata0_split[i];
             end else begin
                 rdata0_split_q[i] <= sim_ram[addr0_i][i];
             end

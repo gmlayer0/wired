@@ -28,11 +28,11 @@ module wired_sp (
                .HostAddrWidth (32),
                .DeviceAddrWidth (32),
                .HostSourceWidth (4),
-               .DeviceSourceWidth (4),
+               .DeviceSourceWidth (1),
                .HostSinkWidth (1),
                .DeviceSinkWidth (1),
-               .HostMaxSize (6),
-               .DeviceMaxSize (6),
+               .HostMaxSize (4),
+               .DeviceMaxSize (4),
                .Fifo (1'b1)
              ) mem_tlul_bridge (
                .clk_i(clk),
@@ -42,16 +42,16 @@ module wired_sp (
              );
 
   // Tilelink Broadcaster - UL
-  `TL_DECLARE(128, 32, 4, 1, tl128);
+  `TL_DECLARE(128, 32, 1, 1, tl128);
   tl_broadcast #(
                  .DataWidth (128),
                  .AddrWidth (32),
-                 .HostSourceWidth (4),
+                 .HostSourceWidth (1),
                  .DeviceSourceWidth (4),
                  .SinkWidth (1),
-                 .NumCachedHosts (2),
-                 .SourceBase ({4'd1 ,4'd0}),
-                 .SourceMask ({4'd14,4'd14})
+                 .NumCachedHosts (1),
+                 .SourceBase ({4'd1 /*,4'd0*/}),
+                 .SourceMask ({4'd14/*,4'd14*/})
                ) broadcast (
                 .clk_i(clk),
                 .rst_ni(rst_n),

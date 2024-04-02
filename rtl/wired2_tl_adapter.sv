@@ -177,11 +177,12 @@ module wired_tl_adapter import tl_pkg::*; #(
     // Probe       状态机 - prb - B - read SRAM-TAG
     if(1) begin : prb_fsm
         /* PROBE 状态机，状态定义 */
-        typedef logic[1:0] fsm_t;
-        fsm_t fsm;
-        fsm_t fsm_q;
-        localparam fsm_t S_FREE = 0;
-        localparam fsm_t S_INV = 1; // Call inv
+        typedef enum logic[1:0] {
+            S_FREE,
+            S_INV // Call inv
+        } fsm_e;
+        fsm_e fsm;
+        fsm_e fsm_q;
         typedef struct packed {
             logic [31:0] addr;
             logic [2:0] parm;
@@ -231,15 +232,16 @@ module wired_tl_adapter import tl_pkg::*; #(
     // CPU_Request 状态机 - crq - - write SRAM-DATA
     if(1) begin : crq_fsm
         /* CPU Request 状态机，状态定义 */
-        typedef logic[2:0] fsm_t;
-        fsm_t fsm;
-        fsm_t fsm_q;
-        localparam fsm_t S_FREE = 0;
-        localparam fsm_t S_ULD = 1; // Call unc
-        localparam fsm_t S_UST = 2; // Call unc
-        localparam fsm_t S_INV = 3; // Call inv
-        localparam fsm_t S_ACQ = 4; // Call acq
-        localparam fsm_t S_RET = 5; // Return value
+        typedef enum logic[2:0] {
+            S_FREE,
+            S_ULD, // Call unc
+            S_UST, // Call unc
+            S_INV, // Call inv
+            S_ACQ, // Call acq
+            S_RET  // Return value
+        } fsm_e;
+        fsm_e fsm;
+        fsm_e fsm_q;
         always_ff @(posedge clk) begin
             if(!rst_n) begin
                 fsm_q <= S_FREE;
@@ -279,8 +281,9 @@ module wired_tl_adapter import tl_pkg::*; #(
             crq_acq_way  = q.inv_sel;
             crq_acq_addr = q.addr[31:4];
             // unc call
-            crq_unc_cal  = '0; // crq drive
-            crq_unc_wreq = '0;
+            crq_unc_cal   = '0; // crq drive
+            crq_unc_wreq  = '0;
+            crq_unc_wdata = bus_req_i.wdata;
             crq_unc_histrb = (&q.size) ? 4'b1111 : 4'b0000;
             crq_unc_strb = q.size[1] ? 4'b1111 : (q.size[0] ? 
                                     (q.addr[1] ? 4'b1100 : 4'b0011) : 
@@ -380,20 +383,21 @@ module wired_tl_adapter import tl_pkg::*; #(
         end
         wire [1:0] rnd_sel = rnd_value_q[7:6];
         wire [3:0] rnd_sel_oh = {rnd_sel == 2'd3, rnd_sel == 2'd2, rnd_sel == 2'd1, rnd_sel == 2'd0};
-        typedef logic[3:0] fsm_t;
-        fsm_t fsm;
-        fsm_t fsm_q;
-        localparam fsm_t S_FREE  = 0;
-        localparam fsm_t S_RTAG0 = 1; // Read tags request
-        localparam fsm_t S_RTAG1 = 2; // Read tags fetch result
-        localparam fsm_t S_ASEL  = 3; // Alloc select
-        localparam fsm_t S_HSEL  = 4; // Hit select
-        localparam fsm_t S_WTAG  = 5; // Write tag sram
-        localparam fsm_t S_SEL   = 6; // 从 MASK 中拿到第一个请求，并无效化对应 MASK
-        localparam fsm_t S_RDAT0 = 7; // Read data request
-        localparam fsm_t S_RDAT1 = 7; // Read data fetch result
-        localparam fsm_t S_TLC   = 8; // TL-C
-        localparam fsm_t S_TLD   = 9; // TL-D
+        typedef enum logic[3:0] {
+            S_FREE  ,
+            S_RTAG0 , // Read tags request
+            S_RTAG1 , // Read tags fetch result
+            S_ASEL  , // Alloc select
+            S_HSEL  , // Hit select
+            S_WTAG  , // Write tag sram
+            S_SEL   , // 从 MASK 中拿到第一个请求，并无效化对应 MASK
+            S_RDAT0 , // Read data request
+            S_RDAT1 , // Read data fetch result
+            S_TLC   , // TL-C
+            S_TLD     // TL-D
+        } fsm_e;
+        fsm_e fsm;
+        fsm_e fsm_q;
         typedef struct packed {
             logic     prb_sel; // 选择来自 prb 的请求
             logic [31:0] addr;
@@ -607,14 +611,15 @@ module wired_tl_adapter import tl_pkg::*; #(
     // Acquire     状态机 - acq - A、D、E - write SRAM-TAG, write SRAM-DATA
     if(1) begin : acq_fsm
         /* Acquire 状态机，状态定义 */
-        typedef logic[2:0] fsm_t;
-        fsm_t fsm;
-        fsm_t fsm_q;
-        localparam fsm_t S_FREE = 0;
-        localparam fsm_t S_TLA  = 1; // Issue A request
-        localparam fsm_t S_TLD  = 2; // Waiting for D response, and lock B
-        localparam fsm_t S_WRAM = 3; // Write data&tag sram
-        localparam fsm_t S_TLE  = 4; // Issue E response
+        typedef enum logic[2:0] {
+            S_FREE ,
+            S_TLA  , // Issue A request
+            S_TLD  , // Waiting for D response, and lock B
+            S_WRAM , // Write data&tag sram
+            S_TLE    // Issue E response
+        } fsm_e;
+        fsm_e fsm;
+        fsm_e fsm_q;
         typedef struct packed {
             logic [3:0][31:0]      data;
             logic [31:0]           addr;
@@ -627,12 +632,20 @@ module wired_tl_adapter import tl_pkg::*; #(
         registerd_entrys d;
         always_ff @(posedge clk) begin
             if(!rst_n) begin
+                fsm_q <= S_FREE;
+            end else begin
+                fsm_q <= fsm;
+            end
+        end
+        always_ff @(posedge clk) begin
+            if(!rst_n) begin
                 q <= init;
             end else begin
                 q <= d;
             end
         end
         always_comb begin
+            fsm = fsm_q;
             d = q;
             crq_acq_ret = '0;
             crq_acq_data = q.data;
@@ -645,6 +658,8 @@ module wired_tl_adapter import tl_pkg::*; #(
             acq_a.source  = SOURCE_BASE;
             acq_a.mask    = '1;
             acq_a.corrupt = '0;
+
+            acq_d_ready = '0;
 
             acq_e_valid = '0;
             acq_e = '0;
@@ -715,13 +730,14 @@ module wired_tl_adapter import tl_pkg::*; #(
     // Uncached 状态机
     if(1) begin : unc_fsm
         /* PROBE 状态机，状态定义 */
-        typedef logic[1:0] fsm_t;
-        fsm_t fsm;
-        fsm_t fsm_q;
-        localparam fsm_t S_FREE = 0;
-        localparam fsm_t S_TLA = 1; // Call Get / PutFullData
-        localparam fsm_t S_WTLD = 2; // Wait AccessAck / AccessAckData
-        localparam fsm_t S_RTLD = 3; // Wait AccessAck / AccessAckData
+        typedef enum logic[1:0] {
+            S_FREE ,
+            S_TLA  , // Call Get / PutFullData
+            S_WTLD , // Wait AccessAck / AccessAckData
+            S_RTLD   // Wait AccessAck / AccessAckData
+        } fsm_e;
+        fsm_e fsm;
+        fsm_e fsm_q;
         typedef struct packed {
             logic [31:0] addr;
             logic        wreq;

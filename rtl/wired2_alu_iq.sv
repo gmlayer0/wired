@@ -78,8 +78,20 @@ module wired_alu_iq #(
 
     // CDB 接口上的 FIFO 队列， 不满的时候才可以以发射指令到 FU 执行，一旦有一个 FIFO 满，就阻止指令发射。
     // 这样保证在 ALU 中的两条指令起步走，转发的两个源头也是齐步走的
-    logic free_cnt_q;
-    // fixme: finish free_cnt_q logic
+    logic [1:0] excute_valid; // 标记 Excute 级的两个执行槽是否有效
+    logic [3:0] free_cnt_q;
+    wire  [3:0] free_cnt = free_cnt_q - p_valid_i[0] - p_valid_i[1] + excute_valid[0] + excute_valid[1];
+    always_ff @(posedge clk) begin
+        if(!rst_n || flush_i) begin
+            free_cnt_q <= IQ_SIZE;
+        end else begin
+            free_cnt_q <= free_cnt;
+        end
+    end
+    always_ff @(posedge clk) begin
+        p_ready_o <= free_cnt >= 2;
+    end
+
 
     // Reserve station static entry 定义
     typedef struct packed {
@@ -96,7 +108,6 @@ module wired_alu_iq #(
     iq_static_t [IQ_SIZE-1:0] iq_static;
     logic [IQ_SIZE-1:0][1:0][1:0] b2b_src; // IQ_INDEX REG_INDEX SRC_INDEX
 
-    logic [1:0] excute_valid; // 标记 Excute 级的两个执行槽是否有效
     logic       excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令，齐步走信号
     logic [1:0] b2b_valid;
     rob_rid_t [1:0] b2b_rid;
@@ -163,6 +174,8 @@ module wired_alu_iq #(
             sel_static[s] = '0;
             sel_forward[s] = '0;
             sel_data[s] = '0;
+            b2b_valid_d = '0;
+            b2b_rid_d[s] = '0;
             for(integer i = 0 ; i < IQ_SIZE ; i += 1) begin
                 if(fire_sel_oh[s][i]) begin
                     sel_static[s]  |= iq_static[i];
@@ -184,10 +197,12 @@ module wired_alu_iq #(
             fwd_data_q    <= fwd_data;
         end
     end
+    rob_rid_t[1:0]   ex_rid;
     logic [1:0] excute_valid_q;
     logic [1:0] l_excute_ready;
     wire  [1:0] fifo_ready;
     for(genvar p = 0 ; p < 2 ; p += 1) begin
+        assign ex_rid[p] = sel_static_q[p].wreg;
         always_ff @(posedge clk) begin
             if(!rst_n || flush_i) begin
                 excute_valid_q[p] <= '0;
@@ -206,12 +221,11 @@ module wired_alu_iq #(
     assign excute_ready = &l_excute_ready;
     // 例化两个 ALU 和 jump 模块 用于处理所有计算指令以及分支指令
     logic[1:0]       ex_jump;
-    rob_rid_t[1:0]   ex_rid;
     logic[1:0][31:0] ex_jump_target;
     logic[1:0][31:0] ex_wdata;
     assign fwd_data = ex_wdata;
+    word_t [1:0] real_data; // 转发后的数据
     for(genvar p = 0 ; p < 2 ; p += 1) begin
-        word_t [1:0] real_data; // 转发后的数据
         always_comb begin
             real_data[p] = (|sel_forward_q[p]) ? '0 : sel_data_q[p];
             for(integer i = 0 ; i < 2 ; i += 1) begin

@@ -56,6 +56,7 @@ module wired_commit (
             f_rob_ptr1_q <= f_rob_ptr1_q + f_valid[0] + f_valid[1];
         end
     end
+    assign c_rrrid_o = {f_rob_ptr1_q, f_rob_ptr0_q};
     reg f_skid_ready_q;
     rob_entry_t [1:0] f_skid_entry_q;
     rob_rid_t [1:0] f_skid_wrrid_q;
@@ -145,6 +146,13 @@ module wired_commit (
     // TLBSRCH / TLBRD / INVTLB PRE-RUN.
     // 这里例化一个管理 TLB，执行所有 TLB 相关的操作。
     tlb_entry_t [`_WIRED_PARAM_TLB_CNT-1:0] tlb_entrys_q;
+    for(genvar i = 0 ; i < `_WIRED_PARAM_TLB_CNT ; i += 1) begin
+        always_ff @(posedge clk) begin
+            if(tlb_update_req_o.tlb_we[i]) begin
+                tlb_entrys_q[i] <= tlb_update_req_o.tlb_w_entry;
+            end
+        end
+    end
     logic [`_WIRED_PARAM_TLB_CNT-1:0] h_tlb_hit_srch;
     logic [`_WIRED_PARAM_TLB_CNT-1:0] h_tlb_hit_invtlb; // 需要打流水
     tlb_entry_t h_tlb_rd; // for tlbrd 需要打流水

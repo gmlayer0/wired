@@ -317,6 +317,7 @@ module wired_icache #(
       end
       S_HANDLED:
       begin
+        f1_f2_ready = f_ready_i || !f2_valid_q;
         f_valid_o = f2_valid_q;
         f_inst_o = fsm_data_q;
         if(f_ready_i || !f2_valid_q) // 被 flush 了。
@@ -340,7 +341,7 @@ module wired_icache #(
         // 重填完成后返回
         bus_req_o.valid = '1;
         bus_req_o.uncached_load_req = '1;
-        bus_req_o.target_paddr[3] = f2.mask[0] ? '0 : '1;
+        bus_req_o.target_paddr[2] = f2.mask[0] ? '0 : '1;
         bus_req_o.size = (&f2.mask) ? 2'd3 : 2'd2;
         fsm_data = bus_resp_i.rdata;
         if(bus_resp_i.ready)

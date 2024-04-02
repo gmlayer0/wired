@@ -121,6 +121,7 @@ module wired_iq_entry #(
         // 有意思的是，这个部分恰好是一个 LUT6 哦，结合之前的，到此处为 3 级。
         // 考虑 b2b_rid_i 来自本周期，还有额外两级逻辑，此信号最长 5 级。
         always_comb begin
+            value_ready[i] = '0;
             if(valid_inst_q) begin 
                 value_ready[i] = data_rdy_q;
                 if(updata_i) begin

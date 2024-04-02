@@ -48,8 +48,6 @@ end
 logic [31:0] npc;  // 下一周期的 PC，纯组合逻辑由预测器得出，用于输入 sram
 logic [31:0] pc;   // 本周期输出的 PC，纯寄存器组成。
 assign p_pc_o = pc;
-logic  [1:0] mask; // 本周期的有效性情况
-assign p_mask_o = mask;
 
 typedef struct packed {
   bpu_target_type_e target_type;
@@ -173,7 +171,6 @@ logic pc_is_cal, pc_is_ret;
 // RAS 生成逻辑
 logic[7:0][31:0] ras_q;
 logic[2:0] ras_w_ptr_q,ras_ptr_q; // TODO:check
-logic pc_is_call, pc_is_return;
 logic [31:0] ras_rdata_q;
 always_ff @(posedge clk) ras_rdata_q <= ras_q[ras_ptr_q];
 always_ff @(posedge clk) begin
@@ -196,12 +193,12 @@ always_ff @(posedge clk) begin
       end
     end
     else begin
-      if(pc_is_call && p_ready_i) begin
+      if(pc_is_cal && p_ready_i) begin
         ras_q[ras_w_ptr_q] <= {pc[31:3], 3'b000} + ((mask_0_valid_q & branch_need_jmp[0]) ? 32'd4 : 32'd8);
         ras_w_ptr_q <= ras_w_ptr_q + 3'd1;
         ras_ptr_q <= ras_ptr_q + 3'd1;
       end
-      if(pc_is_return && p_ready_i) begin
+      if(pc_is_ret && p_ready_i) begin
         ras_w_ptr_q <= ras_w_ptr_q - 3'd1;
         ras_ptr_q <= ras_ptr_q - 3'd1;
       end

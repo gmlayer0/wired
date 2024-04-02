@@ -47,13 +47,14 @@ function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry
   ret.di = static_i.di; // 指令控制信息
   ret.wreg = static_i.wreg;
   ret.wtier = static_i.wtier;       // 写寄存器 tier id
-  ret.op_code = static_i.op_code;       // CSR 控制信息
   ret.csr_id = static_i.csr_id;
+  ret.op_code = static_i.op_code;       // CSR 控制信息
   ret.pc = static_i.pc;
   ret.bpu_predict = static_i.bpu_predict; // 在 ALU 中仅检查是否跳转，跳转执行由提交级负责
   ret.static_excp = static_i.excp;
   // 控制流相关
   ret.lsu_excp = dynamic_i.excp;
+  ret.excp_found = (|dynamic_i.excp) | (|static_i.excp);
   ret.need_jump = dynamic_i.need_jump;
   ret.target_addr = dynamic_i.target_addr;
   // 访存流相关
@@ -243,5 +244,12 @@ module wired_rob (
       c_rob_valid_q[1] <= (valid_rob_entry_q + valid_rob_entry_diff) >= 2;
     end
   end
+
+  // Output
+  assign p_rrdata_o = p_rob_entry_data;
+  assign c_rob_entry_o = {
+    gather_rob(c_rob_entry_static[1], c_rob_entry_dynamic[1], c_rob_entry_data[1], c_rob_valid_o[1]),
+    gather_rob(c_rob_entry_static[0], c_rob_entry_dynamic[0], c_rob_entry_data[0], c_rob_valid_o[0])
+                        };
 
 endmodule

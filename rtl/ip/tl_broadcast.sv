@@ -6,7 +6,7 @@ module tl_broadcast import tl_pkg::*; #(
   parameter  int unsigned HostSourceWidth = 1,
   parameter  int unsigned DeviceSourceWidth = 1,
   parameter  int unsigned SinkWidth = 1,
-  parameter  int unsigned MaxSize = 6,
+  parameter  int unsigned MaxSize = 4,
 
   // Source ID table for cacheable hosts.
   // These IDs are used for sending out Probe messages.

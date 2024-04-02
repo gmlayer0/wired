@@ -252,6 +252,7 @@ module wired_frontend #(
     assign d_skid.p[i].bpu_predict = d_q.predict[i];
     assign d_skid.p[i].fetch_excp = d_q.excp;
   end
+  assign d_skid.mask = d_q.mask;
 
   // d_b skid buf
   if( 1 )
@@ -264,7 +265,7 @@ module wired_frontend #(
       end
       else
       begin
-        d_skid_ready <= !(d_skid_valid & !skid_b_ready);
+        d_skid_ready <= !(skid_b_valid & !skid_b_ready);
       end
     end
 
@@ -280,7 +281,6 @@ module wired_frontend #(
   end
 
   // D -> B 握手处理
-  logic b_ready;
   logic b_valid_q, b_tid_q;
   always_ff @(posedge clk)
   begin
@@ -301,7 +301,7 @@ module wired_frontend #(
     end
     else
     begin
-      if(b_ready)
+      if(skid_b_ready)
       begin
         b_valid_q <= (b_q.p[0].bpu_predict.tid == b_tid_q) && skid_b_valid; // 丢弃无用包
       end
@@ -331,7 +331,7 @@ module wired_frontend #(
                 `_WIRED_GENERAL_CONN,
                  .flush_i(g_flush),
                  .valid_i(b_valid_q),
-                 .ready_o(b_ready),
+                 .ready_o(skid_b_ready),
                  .nz_i({(b_q.p[1].ri.w_reg!='0),(b_q.p[0].ri.w_reg!='0)}),
                  .bank_i({b_q.p[1].ri.w_reg[0],b_q.p[0].ri.w_reg[0]}),
                  .pkg_i(b_q.p),
