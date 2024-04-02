@@ -526,7 +526,7 @@ module wired_commit (
                         c_lsu_req_o.dbarrier_unlock = '1;
                     end
                     // 访存部分处理
-                    if(h_entry_q[0].lsu_inst) begin
+                    if(h_entry_q[0].di.lsu_inst) begin
                         if(h_entry_q[0].uncached) begin
                             // 1. Uncached 请求（向 LSU 发出请求，等待 Uncached 读数据 / 写完成）
                             // （注意， Uncached Load 及 Uncached Store 均需要立即发出请求，且 Uncached Load 需要刷新流水线）
@@ -562,7 +562,7 @@ module wired_commit (
                         end
                     end
                     // 跳转指令处理，注意刷新管线
-                    if(h_entry_q[0].jump_inst) begin
+                    if(h_entry_q[0].di.jump_inst) begin
                         // 特殊处理未命中情况，刷新流水线，重定向控制流
                         if( (h_entry_q[0].need_jump && (!h_entry_q[0].bpu_predict.taken || h_entry_q[0].bpu_predict.predict_pc != h_entry_q[0].target_addr)) ||
                            (!h_entry_q[0].need_jump && h_entry_q[0].bpu_predict.taken)) begin
@@ -683,7 +683,7 @@ module wired_commit (
                         l_commit = 2'b01;
                         f_upd.redirect = '1;
                         f_upd.true_target = h_flushtarget_q;
-                        fsm = h_entry_q[0].di.idle ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
+                        fsm = h_entry_q[0].di.wait_inst ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
                     end
                 end
 

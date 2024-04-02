@@ -32,7 +32,7 @@
         },
         "lsu_inst": {
             "length": 1,
-            "stage": "p",
+            "stage": "c",
             "default_value": 0
         },
         "reg_type_r0": {

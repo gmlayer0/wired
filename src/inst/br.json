@@ -25,7 +25,7 @@
         },
         "jump_inst": {
             "length": 1,
-            "stage": "rob",
+            "stage": "c",
             "default_value": 0
         }
     },

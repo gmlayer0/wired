@@ -129,7 +129,7 @@ module wired_alu_iq #(
     // 与 Excute Unit 的握手信号
     for(genvar i = 0 ; i < IQ_SIZE ; i += 1) begin
         wire [1:0] update_by;
-        for(genvar j = 0 ; j < IQ_SIZE ; j += 1) begin
+        for(genvar j = 0 ; j < 2 ; j += 1) begin
             assign update_by[j] = upd_sel_oh[j][i] & p_valid_i[j];
         end
         wired_iq_entry # (
@@ -222,7 +222,7 @@ module wired_alu_iq #(
             .r0_i(real_data[0]),
             .r1_i(real_data[1]),
             .pc_i(sel_static_q[p].pc),
-            .grand_op_i(sel_static_q[p].di.grand_op),
+            .grand_op_i(sel_static_q[p].di.alu_grand_op),
             .op_i(sel_static_q[p].di.alu_op),
             .res_o(ex_wdata[p])
         );

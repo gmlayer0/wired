@@ -128,10 +128,13 @@ typedef struct packed {
     cmp_type_t cmp_type;
     dbarrier_t dbarrier;
     inst_t inst;
+    jump_inst_t jump_inst;
     llsc_inst_t llsc_inst;
+    lsu_inst_t lsu_inst;
     mem_read_t mem_read;
     mem_write_t mem_write;
     refetch_t refetch;
+    wait_inst_t wait_inst;
 } decode_info_c_t;
 
 typedef struct packed {
@@ -164,6 +167,7 @@ typedef struct packed {
     invtlb_en_t invtlb_en;
     jump_inst_t jump_inst;
     llsc_inst_t llsc_inst;
+    lsu_inst_t lsu_inst;
     mem_read_t mem_read;
     mem_write_t mem_write;
     priv_inst_t priv_inst;
@@ -292,10 +296,13 @@ function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
     ret.cmp_type = rob.cmp_type;
     ret.dbarrier = rob.dbarrier;
     ret.inst = rob.inst;
+    ret.jump_inst = rob.jump_inst;
     ret.llsc_inst = rob.llsc_inst;
+    ret.lsu_inst = rob.lsu_inst;
     ret.mem_read = rob.mem_read;
     ret.mem_write = rob.mem_write;
     ret.refetch = rob.refetch;
+    ret.wait_inst = rob.wait_inst;
     return ret;
 endfunction
 
@@ -336,6 +343,7 @@ function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
     ret.invtlb_en = p.invtlb_en;
     ret.jump_inst = p.jump_inst;
     ret.llsc_inst = p.llsc_inst;
+    ret.lsu_inst = p.lsu_inst;
     ret.mem_read = p.mem_read;
     ret.mem_write = p.mem_write;
     ret.priv_inst = p.priv_inst;

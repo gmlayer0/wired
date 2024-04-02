@@ -137,7 +137,7 @@ module wired_backend #(
   pipeline_ctrl_p_t [1:0] r_p_pkg;
   pipeline_data_t [1:0] r_p_data;
   for(genvar p = 0 ; p < 2 ; p += 1) begin
-    wire [25:0] raw_imm  = r_pkg[p].inst[25:0];
+    wire [25:0] raw_imm  = r_pkg[p].di.inst[25:0];
     wire [31:0] data_imm = mkimm_data(r_pkg[p].di.imm_type, raw_imm);
     wire [27:0] addr_imm = mkimm_addr(r_pkg[p].di.addr_imm_type, raw_imm);
     always_comb begin
@@ -150,7 +150,7 @@ module wired_backend #(
         r_p_pkg[p].di   = get_p_from_d(r_pkg[p].di);
         r_p_pkg[p].wreg.arch_id = r_waddr[p];
         r_p_pkg[p].wreg.rob_id = r_wrrid[p];
-        r_p_pkg[p].wtire = r_tier_id[p];
+        r_p_pkg[p].wtier = r_tier_id[p];
         r_p_pkg[p].addr_imm = addr_imm;
         // if(r_pkg[p].di.invtlb_en || r_pkg[p].di.mem_cacop) begin
         r_p_pkg[p].op_code = raw_imm[4:0]; // invtlb / cacop
@@ -163,7 +163,14 @@ module wired_backend #(
         end
         r_p_pkg[p].pc = r_pkg[p].pc;
         r_p_pkg[p].bpu_predict = r_pkg[p].bpu_predict;
-        r_p_pkg[p].excp = r_pkg[p].fetch_excp;
+        r_p_pkg[p].excp.adef = r_pkg[p].fetch_excp.adef;
+        r_p_pkg[p].excp.tlbr = r_pkg[p].fetch_excp.tlbr;
+        r_p_pkg[p].excp.pif  = r_pkg[p].fetch_excp.pif;
+        r_p_pkg[p].excp.ppi  = r_pkg[p].fetch_excp.ppi;
+        r_p_pkg[p].excp.ine  = r_pkg[p].ine;
+        r_p_pkg[p].excp.ipe  = r_pkg[p].di.priv_inst && (csr_o.crmd[`_CRMD_PLV] == 2'd3);
+        r_p_pkg[p].excp.sys  = r_pkg[p].di.syscall_inst;
+        r_p_pkg[p].excp.brk  = r_pkg[p].di.break_inst;
     end
   end
   /* 分发级 P */
@@ -243,7 +250,7 @@ module wired_backend #(
   wire [1:0] ifet_excp = {(|p_pkg_q[1].excp), (|p_pkg_q[0].excp)};
   wire [1:0] lsu_valid = p_issue & {p_pkg_q[1].di.lsu_inst,p_pkg_q[0].di.lsu_inst} & ~ifet_excp;
   wire [1:0] mdu_valid = p_issue & {p_pkg_q[1].di.mdu_inst,p_pkg_q[0].di.mdu_inst} & ~ifet_excp;
-  wire [1:0] alu_valid = p_issue & ({p_pkg_q[1].di.alu_en,p_pkg_q[0].di.alu_en} | ifet_excp); // 取指阶段存在异常的指令全部送入 ALU
+  wire [1:0] alu_valid = p_issue & ({p_pkg_q[1].di.alu_inst,p_pkg_q[0].di.alu_inst} | ifet_excp); // 取指阶段存在异常的指令全部送入 ALU
   wired_alu_iq wired_alu_iq_inst (
     `_WIRED_GENERAL_CONN,
     .p_ctrl_i(p_pkg_q),
