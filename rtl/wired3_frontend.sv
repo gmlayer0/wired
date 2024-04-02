@@ -88,7 +88,7 @@ module wired_frontend #(
   wired_pcgen  wired_pcgen_inst (
                  `_WIRED_GENERAL_CONN,
                  .p_correct_i(bpu_correct_i),
-                 .p_ready_i(w_skid_ready),
+                 .p_ready_i(w_skid_ready || g_flush),
                  .p_valid_o(w_skid_valid),
                  .p_pc_o(w_skid.pc),
                  .p_mask_o(w_skid.mask),
