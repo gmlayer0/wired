@@ -24,11 +24,11 @@ module wired_fifo #(
     wire [ADDR_DEPTH:0] cnt;
 
     // 指针更新
-    `_WIRED_FF_RSTABLE_EN(wptr, '0, push)
-    `_WIRED_FF_RSTABLE_EN(rptr, '0, pop)
+    `_WIRED_FF_RSTABLE_EN(wptr, '0, '1)
+    `_WIRED_FF_RSTABLE_EN(rptr, '0, '1)
     `_WIRED_FF_RSTABLE_EN(cnt, '0, '1)
-    assign wptr = (wptr_q == DEPTH - 1) ? '0 : (wptr_q + 1'd1);
-    assign rptr = (rptr_q == DEPTH - 1) ? '0 : (rptr_q + 1'd1);
+    assign wptr = push ? ((wptr_q == DEPTH - 1) ? '0 : (wptr_q + 1'd1)) : wptr_q;
+    assign rptr = pop ? ((rptr_q == DEPTH - 1) ? '0 : (rptr_q + 1'd1)) : rptr_q;
     assign cnt  = cnt_q + (push ? 1'd1 : 1'd0) - (pop ? 1'd1 : 1'd0);
 
     // 握手信号
@@ -41,7 +41,7 @@ module wired_fifo #(
     // mem 堆 -> lutram | distributed ram
     T [DEPTH - 1 : 0] mem;
     T data;
-    assign data = (wptr_q == rptr_q) ? inport_payload : mem[rptr_q];
+    assign data = (wptr_q == rptr) ? inport_payload : mem[rptr];
     `_WIRED_FF(data)
 
     always_ff @(posedge clk) begin

@@ -1,5 +1,52 @@
 `include "wired0_defines.svh"
 
+function reg_info_t get_register_info(
+  input decode_info_d_t di,
+  input logic[31:0] inst
+);
+reg_info_t ret;
+
+logic [1:0] r0_sel, w_sel;
+logic r1_sel;
+r0_sel = di.reg_type_r0;
+r1_sel = di.reg_type_r1;
+w_sel  = di.reg_type_w;
+case(r0_sel)
+  default : begin
+    ret.r_reg[0] = '0;
+  end
+  `_REG_R0_RK : begin
+    ret.r_reg[0] = inst[14:10];
+  end
+  `_REG_R0_RD : begin
+    ret.r_reg[0] = inst[4:0];
+  end
+endcase
+case(r1_sel)
+  default : begin
+    ret.r_reg[1] = '0;
+  end
+  `_REG_R1_RJ : begin
+    ret.r_reg[1] = inst[9:5];
+  end
+endcase
+case(w_sel)
+  default : begin
+    ret.w_reg = '0;
+  end
+  `_REG_W_RD : begin
+    ret.w_reg = inst[4:0];
+  end
+  `_REG_W_RJD : begin
+    ret.w_reg = inst[4:0] | inst[9:5];
+  end
+  `_REG_W_BL1 : begin
+    ret.w_reg = 5'd1;
+  end
+endcase
+return ret;
+endfunction
+
 // Fuction module for Wired project
 // Frontend module
 module wired_frontend #(
@@ -247,7 +294,7 @@ module wired_frontend #(
                     .decode_err_o(d_skid.p[i].ine),
                     .is_o(d_skid.p[i].di)
                   );
-    // TODO 生成 register info : ri
+    assign d_skid.p[i].ri = get_register_info(d_skid.p[i].di, d_q.inst[i]);
     assign d_skid.p[i].pc = {d_q.pc[31:3], (i==0 ? d_q.pc[2] : 1'd1), d_q.pc[1:0]};
     assign d_skid.p[i].bpu_predict = d_q.predict[i];
     assign d_skid.p[i].fetch_excp = d_q.excp;
@@ -325,7 +372,7 @@ module wired_frontend #(
     fifo_in_payload.mask = fifo_mask;
   end
   wired_packer # (
-                 .PKG_SIZE($bits(pipeline_ctrl_pack_t) * 2)
+                 .PKG_SIZE($bits(pipeline_ctrl_pack_t))
                )
                wired_packer_inst (
                 `_WIRED_GENERAL_CONN,

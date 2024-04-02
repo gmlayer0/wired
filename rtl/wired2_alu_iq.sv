@@ -78,7 +78,8 @@ module wired_alu_iq #(
     // 这样保证在 ALU 中的两条指令起步走，转发的两个源头也是齐步走的
     logic [1:0] excute_valid; // 标记 Excute 级的两个执行槽是否有效
     logic [3:0] free_cnt_q;
-    wire  [3:0] free_cnt = free_cnt_q - p_valid_i[0] - p_valid_i[1] + excute_valid[0] + excute_valid[1];
+    wire  [3:0] free_cnt = free_cnt_q - p_valid_i[0] - p_valid_i[1] +
+    (excute_ready&excute_valid[0]) + (excute_ready&excute_valid[1]);
     always_ff @(posedge clk) begin
         if(!rst_n || flush_i) begin
             free_cnt_q <= IQ_SIZE;

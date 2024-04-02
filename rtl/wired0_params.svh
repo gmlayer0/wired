@@ -11,9 +11,9 @@
 // `define _WIRED_PARAM_ENABLE_FPU
 
 `ifdef _WIRED_PARAM_ENABLE_FPU
-`define _WIRED_PARAM_PRF_LEN 5
-`else
 `define _WIRED_PARAM_PRF_LEN 6
+`else
+`define _WIRED_PARAM_PRF_LEN 5
 `endif //_WIRED_PARAM_ENABLE_FPU
 
 `define _WIRED_PARAM_ROB_LEN 6

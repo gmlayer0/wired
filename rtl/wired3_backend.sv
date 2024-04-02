@@ -181,7 +181,7 @@ module wired_backend #(
   pipeline_ctrl_p_t [1:0] p_pkg_q;
   pipeline_data_t [1:0] p_data, p_data_q;
   logic [1:0] p_valid_mask_q;
-  assign p_issue = p_valid_mask_q & {r_p_ready & r_p_ready};
+  assign p_issue = p_valid_mask_q & {r_p_ready, r_p_ready};
   assign r_p_ready = alu_ready & lsu_ready & mdu_ready;
   always_ff @(posedge clk) begin
     if(!rst_n) begin

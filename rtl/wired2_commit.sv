@@ -61,7 +61,7 @@ module wired_commit (
     rob_entry_t [1:0] f_skid_entry_q;
     rob_rid_t [1:0] f_skid_wrrid_q;
     assign slot1_bank_conflict = c_rob_entry_i[1].wreg[0] == c_rob_entry_i[0].wreg[0] &&
-                                 c_rob_entry_i[0].wreg[0] != '0;
+                                 c_rob_entry_i[0].wreg    != '0;
     assign slot1_ctrl_conflict = c_rob_entry_i[1].di.slot0 ||
                                  c_rob_entry_i[1].excp_found;
     assign c_retire_o = f_valid & {f_skid_ready_q, f_skid_ready_q};
@@ -294,17 +294,16 @@ module wired_commit (
     end
 
     // 主状态机定义
-    `define __FSM_BIT_LEN 5
-    typedef logic[`__FSM_BIT_LEN-1:0] commit_fsm_t;
-    parameter commit_fsm_t S_NORMAL      = `__FSM_BIT_LEN'd0;
-    parameter commit_fsm_t S_WAIT_ULOAD  = `__FSM_BIT_LEN'd1; // 这个要刷流水线，还要修改写入 ARF 的数据
-    parameter commit_fsm_t S_WAIT_USTORE = `__FSM_BIT_LEN'd2; // 这个不用刷流水线，但需要解除 dbar（uncached 会设置 barrier）
-    parameter commit_fsm_t S_WAIT_MSTORE = `__FSM_BIT_LEN'd3; // 这个不用刷流水线
-    parameter commit_fsm_t S_WAIT_FLUSH  = `__FSM_BIT_LEN'd4; // 这个是用来刷流水线的
-    parameter commit_fsm_t S_WAIT_INTERRUPT  = `__FSM_BIT_LEN'd5; // 这个是用来等待中断的
-    `undef __FSM_BIT_LEN
-    commit_fsm_t fsm_q;
-    commit_fsm_t fsm;
+    typedef enum logic[2:0] {
+    S_NORMAL,
+    S_WAIT_ULOAD,    // 这个要刷流水线，还要修改写入 ARF 的数据
+    S_WAIT_USTORE,   // 这个不用刷流水线，但需要解除 dbar（uncached 会设置 barrier）
+    S_WAIT_MSTORE,   // 这个不用刷流水线
+    S_WAIT_FLUSH,    // 这个是用来刷流水线的
+    S_WAIT_INTERRUPT // 这个是用来等待中断的
+    } commit_fsm_e;
+    commit_fsm_e fsm_q;
+    commit_fsm_e fsm;
     always_ff @(posedge clk) begin
         if(~rst_n) begin
             fsm_q <= S_NORMAL;
