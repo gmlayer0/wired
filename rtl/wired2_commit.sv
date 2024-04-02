@@ -304,11 +304,15 @@ module wired_commit (
     } commit_fsm_e;
     commit_fsm_e fsm_q;
     commit_fsm_e fsm;
+    logic h_tid;
+    logic h_tid_q; // 跳转使用的 id 标识
     always_ff @(posedge clk) begin
         if(~rst_n) begin
             fsm_q <= S_NORMAL;
+            h_tid_q <= '0;
         end else begin
             fsm_q <= fsm;
+            h_tid_q <= h_tid;
         end
     end
 
@@ -372,6 +376,7 @@ module wired_commit (
         tlb_update_req_o.tlb_w_entry.value[1].mat = csr_q.tlbelo1[5:4];
         c_lsu_req_o = '0;
         csr = csr_q;
+        h_tid = h_tid_q;
         fsm = fsm_q;
         h_ready = '1;
         l_flush = '0;  // 流水线需要冲刷
@@ -384,6 +389,7 @@ module wired_commit (
             l_tier_id[i] = h_entry_q[i].wtier;
         end
         f_upd = '0;
+        f_upd.tid = h_tid_q;
         f_upd.pc = h_entry_q[0].pc;
         f_upd.true_taken = h_entry_q[0].need_jump;
         f_upd.true_target = h_entry_q[0].target_addr; // 对于分支指令，这就是最终目标，对于非分支指令，这里不会使用，若跳转类型错误，后面会做纠正
@@ -693,7 +699,10 @@ module wired_commit (
                         fsm = h_entry_q[0].di.wait_inst ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
                     end
                 end
-
+                if(h_ready && f_upd.redirect) begin
+                    h_tid = ~h_tid_q;
+                    f_upd.tid = ~h_tid_q;
+                end
             end
             S_WAIT_ULOAD: begin
                 h_ready = '0;
