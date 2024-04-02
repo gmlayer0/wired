@@ -40,7 +40,7 @@
         },
         "alu_op": {
             "length": 2,
-            "stage": "alu",
+            "stage": "alu_mdu_common",
             "default_value": 0
         }
     },

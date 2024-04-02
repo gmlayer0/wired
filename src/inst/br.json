@@ -20,7 +20,7 @@
         },
         "cmp_type": {
             "length": 4,
-            "stage": "alu",
+            "stage": "c_alu_common",
             "default_value": 0
         },
         "jump_inst": {

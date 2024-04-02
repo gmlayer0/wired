@@ -107,15 +107,15 @@ begin
   case (op_i)
     default/* `_ALU_STYPE_SRA */:
     begin
-      g2_result = $signed($signed(r1_i) >>> $signed(r0_i[4:0]));
+      sft_result = $signed($signed(r1_i) >>> $signed(r0_i[4:0]));
     end
     `_ALU_STYPE_SRL:
     begin
-      g2_result = r1_i >> r0_i[4:0];
+      sft_result = r1_i >> r0_i[4:0];
     end
     `_ALU_STYPE_SLL:
     begin
-      g2_result = r1_i << r0_i[4:0];
+      sft_result = r1_i << r0_i[4:0];
     end
   endcase
 end

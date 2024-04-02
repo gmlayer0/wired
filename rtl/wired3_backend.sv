@@ -172,7 +172,7 @@ module wired_backend #(
   pipeline_ctrl_p_t [1:0] p_pkg_q;
   pipeline_data_t [1:0] p_data, p_data_q;
   logic [1:0] p_valid_mask_q;
-  p_issue = p_valid_mask_q & {r_p_ready & r_p_ready};
+  assign p_issue = p_valid_mask_q & {r_p_ready & r_p_ready};
   assign r_p_ready = alu_ready | lsu_ready | mdu_ready;
   always_ff @(posedge clk) begin
     if(!rst_n) begin
@@ -244,10 +244,7 @@ module wired_backend #(
   wire [1:0] lsu_valid = p_issue & {p_pkg_q[1].di.lsu_inst,p_pkg_q[0].di.lsu_inst} & ~ifet_excp;
   wire [1:0] mdu_valid = p_issue & {p_pkg_q[1].di.mdu_inst,p_pkg_q[0].di.mdu_inst} & ~ifet_excp;
   wire [1:0] alu_valid = p_issue & ({p_pkg_q[1].di.alu_en,p_pkg_q[0].di.alu_en} | ifet_excp); // 取指阶段存在异常的指令全部送入 ALU
-  wired_alu_iq # (
-    .IQ_SIZE(IQ_SIZE)
-  )
-  wired_alu_iq_inst (
+  wired_alu_iq wired_alu_iq_inst (
     `_WIRED_GENERAL_CONN,
     .p_ctrl_i(p_pkg_q),
     .p_data_i(p_data),
@@ -271,6 +268,8 @@ module wired_backend #(
   );
 
   // COMMIT 流水线
+  commit_lsu_req_t   c_lsu_req;
+  commit_lsu_resp_t c_lsu_resp;
   wired_commit  wired_commit_inst (
     `_WIRED_GENERAL_CONN,
     .c_rrrid_o(c_rrrid),
@@ -280,9 +279,9 @@ module wired_backend #(
     .c_lsu_req_o(c_lsu_req),
     .c_lsu_resp_i(c_lsu_resp),
     .l_retire_o(l_retire),
-    .l_commit_o(l_commit),
-    .l_data_o(l_data),
-    .l_warid_o(l_warid),
+    .l_commit_o(l_we),
+    .l_data_o(l_wdata),
+    .l_warid_o(l_waddr),
     .l_wrrid_o(l_wrrid),
     .l_tier_id_o(l_tier_id),
     .f_upd_o(bpu_correct_o),

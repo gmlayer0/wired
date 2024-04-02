@@ -24,6 +24,6 @@ module wired_jump (
   assign jump_o = |(cmp_result & cmp_type_i[3:1]);
 
   // 目标地址计算逻辑
-  assign jump_target_o = {{4{addr_imm_i[27]}}, addr_imm_i} + (target_type == `_TARGET_ABS ? r1 : pc_i);
+  assign jump_target_o = {{4{addr_imm_i[27]}}, addr_imm_i} + (target_type_i == `_TARGET_ABS ? r1 : pc_i);
 
 endmodule

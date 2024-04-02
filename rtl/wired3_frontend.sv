@@ -332,6 +332,7 @@ module wired_frontend #(
                  .flush_i(g_flush),
                  .valid_i(b_valid_q),
                  .ready_o(b_ready),
+                 .nz_i({(b_q.p[1].ri.w_reg!='0),(b_q.p[0].ri.w_reg!='0)}),
                  .bank_i({b_q.p[1].ri.w_reg[0],b_q.p[0].ri.w_reg[0]}),
                  .pkg_i(b_q.p),
                  .mask_i(b_q.mask),

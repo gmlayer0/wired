@@ -94,7 +94,8 @@ module wired_rob (
 
     // 注意，在后端需要撤销时，由 commit 端口对 ROB 中的指令全部执行一次提交，以恢复重命名表的状态
     // 即 RENAME 模块对后端撤销情况并不知情
-    input  logic             [1:0] c_retire_i
+    input  logic             [1:0] c_retire_i,
+    input  logic                   flush_i
   );
 
   rob_rid_t          [1:0][1:0] p_rrrid_i;
@@ -103,9 +104,9 @@ module wired_rob (
   // 参数提取
   for(genvar p = 0 ; p < 2 ; p += 1) begin
     for(genvar i = 0 ; i < 2 ; i += 1) begin
-        assign p_rrid_i[p][i] = p_data_i[p].rreg[i];
+        assign p_rrrid_i[p][i] = p_data_i[p].rreg[i];
     end
-    assign p_wrrid_i[p] = p_ctrl_i.wreg.rob_id;
+    assign p_wrrid_i[p] = p_ctrl_i[p].wreg.rob_id;
     always_comb begin
         p_winfo_i[p] = '0;
         p_winfo_i[p].di = p_ctrl_i[p].di; // 指令控制信息
@@ -163,12 +164,12 @@ module wired_rob (
   rob_entry_dynamic_t [1:0] cdb_entry_dynamic;
   for(genvar i = 0 ; i < 2 ; i++)
   begin
-    assign cdb_entry_dynamic[i].excp = cdb[i].excp;
-    assign cdb_entry_dynamic[i].need_jump = cdb[i].need_jump;
-    assign cdb_entry_dynamic[i].jump_target = cdb[i].jump_target;
-    assign cdb_entry_dynamic[i].uncached = cdb[i].uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
-    assign cdb_entry_dynamic[i].store_buffer = cdb[i].store_buffer;      // 提交一条 Store_buffer 中的写请求
-    assign cdb_entry_dynamic[i].store_conditional = cdb[i].store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
+    assign cdb_entry_dynamic[i].excp = cdb_i[i].excp;
+    assign cdb_entry_dynamic[i].need_jump = cdb_i[i].need_jump;
+    assign cdb_entry_dynamic[i].target_addr = cdb_i[i].target_addr;
+    assign cdb_entry_dynamic[i].uncached = cdb_i[i].uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
+    assign cdb_entry_dynamic[i].store_buffer = cdb_i[i].store_buffer;      // 提交一条 Store_buffer 中的写请求
+    assign cdb_entry_dynamic[i].store_conditional = cdb_i[i].store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
   end
   wired_registers_file_banked # (
                                 .DATA_WIDTH($bits(rob_entry_dynamic_t)),
@@ -191,7 +192,7 @@ module wired_rob (
   logic [3:0] p_rob_valid_pt, p_rob_valid_ct;
   logic [1:0] c_rob_valid_pt, c_rob_valid_ct;
   assign p_rob_valid_o = p_rob_valid_pt ^ p_rob_valid_ct;
-  assign c_rob_valid_o = c_rob_valid_q & (c_rob_valid_pt ^ c_rob_valid_ct);
+  assign c_rob_valid_o = c_rob_valid_q & ((c_rob_valid_pt ^ c_rob_valid_ct) | {flush_i, flush_i});
   logic [1:0] p_rob_last_valid, c_rob_last_valid;
   wired_registers_file_banked # (
                                 .DATA_WIDTH(1),
@@ -215,7 +216,7 @@ module wired_rob (
                                 .W_PORT_COUNT(2),
                                 .NEED_RESET(0)
                               )
-                              rob_valid_p (
+                              rob_valid_c (
                                 `_WIRED_GENERAL_CONN,
                                 .raddr_i({c_rrrid_i, p_rrrid_i, p_wrrid_i}),
                                 .rdata_o({c_rob_valid_ct, p_rob_valid_ct, c_rob_last_valid}),

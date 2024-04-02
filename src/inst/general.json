@@ -1,7 +1,11 @@
 {
     "node_relations": [
-        ["lsu", "lsu_common"],
-        ["c", "lsu_common"],
+        ["alu", "c_alu_common"],
+        ["c", "c_alu_common"],
+        ["mdu", "alu_mdu_common"],
+        ["alu", "alu_mdu_common"],
+        ["lsu", "c_lsu_common"],
+        ["c", "c_lsu_common"],
         ["rob", "c"],
         ["p", "mdu"],
         ["p", "lsu"],

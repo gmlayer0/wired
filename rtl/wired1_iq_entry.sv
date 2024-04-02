@@ -110,16 +110,16 @@ module wired_iq_entry #(
         // 背靠背唤醒机制
         logic [FORWARD_COUNT-1:0] b2b_hit;
         for(genvar j = 0 ; j < FORWARD_COUNT ; j++) begin
-            assign b2b_hit[j] = b2b_valid_i[j] && forward_rid_i[j] == rid_q;
+            assign b2b_hit[j] = b2b_valid_i[j] && b2b_rid_i[j] == rid_q;
         end
         always_ff @(posedge clk) begin
             b2b_sel_q[i] <= b2b_hit;
         end
-        wire b2b_forward = |b2b_hit; // 同 CDB 分析，从 forward_rid_i 到此处为 2 级。
+        wire b2b_forward = |b2b_hit; // 同 CDB 分析，从 b2b_rid_i 到此处为 2 级。
 
         // 组合逻辑生成下一周期数据有效信息
         // 有意思的是，这个部分恰好是一个 LUT6 哦，结合之前的，到此处为 3 级。
-        // 考虑 forward_rid_i 来自本周期，还有额外两级逻辑，此信号最长 5 级。
+        // 考虑 b2b_rid_i 来自本周期，还有额外两级逻辑，此信号最长 5 级。
         always_comb begin
             if(valid_inst_q) begin 
                 value_ready[i] = data_rdy_q;
@@ -143,7 +143,7 @@ module wired_iq_entry #(
         
     end
 
-    assign ready_o = &valid && valid_inst_q;
+    assign ready_o = &value_ready && valid_inst_q;
     assign payload_o = payload_q;
 
 endmodule

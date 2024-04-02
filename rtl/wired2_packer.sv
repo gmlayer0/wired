@@ -12,7 +12,7 @@ module wired_packer #(
     // 来自对齐解码级
     input  logic                     valid_i,
     output logic                     ready_o, //TODO 剩余指令数 <= 1 时前级可以就绪
-    input  logic                        nz_i,
+    input  logic                [1:0]   nz_i,
     input  logic                [1:0] bank_i,
     input  logic  [1:0][PKG_SIZE-1:0]  pkg_i,
     input  logic                [1:0] mask_i,

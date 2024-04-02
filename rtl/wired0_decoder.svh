@@ -110,13 +110,22 @@ typedef logic [0 : 0] llsc_inst_t;
 typedef logic [0 : 0] dbarrier_t;
 
 typedef struct packed {
+    cmp_type_t cmp_type;
+} decode_info_c_alu_common_t;
+
+typedef struct packed {
+    alu_op_t alu_op;
+} decode_info_alu_mdu_common_t;
+
+typedef struct packed {
     dbarrier_t dbarrier;
     llsc_inst_t llsc_inst;
     mem_read_t mem_read;
     mem_write_t mem_write;
-} decode_info_lsu_common_t;
+} decode_info_c_lsu_common_t;
 
 typedef struct packed {
+    cmp_type_t cmp_type;
     dbarrier_t dbarrier;
     inst_t inst;
     llsc_inst_t llsc_inst;
@@ -126,6 +135,7 @@ typedef struct packed {
 } decode_info_c_t;
 
 typedef struct packed {
+    alu_op_t alu_op;
 } decode_info_mdu_t;
 
 typedef struct packed {
@@ -145,6 +155,7 @@ typedef struct packed {
 } decode_info_alu_t;
 
 typedef struct packed {
+    cmp_type_t cmp_type;
     csr_op_en_t csr_op_en;
     csr_rdcnt_t csr_rdcnt;
     dbarrier_t dbarrier;
@@ -234,8 +245,32 @@ typedef struct packed {
     wait_inst_t wait_inst;
 } decode_info_d_t;
 
-function automatic decode_info_lsu_common_t get_lsu_common_from_lsu(input decode_info_lsu_t lsu);
-    decode_info_lsu_common_t ret;
+function automatic decode_info_c_alu_common_t get_c_alu_common_from_alu(input decode_info_alu_t alu);
+    decode_info_c_alu_common_t ret;
+    ret.cmp_type = alu.cmp_type;
+    return ret;
+endfunction
+
+function automatic decode_info_c_alu_common_t get_c_alu_common_from_c(input decode_info_c_t c);
+    decode_info_c_alu_common_t ret;
+    ret.cmp_type = c.cmp_type;
+    return ret;
+endfunction
+
+function automatic decode_info_alu_mdu_common_t get_alu_mdu_common_from_mdu(input decode_info_mdu_t mdu);
+    decode_info_alu_mdu_common_t ret;
+    ret.alu_op = mdu.alu_op;
+    return ret;
+endfunction
+
+function automatic decode_info_alu_mdu_common_t get_alu_mdu_common_from_alu(input decode_info_alu_t alu);
+    decode_info_alu_mdu_common_t ret;
+    ret.alu_op = alu.alu_op;
+    return ret;
+endfunction
+
+function automatic decode_info_c_lsu_common_t get_c_lsu_common_from_lsu(input decode_info_lsu_t lsu);
+    decode_info_c_lsu_common_t ret;
     ret.dbarrier = lsu.dbarrier;
     ret.llsc_inst = lsu.llsc_inst;
     ret.mem_read = lsu.mem_read;
@@ -243,8 +278,8 @@ function automatic decode_info_lsu_common_t get_lsu_common_from_lsu(input decode
     return ret;
 endfunction
 
-function automatic decode_info_lsu_common_t get_lsu_common_from_c(input decode_info_c_t c);
-    decode_info_lsu_common_t ret;
+function automatic decode_info_c_lsu_common_t get_c_lsu_common_from_c(input decode_info_c_t c);
+    decode_info_c_lsu_common_t ret;
     ret.dbarrier = c.dbarrier;
     ret.llsc_inst = c.llsc_inst;
     ret.mem_read = c.mem_read;
@@ -254,6 +289,7 @@ endfunction
 
 function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
     decode_info_c_t ret;
+    ret.cmp_type = rob.cmp_type;
     ret.dbarrier = rob.dbarrier;
     ret.inst = rob.inst;
     ret.llsc_inst = rob.llsc_inst;
@@ -265,6 +301,7 @@ endfunction
 
 function automatic decode_info_mdu_t get_mdu_from_p(input decode_info_p_t p);
     decode_info_mdu_t ret;
+    ret.alu_op = p.alu_op;
     return ret;
 endfunction
 
@@ -290,6 +327,7 @@ endfunction
 
 function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
     decode_info_rob_t ret;
+    ret.cmp_type = p.cmp_type;
     ret.csr_op_en = p.csr_op_en;
     ret.csr_rdcnt = p.csr_rdcnt;
     ret.dbarrier = p.dbarrier;

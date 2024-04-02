@@ -43,6 +43,7 @@ module wired_commit (
     // 第一级流水，F，需要判定是否可双提交。
     // 对于可能需要状态机处理或者修改 CSR 、产生跳转、刷新流水线效果的指令，仅允许在 SLOT0 提交。
     // 其它指令则无所谓
+    wire [1:0] f_valid = c_rob_valid_i & {~slot1_cannot_fire, 1'd1};
     rob_rid_t f_rob_ptr0_q;
     rob_rid_t f_rob_ptr1_q;
     always_ff @(posedge clk) begin
@@ -58,8 +59,7 @@ module wired_commit (
     rob_entry_t [1:0] f_skid_entry_q;
     rob_rid_t [1:0] f_skid_wrrid_q;
     wire slot1_bank_conflict = c_rob_entry_i[1].wreg[0] == c_rob_entry_i[0].wreg[0];
-    wire slot1_cannot_fire = c_rob_entry_i[1].di.slot0 || slot1_bank_conflict1;
-    wire [1:0] f_valid = c_rob_valid_i & {~slot1_cannot_fire, 1'd1};
+    wire slot1_cannot_fire = c_rob_entry_i[1].di.slot0 || slot1_bank_conflict;
     assign c_retire_o = f_valid & {f_skid_ready_q, f_skid_ready_q};
 
     always_ff @(posedge clk) begin
@@ -141,7 +141,7 @@ module wired_commit (
 
     // TLBSRCH / TLBRD / INVTLB PRE-RUN.
     // 这里例化一个管理 TLB，执行所有 TLB 相关的操作。
-    tlb_entry_t [TLB_ENTRY_NUM-1:0] tlb_entrys_q;
+    tlb_entry_t [`_WIRED_PARAM_TLB_CNT-1:0] tlb_entrys_q;
     logic [`_WIRED_PARAM_TLB_CNT-1:0] h_tlb_hit_srch;
     logic [`_WIRED_PARAM_TLB_CNT-1:0] h_tlb_hit_invtlb; // 需要打流水
     tlb_entry_t h_tlb_rd; // for tlbrd 需要打流水
@@ -201,7 +201,6 @@ module wired_commit (
     rob_entry_t [1:0] h_entry_q;
     rob_rid_t [1:0] h_wrrid_q;
     logic [1:0]  h_valid_inst_q;
-    rob_rid_t [1:0] h_wrrid_q;
     logic [31:0] h_flushtarget_q;
     logic [`_WIRED_PARAM_TLB_CNT-1:0] h_tlb_hit_invtlb_q; // 需要打流水
     tlb_entry_t h_tlb_rd_q; // for tlbrd 需要打流水

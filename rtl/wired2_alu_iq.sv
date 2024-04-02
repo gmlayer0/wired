@@ -250,7 +250,7 @@ module wired_alu_iq #(
         )
         wired_pkg_fifo(
             .clk(clk),
-            .rst_n(rst_n && !g_flush),
+            .rst_n(rst_n && !flush_i),
             .inport_valid_i(excute_valid_q[p]),
             .inport_ready_o(fifo_ready[p]),
             .inport_payload_i({ex_rid[p], ex_wdata[p], ex_jump_target[p], ex_jump[p]}),
