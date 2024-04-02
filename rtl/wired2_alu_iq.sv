@@ -42,15 +42,13 @@ module wired_alu_iq #(
     parameter integer FIREPIO [IQ_SIZE-1:0] = {0,1,2,3,4,5,6,7};
     parameter integer FIRERANGE = 3 * IQ_SIZE / 4; // [IQ_SIZE/2, IQ_SIZE]
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENFIRE_PER_ALU
-        for(genvar j = 0 ; j < IQ_SIZE ; j++) begin : GENFIRE_PER_SLOT
-            localparam integer PIO_NOW  = i == 0 ? (FIREPIO[j]) : (IQ_SIZE-1-FIREPIO[j]);
-            if(j == 0) begin
-                assign fire_sel_oh[i][PIO_NOW] = fire_rdy_q[PIO_NOW];
-            end else if(j < FIRERANGE) begin
-                localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (IQ_SIZE-1-UPDPIO[j-1]);
-                assign fire_sel_oh[i][PIO_NOW] = fire_rdy_q[PIO_NOW] & ~upd_sel_oh[i][PIO_PREV];
-            end else begin
-                assign fire_sel_oh[i][PIO_NOW] = '0;
+        always_comb begin
+            fire_sel_oh[i] = '0;
+            for(integer x = FIRERANGE-1 ; x >= 0 ; x -= 1) begin
+                if(fire_rdy_q[(IQ_SIZE-1-2*FIREPIO[x])*i + FIREPIO[x]]) begin 
+                    fire_sel_oh[i] = '0;
+                    fire_sel_oh[i][(IQ_SIZE-1-2*FIREPIO[x])*i + FIREPIO[x]] = '1;
+                end
             end
         end
     end
@@ -65,13 +63,13 @@ module wired_alu_iq #(
     logic [1:0][IQ_SIZE-1:0] upd_sel_oh;
     parameter integer UPDPIO [IQ_SIZE-1:0] = {4,5,6,7,0,1,2,3};
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENUPD_PER_ALU
-        for(genvar j = 0 ; j < IQ_SIZE ; j++) begin : GENUPD_PER_SLOT
-            localparam integer PIO_NOW  = i == 0 ? (UPDPIO[j]) : (IQ_SIZE-1-UPDPIO[j]);
-            if(j == 0) begin
-                assign upd_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW];
-            end else begin
-                localparam integer PIO_PREV = i == 0 ? (UPDPIO[j-1]) : (IQ_SIZE-1-UPDPIO[j-1]);
-                assign upd_sel_oh[i][PIO_NOW] = empty_q[PIO_NOW] & ~upd_sel_oh[i][PIO_PREV];
+        always_comb begin
+            upd_sel_oh[i] = '0;
+            for(integer x = IQ_SIZE-1 ; x >= 0 ; x -= 1) begin
+                if(empty_q[(IQ_SIZE-1-2*UPDPIO[x])*i + UPDPIO[x]]) begin 
+                    upd_sel_oh[i] = '0;
+                    upd_sel_oh[i][(IQ_SIZE-1-2*UPDPIO[x])*i + UPDPIO[x]] = '1;
+                end
             end
         end
     end
