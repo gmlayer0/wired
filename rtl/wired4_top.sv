@@ -20,7 +20,6 @@ module wired_top#(
                  .SourceWidth (SOURCE_WIDTH),
                  .SinkWidth (SINK_WIDTH),
                  .NumLinks (2),
-                 .NumCachedLinks (1),
 
                  .NumSourceRange(1),
                  .SourceBase(1'd1),

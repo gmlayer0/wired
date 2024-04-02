@@ -56,7 +56,6 @@ module wired_iq_entry #(
     always_ff @(posedge clk) begin
         issue_ready_q <= &value_ready; // 至多 5-6 级, 120mhz 问题不大，130mhz 有困难。
     end
-    assign ready_o = issue_ready_q; // 0 级逻辑输出 OK
 
     // 记录前递源状态，在 genblock 中生成
     logic [1:0][FORWARD_COUNT-1:0] b2b_sel_q;// 前周期周期唤醒数据情况
@@ -144,7 +143,7 @@ module wired_iq_entry #(
         
     end
 
-    assign ready_o = &value_ready && valid_inst_q;
+    assign ready_o = issue_ready_q; // 0 级逻辑输出 OK
     assign payload_o = payload_q;
 
 endmodule
