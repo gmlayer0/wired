@@ -43,7 +43,8 @@ module wired_commit (
     // 第一级流水，F，需要判定是否可双提交。
     // 对于可能需要状态机处理或者修改 CSR 、产生跳转、刷新流水线效果的指令，仅允许在 SLOT0 提交。
     // 其它指令则无所谓
-    wire [1:0] f_valid = c_rob_valid_i & {~slot1_cannot_fire, 1'd1};
+    wire slot1_ctrl_conflict, slot1_bank_conflict;
+    wire [1:0] f_valid = c_rob_valid_i & {((~slot1_ctrl_conflict) | l_flush_o) & ~slot1_bank_conflict, 1'd1};
     rob_rid_t f_rob_ptr0_q;
     rob_rid_t f_rob_ptr1_q;
     always_ff @(posedge clk) begin
@@ -58,8 +59,10 @@ module wired_commit (
     reg f_skid_ready_q;
     rob_entry_t [1:0] f_skid_entry_q;
     rob_rid_t [1:0] f_skid_wrrid_q;
-    wire slot1_bank_conflict = c_rob_entry_i[1].wreg[0] == c_rob_entry_i[0].wreg[0];
-    wire slot1_cannot_fire = c_rob_entry_i[1].di.slot0 || slot1_bank_conflict;
+    assign slot1_bank_conflict = c_rob_entry_i[1].wreg[0] == c_rob_entry_i[0].wreg[0] &&
+                                 c_rob_entry_i[0].wreg[0] != '0;
+    assign slot1_ctrl_conflict = c_rob_entry_i[1].di.slot0 ||
+                                 c_rob_entry_i[1].excp_found;
     assign c_retire_o = f_valid & {f_skid_ready_q, f_skid_ready_q};
 
     always_ff @(posedge clk) begin
@@ -128,7 +131,7 @@ module wired_commit (
         `_CSR_TID       : h_csr_rdata = csr_q.tid;
         `_CSR_TCFG      : h_csr_rdata = csr_q.tcfg;
         `_CSR_TVAL      : h_csr_rdata = csr_q.tval;
-        `_CSR_TICLR     : h_csr_rdata = csr_q.ticlr;
+        `_CSR_TICLR     : h_csr_rdata = '0;
         `_CSR_LLBCTL    : h_csr_rdata = {csr_q.llbctl, 1'b0, csr_q.llbit};
         `_CSR_TLBRENTRY : h_csr_rdata = csr_q.tlbrentry;
         `_CSR_DMW0      : h_csr_rdata = csr_q.dmw0;
@@ -321,14 +324,26 @@ module wired_commit (
     logic [31:0] csr_wmask, csr_wdata;
 
     // 主状态机组合逻辑
-    excp_t [1:0] excp;
-    for(genvar i = 0 ; i < 2 ; i += 1) begin
-        assign excp[i] = gather_excp(h_entry_q[i].static_excp, h_entry_q[i].lsu_excp);
+    excp_t excp;
+    // for(genvar i = 0 ; i < 2 ; i += 1) begin
+    assign excp = gather_excp(h_entry_q[0].static_excp, h_entry_q[0].lsu_excp);
+    // end
+    // 打拍后的中断向量
+    logic timer_interrupt;
+    logic [12:0] int_vec = {f_interrupt_i[8] ,timer_interrupt, 1'd0, f_interrupt_i[7:0], csr_q.estat[1:0]};
+    logic [12:0] int_mask = csr_q.ectl[12:0];
+    wire  [12:0] masked_int = int_mask & int_vec;
+    logic int_pending_q;
+    logic [12:0] int_vec_q;
+    always_ff @(posedge clk) begin
+        int_vec_q <= int_vec;
+        int_pending_q <= |masked_int;
     end
     // SUPER SUPER HUGE LOGIC BEGIN !
     // MAIN PROCESSOR STATES ARE MAINTAINED HERE !
     always_comb begin
         tlb_update_req_o = '0;
+        timer_interrupt = int_vec_q[11];
         
         tlb_update_req_o.tlb_w_entry.key.vppn = csr_q.tlbehi[31:13];
         // tlb_update_req_o.tlb_w_entry.key.ps   = csr_q.tlbidx[29:24]; // P72
@@ -384,179 +399,130 @@ module wired_commit (
         if(h_entry_q[0].op_code == '0) csr_wmask = '0;
         if(h_entry_q[0].op_code == 5'd1) csr_wmask = '1;
         csr_wdata = (csr_wmask & h_entry_q[0].wdata) | ((~csr_wmask) & h_csr_rdata_q);
+        // 时钟处理
+        if(csr_q.tcfg[`_TCFG_EN]) begin
+            if(csr_q.tval != '0) begin
+                csr.tval = csr_q.tval - 1;
+            end else if(csr_q.tcfg[`_TCFG_PERIODIC]) begin
+                csr.tval[`_TCFG_INITVAL] = csr_q.tcfg[`_TCFG_INITVAL];
+                timer_interrupt = '1;
+            end else begin
+                // tval == '0, en =='1, periodic == '0;
+                csr.tcfg[`_TCFG_EN] = '0;
+                timer_interrupt = '1;
+            end
+        end 
         case (fsm_q)
             S_NORMAL: begin
                 f_upd.need_update = h_valid_inst_q[0] && ((|slot0_target_type) || (slot0_target_type != h_entry_q[0].bpu_predict.target_type));
                 l_flush = '0;
                 l_retire = h_valid_inst_q;
                 l_commit = h_valid_inst_q;
-                // 对 inst 的中断异常情况做 judge
-                if((h_valid_inst_q[0] && h_entry_q[0].excp_found) || (h_valid_inst_q[1] && h_entry_q[1].excp_found)) begin
-                    for(integer i = 1 ; i >= 0 ; i --) begin
-                        if(h_valid_inst_q[i] && h_entry_q[i].excp_found) begin
-                            // 第 i 条指令有问题
-                            l_commit[1] = '0;
-                            l_commit[i] = '0;
-                            f_upd.redirect = '1;
-                            f_upd.true_target = csr_q.eentry;
-                            fsm = S_WAIT_FLUSH;
-                            if(i != 1 || (!h_entry_q[0].excp_found)) begin
-                                // 对于 0 一定可以修改，对于1，一定在 0 无异常时可以修改
-                                // 先更新 ecode
-                                case(1'b1)
-                                    excp[i].fetch_int: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h00;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                    end      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
-                                    excp[i].adef: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h08;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].pc;
-                                    end
-                                    excp[i].itlbr: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h3f;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.crmd[`_CRMD_DA] = 1'b0;
-                                        csr.crmd[`_CRMD_PG] = 1'b1;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].pc;
-                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
-                                        f_upd.true_target = csr_q.tlbrentry;
-                                    end
-                                    excp[i].pif: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h03;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].pc;
-                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
-                                    end
-                                    excp[i].ippi: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h07;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].pc;
-                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
-                                    end
-                                    excp[i].ine: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h0d;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                    end
-                                    excp[i].ipe: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h0e;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                    end
-                                    excp[i].sys: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h0b;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                    end
-                                    excp[i].brk: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h0c;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                    end
-                                    excp[i].ale: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h09;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].target_addr;
-                                    end
-                                    excp[i].tlbr: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h3f;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.crmd[`_CRMD_DA] = 1'b0;
-                                        csr.crmd[`_CRMD_PG] = 1'b1;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].target_addr;
-                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
-                                        f_upd.true_target = csr_q.tlbrentry;
-                                    end
-                                    excp[i].pis: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h02;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].target_addr;
-                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
-                                    end
-                                    excp[i].pil: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h01;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].target_addr;
-                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
-                                    end
-                                    excp[i].ppi: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h07;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].target_addr;
-                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
-                                    end
-                                    excp[i].pme: begin
-                                        csr.estat[`_ESTAT_ECODE] = 6'h04;
-                                        csr.estat[`_ESTAT_ESUBCODE] = '0;
-                                        csr.era = h_entry_q[i].pc;
-                                        csr.crmd[`_CRMD_PLV] = 2'b0;
-                                        csr.crmd[`_CRMD_IE] = 1'b0;
-                                        csr.prmd[2:0] = csr_q.crmd[2:0];
-                                        csr.badv = h_entry_q[i].target_addr;
-                                        csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[i].pc[`_TLBEHI_VPPN];
-                                    end
-                                endcase
-                            end
+                // 对 inst0 的中断异常情况做 judge
+                if(h_valid_inst_q[0] && (h_entry_q[0].excp_found || int_pending_q)) begin
+                    // 第 0 条指令有问题
+                    l_commit[1] = '0;
+                    l_commit[0] = '0;
+                    f_upd.redirect = '1;
+                    f_upd.true_target = csr_q.eentry;
+                    csr.era = h_entry_q[0].pc;
+                    csr.crmd[`_CRMD_PLV] = 2'b0;
+                    csr.crmd[`_CRMD_IE] = 1'b0;
+                    csr.prmd[2:0] = csr_q.crmd[2:0];
+                    fsm = S_WAIT_FLUSH;
+                    // 先更新 ecode
+                    case(1'b1)
+                        int_pending_q: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h00;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                        end // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
+                        excp.adef: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h08;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.badv = h_entry_q[0].pc;
                         end
-                    end
+                        excp.itlbr: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h3f;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.crmd[`_CRMD_DA] = 1'b0;
+                            csr.crmd[`_CRMD_PG] = 1'b1;
+                            csr.badv = h_entry_q[0].pc;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                            f_upd.true_target = csr_q.tlbrentry;
+                        end
+                        excp.pif: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h03;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.badv = h_entry_q[0].pc;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                        end
+                        excp.ippi: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h07;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.badv = h_entry_q[0].pc;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                        end
+                        excp.ine: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h0d;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                        end
+                        excp.ipe: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h0e;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                        end
+                        excp.sys: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h0b;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                        end
+                        excp.brk: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h0c;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                        end
+                        excp.ale: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h09;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.badv = h_entry_q[0].target_addr;
+                        end
+                        excp.tlbr: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h3f;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.crmd[`_CRMD_DA] = 1'b0;
+                            csr.crmd[`_CRMD_PG] = 1'b1;
+                            csr.badv = h_entry_q[0].target_addr;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                            f_upd.true_target = csr_q.tlbrentry;
+                        end
+                        excp.pis: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h02;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.badv = h_entry_q[0].target_addr;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                        end
+                        excp.pil: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h01;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.badv = h_entry_q[0].target_addr;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                        end
+                        excp.ppi: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h07;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.badv = h_entry_q[0].target_addr;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                        end
+                        excp.pme: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h04;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                            csr.badv = h_entry_q[0].target_addr;
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                        end
+                    endcase
+                    // end
                 end else if(h_valid_inst_q[0]) begin
                     // 不存在异常的部分
                     // 0. 恢复 DBAR
                     if(h_entry_q[0].di.dbarrier) begin
-                        // 可能进入这里的，一定不会暂停
+                        // 可能进入这里的，一定不会暂停，对应指令：DBAR
                         c_lsu_req_o.dbarrier_unlock = '1;
                     end
                     // 访存部分处理
@@ -621,7 +587,7 @@ module wired_commit (
                         `_CSR_PRMD:      begin `_MW(prmd, `_PRMD_PPLV);`_MW(prmd, `_PRMD_PIE); end
                         `_CSR_EUEN:      begin `_MW(euen, `_EUEN_FPE); end
                         `_CSR_ECTL:      begin `_MW(ectl, `_ECTL_LIE1);`_MW(ectl, `_ECTL_LIE2); end
-                        // `_CSR_ESTAT:     begin `_MW(); end // TODO: FIXME: WRITE TO FRONTEND, NOT DIRECTLY ESTAT
+                        `_CSR_ESTAT:     begin `_MW(estat, 1:0); end
                         `_CSR_ERA:       begin `_MW(era, 31:0); end
                         `_CSR_BADV:      begin `_MW(badv, 31:0); end
                         `_CSR_EENTRY:    begin `_MW(eentry, `_EENTRY_VA); end
@@ -641,7 +607,7 @@ module wired_commit (
                         `_CSR_TID:       begin `_MW(tid, 31:0); end
                         `_CSR_TCFG:      begin `_MW(tcfg,31:0);csr.tval[1:0] = '0;`_MW(tval,`_TCFG_INITVAL); end
                         // `_CSR_TVAL:      begin `_MW(); end // 只读
-                        // `_CSR_TICLR:     begin `_MW(); end // TODO: FIXME: WRITE TO FRONTEND, NOT DIRECTLY ESTAT
+                        `_CSR_TICLR:     begin if(csr_wdata[0]) timer_interrupt = '0; end
                         `_CSR_LLBCTL:    begin `_MW(llbctl, `_LLBCT_KLO); if(csr_wdata[`_LLBCT_WCLLB]) csr.llbit = 1'b0; end
                         `_CSR_TLBRENTRY: begin `_MW(tlbrentry, `_TLBRENTRY_PA); end
                         `_CSR_DMW0:      begin `_MW(dmw0,`_DMW_PLV0);`_MW(dmw0,`_DMW_PLV3);`_MW(dmw0,`_DMW_MAT);`_MW(dmw0,`_DMW_PSEG);`_MW(dmw0,`_DMW_VSEG); end
@@ -772,7 +738,7 @@ module wired_commit (
                 l_flush  = '1;
                 l_retire = h_valid_inst_q;
                 l_commit = '0;
-                if(rename_empty_i && '0 /*TODO: DETECT INTERRUPT INCOMMING...*/) begin
+                if(rename_empty_i && int_pending_q) begin
                     fsm = S_NORMAL;
                 end
             end
