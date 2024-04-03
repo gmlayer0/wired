@@ -172,13 +172,29 @@ module wired_lsu_iq #(
         s_lsu_req = '0;
         s_lsu_req.vaddr = {{4{s_iq_q.addr_imm[27]}},
                               s_iq_q.addr_imm} + s_data_q[1];
-        s_lsu_req.strb  = ;
-        s_lsu_req.msize = ;
+        s_lsu_req.msize = '0;
+        case (s_iq_q.di.mem_type[1:0])
+        2'd1: s_lsu_req.msize = 2'd3; // Word
+        2'd2: s_lsu_req.msize = 2'd1; // Half
+        default/*2'd3*/: s_lsu_req.msize = 2'd0; // Byte
+        endcase
+        s_lsu_req.strb  = '0;
+        if(s_iq_q.di.mem_write) begin
+            case (s_iq_q.di.mem_type[1:0])
+            2'd1: s_lsu_req.strb = 4'b1111; // Word
+            2'd2: s_lsu_req.strb = 4'b0011 << {s_lsu_req.vaddr[1],1'd0}; // Half
+            default/*2'd3*/: s_lsu_req.strb = 4'b0001 << s_lsu_req.vaddr[1:0]; // Byte
+            endcase
+        end
         
         s_lsu_req.cacop = s_iq_q.di.mem_cacop;
         s_lsu_req.dbar  = s_iq_q.di.dbarrier;
         s_lsu_req.llsc  = s_iq_q.di.llsc_inst;
-        s_lsu_req.wdata = s_data_q[0];
+        case (s_iq_q.di.mem_type[1:0])
+        default/*2'd1*/: s_lsu_req.wdata = s_data_q[0];
+        2'd2: s_lsu_req.wdata = (s_data_q[0]) << {s_lsu_req.vaddr[1], 4'd0};   // Half
+        2'd3: s_lsu_req.wdata = (s_data_q[0]) << {s_lsu_req.vaddr[1:0], 3'd0}; // Byte
+        endcase
     end
     assign lsu_req_valid_o = s_top_valid_q;
     assign s_top_ready = lsu_req_ready_i;

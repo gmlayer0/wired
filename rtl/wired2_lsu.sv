@@ -125,7 +125,7 @@ module wired_lsu(
         m1_raw.paddr = {m1_tlb_resp.value.ppn, m1_req_q.vaddr[11:0]};
         m1_raw.vaddr = m1_req_q.vaddr;
         m1_raw.uncached = !m1_tlb_resp.value.mat[0];
-        m1_raw.wdata = m1_req_q.wdata;
+        m1_raw.wdata = m1_req_q.wdata; // 已对齐
         m1_raw.tag = p_tag_i;
         m1_raw.data = p_rdata_i;
         m1_raw.ale = (m1_req_q.msize == 2'd0) ? '0 :
@@ -319,7 +319,7 @@ module wired_lsu(
       .valid     (commit_lsu_req_i.storebuf_commit),
       .storePAddr(sb_top.paddr),
       .storeVAddr(sb_top.vaddr),
-      .storeData (sb_top.wdata)
+      .storeData (sb_top.wdata >> {sb_top.vaddr[1:0],3'd0}) // 恢复已经偏移的写数据
     );
 
 endmodule
