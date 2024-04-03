@@ -263,7 +263,7 @@ module wired_alu_iq #(
             .DATA_WIDTH($bits(rob_rid_t) + 32 + 32 + 1), // rid, wdata, jumppc, jump
             .DEPTH(2)
         )
-        wired_pkg_fifo(
+        wired_commit_fifo(
             .clk(clk),
             .rst_n(rst_n && !flush_i),
             .inport_valid_i(excute_valid_q[p]),
@@ -277,8 +277,8 @@ module wired_alu_iq #(
         assign cdb_o[p].need_jump         = c_jump;
         assign cdb_o[p].target_addr       = c_jump_target;
         assign cdb_o[p].uncached          = '0;
-        assign cdb_o[p].store_buffer      = '0;
-        assign cdb_o[p].store_conditional = '0;
+        // assign cdb_o[p].store_buffer      = '0;
+        // assign cdb_o[p].store_conditional = '0;
         assign cdb_o[p].wdata             = c_wdata;
         assign cdb_o[p].wid               = c_rid;
     end

@@ -181,12 +181,10 @@ typedef struct packed {
                                  // FOR INVTLB: VPN-[31:12] ASID-[9:0]
   // 访存流相关
   logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
-  logic       store_buffer;      // 提交一条 Store_buffer 中的写请求
-  logic       store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
   word_t      wdata;
-  rob_rid_t   wid;
-
+  
   // 有效性
+  rob_rid_t   wid;
   logic       valid;
 } pipeline_cdb_t;
 
@@ -232,8 +230,6 @@ typedef struct packed {
   // 访存流相关
   logic uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
                            // Uncached 指令占用 Request_buffer (仅有一个表项，占用时不再进行后续指令执行)
-  logic store_buffer;      // 提交一条 Store_buffer 中的写请求
-  logic store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
 
   // 写回 ARF 的数据
   word_t wdata;
@@ -268,10 +264,23 @@ function automatic logic[31:0] gen_mask_word(logic [31:0] o, logic [31:0] n, log
   return r;
 endfunction
 
+typedef enum logic[2:0] {
+  NOT_VALID_INV_PARM,
+  HIT_INV,        // HIT AND INVALIDATE
+  PRB_HIT_ADDR_N, // for prb inv toN
+  PRB_HIT_ADDR_B, // for prb inv toB
+
+  IDX_INIT,       // INDEXED INIT
+  IDX_INV,        // INDEX INVALID WRITE BACK
+  RD_ALLOC,       // for read inv, 找到一个合适的行释放并返回
+  WR_ALLOC        // for write miss, check whether read hit, if hit, just return.
+                  // otherwise, invalidate random way and return.
+} inv_parm_e;
+
 // LSU IQ 到 LSU 的请求
 typedef struct packed {
   logic  [3:0] strb;
-  logic  [2:0] cacop;
+  inv_parm_e   cacop;
   logic  dbar;          // 显式 dbar
   logic  llsc;       // LL 指令，需要写权限
   logic  [1:0] msize;   // 访存大小-1
@@ -286,19 +295,6 @@ typedef struct packed {
   logic[31:0] vaddr;
   logic[31:0] rdata;
 } iq_lsu_resp_t;
-
-typedef enum logic[2:0] {
-  NOT_VALID_INV_PARM,
-  HIT_INV,        // HIT AND INVALIDATE
-  PRB_HIT_ADDR_N, // for prb inv toN
-  PRB_HIT_ADDR_B, // for prb inv toB
-
-  IDX_INIT,       // INDEXED INIT
-  IDX_INV,        // INDEX INVALID WRITE BACK
-  RD_ALLOC,       // for read inv, 找到一个合适的行释放并返回
-  WR_ALLOC        // for write miss, check whether read hit, if hit, just return.
-                  // otherwise, invalidate random way and return.
-} inv_parm_e;
 
 // LSU 到 Manager 的请求
 typedef struct packed {

@@ -24,8 +24,14 @@ module wired_lsu_iq #(
 
     // FLUSH 端口
     input logic flush_i, // 后端正在清洗管线，发射所有指令而不等待就绪
-    input  commit_lsu_req_t   c_lsu_req_i,
-    output commit_lsu_resp_t  c_lsu_resp_o
+
+    output logic         lsu_req_valid_o,
+    input  logic         lsu_req_ready_i,
+    output iq_lsu_req_t  lsu_req_o,
+
+    input  logic         lsu_resp_valid_i,
+    output logic         lsu_resp_ready_o,
+    input  iq_lsu_resp_t lsu_resp_i
 );
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
@@ -80,19 +86,27 @@ module wired_lsu_iq #(
     end
     // Reserve station static entry 定义
     typedef struct packed {
-        decode_info_alu_t di;
+        decode_info_lsu_t di;
         logic[31:0] pc;
+        logic[27:0] addr_imm;
+        rob_rid_t wreg;
     } iq_static_t;
     // 输入给 IQ 的 static 信息
     iq_static_t [1:0] p_static;
     // IQ 中存储的信息
     word_t      [IQ_SIZE-1:0][1:0] iq_data;
     iq_static_t [IQ_SIZE-1:0] iq_static;
+    word_t [1:0] s_data;
+    iq_static_t  s_static;
+    assign s_data = iq_data[iq_tail_q];
+    assign s_static = iq_static[iq_tail_q];
     // 解包信息
     for(genvar i = 0 ; i < 2 ; i += 1) begin
         always_comb begin
-            p_static[i].di  = get_alu_from_p(p_ctrl_i[i].di);
-            p_static[i].pc  = p_ctrl_i[i].pc;
+            p_static[i].di       = get_lsu_from_p(p_ctrl_i[i].di);
+            p_static[i].pc       = p_ctrl_i[i].pc;
+            p_static[i].wreg     = p_ctrl_i[i].wreg.rob_id;
+            p_static[i].addr_imm = p_ctrl_i[i].addr_imm;
         end
     end
 
@@ -122,6 +136,81 @@ module wired_lsu_iq #(
             .data_o(iq_data[i]),
             .payload_o(iq_static[i])
         );
+    end
+
+    // 连接 lsu
+    word_t [1:0] s_data_q;
+    iq_static_t s_iq_q;
+    logic s_top_valid_q;
+    logic s_top_ready;
+    assign top_ready = s_top_ready | !s_top_valid_q;
+    always_ff @(posedge clk) begin
+        if(!rst_n || flush_i) begin
+            s_top_valid_q <= '0;
+        end else if(top_ready) begin
+            s_top_valid_q <= top_valid;
+        end
+    end
+    rob_rid_t lsu_resp_rid;
+    wired_fifo #(
+        .DATA_WIDTH($bits(rob_rid_t)), // rid, wdata, jumppc, jump
+        .DEPTH(8) // FIXME: FIND MIN-VALUE
+    ) wired_rid_fifo (
+        .clk(clk),
+        .rst_n(rst_n && !flush_i),
+        .inport_valid_i(lsu_req_valid_o & lsu_req_ready_i),
+        .inport_ready_o(),
+        .inport_payload_i(s_iq_q.wreg),
+        .outport_valid_o(),
+        .outport_ready_i(lsu_resp_valid_i & lsu_resp_ready_o),
+        .outport_payload_o(lsu_resp_rid)
+    );
+    always_ff @(posedge clk) s_data_q <= s_data;
+    always_ff @(posedge clk) s_iq_q <= s_static;
+    iq_lsu_req_t s_lsu_req;
+    always_comb begin
+        s_lsu_req = '0;
+        s_lsu_req.vaddr = {{4{s_iq_q.addr_imm[27]}},
+                              s_iq_q.addr_imm} + s_data_q[1];
+        s_lsu_req.strb  = ;
+        s_lsu_req.msize = ;
+        
+        s_lsu_req.cacop = s_iq_q.di.mem_cacop;
+        s_lsu_req.dbar  = s_iq_q.di.dbarrier;
+        s_lsu_req.llsc  = s_iq_q.di.llsc_inst;
+        s_lsu_req.wdata = s_data_q[0];
+    end
+    assign lsu_req_valid_o = s_top_valid_q;
+    assign s_top_ready = lsu_req_ready_i;
+    assign lsu_req_o = s_lsu_req;
+
+    // 连接 CDB
+    pipeline_cdb_t fifo_cdb;
+    assign fifo_cdb.excp              = lsu_resp_i.excp;
+    assign fifo_cdb.need_jump         = '0;
+    assign fifo_cdb.target_addr       = lsu_resp_i.vaddr;
+    assign fifo_cdb.uncached          = lsu_resp_i.uncached;
+    assign fifo_cdb.wdata             = lsu_resp_i.rdata;
+    assign fifo_cdb.wid               = lsu_resp_rid;
+    assign fifo_cdb.valid             = '0;
+    logic cdb_raw_valid;
+    pipeline_cdb_t cdb_raw;
+    wired_fifo #(
+        .DATA_WIDTH($bits(pipeline_cdb_t)), // rid, wdata, jumppc, jump
+        .DEPTH(2)
+    ) wired_commit_fifo (
+        .clk(clk),
+        .rst_n(rst_n && !flush_i),
+        .inport_valid_i(lsu_resp_valid_i),
+        .inport_ready_o(lsu_resp_ready_o),
+        .inport_payload_i(fifo_cdb),
+        .outport_valid_o(cdb_raw_valid),
+        .outport_ready_i(cdb_ready_i),
+        .outport_payload_o(cdb_raw)
+    );
+    always_comb begin
+        cdb_o = cdb_raw;
+        assign cdb_o.valid = cdb_raw_valid;
     end
 
 endmodule

@@ -32,7 +32,6 @@ module wired_lsu(
     output logic [11:0]       p_addr_o,
     input  logic [3:0][31:0]  p_rdata_i,
     input  cache_tag_t [3:0]  p_tag_i,
-    input  logic [1:0]        p_sll_i,
 
     // 无效化端口
     input  logic              flush_i
@@ -317,8 +316,7 @@ module wired_lsu(
       .clock     (clk),
       .coreid    ('0 ),
       .index     ('0 ),
-      .valid     ((commit_lsu_req_i.uncached_store_req && commit_lsu_resp_o.ready) ||
-                   commit_lsu_req_i.storebuf_commit),
+      .valid     (commit_lsu_req_i.storebuf_commit),
       .storePAddr(sb_top.paddr),
       .storeVAddr(sb_top.vaddr),
       .storeData (sb_top.wdata)

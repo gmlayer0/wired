@@ -277,9 +277,83 @@ module wired_backend #(
     .cdb_i(cdb),
     .flush_i(c_flush),
 
-    .c_lsu_req_i(c_lsu_req),
-    .c_lsu_resp_o(c_lsu_resp)
+    
   );
+  // LSU 例化
+  lsu_bus_req_t bus_req;
+  lsu_bus_resp_t bus_resp;
+  logic [11:0]               p_addr;
+  logic [3:0][63:0]         p_rdata;
+  cache_tag_t [3:0]          p_rtag;
+  logic [1:0]  m_way;
+  logic [11:0] m_addr;
+  logic [3:0][3:0] m_wstrb;
+  logic [3:0][31:0] m_wdata;
+  logic [3:0][31:0] m_rdata;
+  logic [11:4] t_addr;
+  logic  [3:0] t_we;
+  cache_tag_t  t_wtag;
+  cache_tag_t  [3:0] t_rtag
+  dsram_snoop_t snoop;
+  wired_cache_sram # (
+             .WORD_SIZE(32)
+           )
+           wired_cache_sram_inst (
+             `_WIRED_GENERAL_CONN,
+             .p_addr_i(p_addr),
+             .p_rdata_o(p_rdata),
+             .p_rtag_o(p_rtag),
+             .m_way_i(m_way),
+             .m_addr_i(m_addr),
+             .m_wstrb_i(m_wstrb),
+             .m_wdata_i(m_wdata),
+             .m_rdata_o(m_rdata),
+             .t_addr_i(t_addr),
+             .t_we_i(t_we),
+             .t_wtag_i(t_wtag),
+             .t_rtag_o(t_rtag)
+           );
+  wired_lsu  wired_lsu_inst (
+          `_WIRED_GENERAL_CONN,
+          .lsu_req_valid_i(iq_lsu_valid),
+          .lsu_req_ready_o(iq_lsu_ready),
+          .lsu_req_i(iq_lsu_req),
+          .lsu_resp_valid_o(lsu_iq_valid),
+          .lsu_resp_ready_i(lsu_iq_ready),
+          .lsu_resp_o(lsu_iq_resp),
+          .commit_lsu_req_i(c_lsu_req),
+          .commit_lsu_resp_o(c_lsu_resp),
+          .bus_req_o(bus_req),
+          .bus_resp_i(bus_resp),
+          .snoop_i(snoop),
+          .csr_i(csr_o),
+          .tlb_update_i(tlb_update_o),
+          .p_addr_o(p_addr),
+          .p_rdata_i(p_rdata),
+          .p_tag_i(p_rtag),
+          .flush_i(c_flush)
+      );
+  wired_tl_adapter # (
+        .SOURCE_WIDTH(SOURCE_WIDTH),
+        .SINK_WIDTH(SINK_WIDTH),
+        .SOURCE_BASE(2 * CPU_ID)
+      )
+      wired_tl_adapter_inst (
+        `_WIRED_GENERAL_CONN,
+        .bus_req_i(bus_req),
+        .bus_resp_o(bus_resp),
+        .snoop_o(snoop),
+        .m_way_o(m_way),
+        .m_addr_o(m_addr),
+        .m_wstrb_o(m_wstrb),
+        .m_wdata_o(m_wdata),
+        .m_rdata_i(m_rdata),
+        .t_addr_o(t_addr),
+        .t_we_o(t_we),
+        .t_wtag_o(t_wtag),
+        .t_rtag_i(t_rtag),
+        `TL_FORWARD_HOST_PORT(tl, tl)
+      );
 
   // CDB ARBITER
   wired_cdb_arb # (
