@@ -164,7 +164,7 @@ module wired_alu_iq #(
         );
     end
     iq_static_t [1:0] sel_static_q,  sel_static;
-    logic [1:0][1:0]  sel_forward_q, sel_forward;
+    logic [1:0][1:0][1:0] sel_forward_q, sel_forward;
     word_t [1:0][1:0] sel_data_q,    sel_data;
     word_t [1:0]      fwd_data_q,    fwd_data; // TODO: FINISHME
     // 选择两个用于 ALU 输入的 data 和 static
@@ -223,25 +223,27 @@ module wired_alu_iq #(
     logic[1:0][31:0] ex_jump_target;
     logic[1:0][31:0] ex_wdata;
     assign fwd_data = ex_wdata;
-    word_t [1:0] real_data; // 转发后的数据
+    word_t [1:0][1:0] real_data; // 转发后的数据
     for(genvar p = 0 ; p < 2 ; p += 1) begin
         always_comb begin
-            real_data[p] = (|sel_forward_q[p]) ? '0 : sel_data_q[p];
             for(integer i = 0 ; i < 2 ; i += 1) begin
-                real_data[p] |= sel_forward_q[p][i] ? fwd_data_q : '0;
+                real_data[p][i] = (|sel_forward_q[p][i]) ? '0 : sel_data_q[p][i];
+                for(integer f = 0 ; f < 2 ; f += 1) begin
+                    real_data[p][i] |= sel_forward_q[p][i][f] ? fwd_data_q[f] : '0;
+                end
             end
         end
         wired_alu  wired_alu_inst (
-            .r0_i(real_data[0]),
-            .r1_i(real_data[1]),
+            .r0_i(real_data[p][0]),
+            .r1_i(real_data[p][1]),
             .pc_i(sel_static_q[p].pc),
             .grand_op_i(sel_static_q[p].di.alu_grand_op),
             .op_i(sel_static_q[p].di.alu_op),
             .res_o(ex_wdata[p])
         );
         wired_jump  wired_jump_inst (
-            .r0_i(real_data[0]),
-            .r1_i(real_data[1]),
+            .r0_i(real_data[p][0]),
+            .r1_i(real_data[p][1]),
             .pc_i(sel_static_q[p].pc),
             .addr_imm_i(sel_static_q[p].addr_imm),
             .target_type_i(sel_static_q[p].di.target_type),

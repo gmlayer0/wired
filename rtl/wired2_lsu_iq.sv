@@ -24,8 +24,8 @@ module wired_lsu_iq #(
 
     // FLUSH 端口
     input logic flush_i, // 后端正在清洗管线，发射所有指令而不等待就绪
-    input  commit_lsu_req_t   c_lsu_req,
-    output commit_lsu_resp_t  c_lsu_resp
+    input  commit_lsu_req_t   c_lsu_req_i,
+    output commit_lsu_resp_t  c_lsu_resp_o
 );
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
@@ -37,8 +37,9 @@ module wired_lsu_iq #(
     logic [PTR_LEN:0] iq_cnt_q;
     logic [PTR_LEN:0] iq_cnt;
     logic [PTR_LEN-1:0] iq_head, iq_head_p1, iq_tail;
-    wire top_valid, top_ready, top_fire;
+    wire top_valid, top_ready, top_fire; // TODO: CONNECT TOP_READY TO LSU
     assign top_fire = top_valid & top_ready;
+    assign top_valid = fire_rdy_q[iq_tail_q];
     always_ff @(posedge clk) begin
         if(!rst_n || flush_i) begin
             iq_head_q    <= '0;
@@ -108,7 +109,7 @@ module wired_lsu_iq #(
         )
         wired_iq_entry_inst (
             `_WIRED_GENERAL_CONN,
-            .sel_i(ready_sel[0][i] | ready_sel[1][i] | flush_i),
+            .sel_i((iq_tail_q == i[PTR_LEN-1:0] && fire_rdy_q[i] && top_ready) | flush_i),
             .updata_i(|update_by),
             .data_i(update_by[1] ? p_data_i[1] : p_data_i[0]),
             .payload_i(update_by[0] ? p_static[0] : p_static[1]),
@@ -117,7 +118,7 @@ module wired_lsu_iq #(
             .cdb_i(cdb_i),
             .empty_o(empty_q[i]),
             .ready_o(fire_rdy_q[i]),
-            .b2b_sel_o(b2b_src[i]),
+            .b2b_sel_o(),
             .data_o(iq_data[i]),
             .payload_o(iq_static[i])
         );

@@ -772,11 +772,11 @@ module wired_commit (
         if(!rst_n) begin
           ref_regs[i] <= '0;
         end
-        else if(l_commit_o[0] && l_warid_o[0] == i[4:0] && i != 0) begin
-          ref_regs[i] <= l_data_o[0];
+        else if(l_commit[0] && l_warid[0] == i[4:0] && i != 0) begin
+          ref_regs[i] <= l_data[0];
         end
-        else if(l_commit_o[1] && l_warid_o[1] == i[4:0] && i != 0) begin
-          ref_regs[i] <= l_data_o[1];
+        else if(l_commit[1] && l_warid[1] == i[4:0] && i != 0) begin
+          ref_regs[i] <= l_data[1];
         end
       end
     end
