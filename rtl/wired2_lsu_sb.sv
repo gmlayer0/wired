@@ -20,6 +20,7 @@ module wired_lsu_sb(
     // 提交端口（C 级，顶层命中状态）
     input  logic invalid_i,
     output logic top_hit_o,
+    output sb_meta_t top_meta_o,
 
     // SRAM Snoop 端口，实时更新所有 sb 表项
     input  dsram_snoop_t  snoop_i
@@ -82,6 +83,7 @@ module wired_lsu_sb(
 
   // 输出逻辑
   assign ready_o = !full_q;
+  assign top_meta_o = meta_o[r_ptr_q];
   assign top_hit_o = |(meta_o[r_ptr_q].hit);
 
 endmodule

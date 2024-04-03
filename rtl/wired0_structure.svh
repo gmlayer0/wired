@@ -369,6 +369,9 @@ typedef struct packed {
   logic [3:0] hit; // cache hit
   logic [3:0] strb;
   logic [31:0] wdata;
+`ifdef _VERILATOR
+  logic [31:0] vaddr;
+`endif
 } sb_meta_t; // store_buffer 元数据
 
 `endif

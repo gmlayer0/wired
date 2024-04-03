@@ -90,6 +90,7 @@ module wired_lsu(
         logic             llsc;    // llsc 指令，读时需要申请写权限
         logic       [1:0] msize;   // 访存大小-1
         logic      [31:0] paddr;   // 请求物理地址
+        logic      [31:0] vaddr;   // 请求虚拟地址
         logic             uncache; // Uncached 请求
         logic      [31:0] wdata;   // 写数据
         cache_tag_t [3:0] tag;     // sram tag
@@ -123,6 +124,7 @@ module wired_lsu(
         m1_raw.llsc = m1_req_q.llsc;
         m1_raw.msize = m1_req_q.msize;
         m1_raw.paddr = {m1_tlb_resp.value.ppn, m1_req_q.vaddr[11:0]};
+        m1_raw.vaddr = m1_req_q.vaddr;
         m1_raw.uncached = !m1_tlb_resp.value.mat[0];
         m1_raw.wdata = m1_req_q.wdata;
         m1_raw.tag = p_tag_i;
@@ -159,7 +161,7 @@ module wired_lsu(
             end
         end
     end
-    sb_meta_t sb_w;
+    sb_meta_t sb_w, sb_top;
     
     logic sb_inv; // TODO: CONNECT ME
     logic [3:0] sb_valid;
@@ -175,6 +177,7 @@ module wired_lsu(
     .meta_o(sb_entry),
     .invalid_i(sb_inv),
     .top_hit_o(commit_lsu_resp_o.storebuf_hit),
+    .top_meta_o(sb_top),
     .snoop_i(snoop_i)
   );
 
@@ -192,6 +195,9 @@ module wired_lsu(
         sb_w.hit = m1_whit;
         sb_w.strb = m1.strb;
         sb_w.wdata = m1.wdata;
+`ifdef _VERILATOR
+        sb_w.vaddr = m1.vaddr;
+`endif
     end
     // sbhit 生成：生成与 storebuf 的碰撞情况，（注意重复碰撞是不被允许的，故存在 hit 的 uncached store 指令会暂停住管线）
     logic [3:0] m1_sb_hit;
@@ -309,13 +315,13 @@ module wired_lsu(
     // 对所有 Store 指令进行提交处理
     DifftestStoreEvent DifftestStoreEvent_p (
       .clock     (clk),
-      .coreid    (0  ),
-      .index     (p  ),
-      .valid     (cm_valid && cm_inst_info.mem_write &&
-        (!cm_inst_info.llsc_inst || cm_llbit)),
-      .storePAddr(cm_paddr),
-      .storeVAddr(cm_vaddr),
-      .storeData (cm_mdata)
+      .coreid    ('0 ),
+      .index     ('0 ),
+      .valid     ((commit_lsu_req_i.uncached_store_req && commit_lsu_resp_o.ready) ||
+                   commit_lsu_req_i.storebuf_commit),
+      .storePAddr(sb_top.paddr),
+      .storeVAddr(sb_top.vaddr),
+      .storeData (sb_top.wdata)
     );
 
 endmodule
