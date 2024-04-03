@@ -138,7 +138,7 @@ module wired_lsu(
     end
 
     // m1_nosnop 逻辑
-    assign m1_no_snop = m1_skid_valid_q ? m1_skid_q : m1_raw;
+    assign m1_nosnop = m1_skid_valid_q ? m1_skid_q : m1_raw;
 
     // m1_skid_q 逻辑
     always_ff @(posedge clk) begin
