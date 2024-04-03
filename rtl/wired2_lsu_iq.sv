@@ -16,15 +16,16 @@ module wired_lsu_iq #(
     // 连接到 CDB ARBITER 的端口，做仲裁(调度为固定优先级别 ALU > LSU > MDU)
     // 因此来自 ALU 的两条指令几乎永远可以同时提交到 CDB
     // 但需要考虑 ROB 的 BANK CONFLICT 问题。
-    output pipeline_cdb_t cdb_payload_o,
-    output logic          cdb_valid_o,
+    output pipeline_cdb_t cdb_o,
     input  logic          cdb_ready_i, // 这里可以接 FIFO
 
     // CDB 嗅探端口
     input pipeline_cdb_t [1:0] cdb_i,
 
     // FLUSH 端口
-    input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
+    input logic flush_i, // 后端正在清洗管线，发射所有指令而不等待就绪
+    input  commit_lsu_req_t   c_lsu_req,
+    output commit_lsu_resp_t  c_lsu_resp
 );
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射

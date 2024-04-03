@@ -764,4 +764,144 @@ module wired_commit (
     // CSR 输出
     assign csr_o = csr_q;
 
+    // 连接差分测试
+`ifdef _VERILATOR
+  logic[31:0][31:0] ref_regs;
+    for(genvar i = 0 ; i < 32 ; i ++) begin
+      always_ff @(posedge clk) begin
+        if(!rst_n) begin
+          ref_regs[i] <= '0;
+        end
+        else if(l_commit_o[0] && l_warid_o[0] == i[4:0] && i != 0) begin
+          ref_regs[i] <= l_data_o[0];
+        end
+        else if(l_commit_o[1] && l_warid_o[1] == i[4:0] && i != 0) begin
+          ref_regs[i] <= l_data_o[1];
+        end
+      end
+    end
+    DifftestGRegState DifftestGRegState (
+        .clock (clk         ),
+        .coreid(0           ),
+        .gpr_0 (ref_regs[0] ),
+        .gpr_1 (ref_regs[1] ),
+        .gpr_2 (ref_regs[2] ),
+        .gpr_3 (ref_regs[3] ),
+        .gpr_4 (ref_regs[4] ),
+        .gpr_5 (ref_regs[5] ),
+        .gpr_6 (ref_regs[6] ),
+        .gpr_7 (ref_regs[7] ),
+        .gpr_8 (ref_regs[8] ),
+        .gpr_9 (ref_regs[9] ),
+        .gpr_10(ref_regs[10]),
+        .gpr_11(ref_regs[11]),
+        .gpr_12(ref_regs[12]),
+        .gpr_13(ref_regs[13]),
+        .gpr_14(ref_regs[14]),
+        .gpr_15(ref_regs[15]),
+        .gpr_16(ref_regs[16]),
+        .gpr_17(ref_regs[17]),
+        .gpr_18(ref_regs[18]),
+        .gpr_19(ref_regs[19]),
+        .gpr_20(ref_regs[20]),
+        .gpr_21(ref_regs[21]),
+        .gpr_22(ref_regs[22]),
+        .gpr_23(ref_regs[23]),
+        .gpr_24(ref_regs[24]),
+        .gpr_25(ref_regs[25]),
+        .gpr_26(ref_regs[26]),
+        .gpr_27(ref_regs[27]),
+        .gpr_28(ref_regs[28]),
+        .gpr_29(ref_regs[29]),
+        .gpr_30(ref_regs[30]),
+        .gpr_31(ref_regs[31])
+        );
+    rob_entry_t [1:0] df_entry_q;
+    always_ff @(posedge clk) df_entry_q <= h_entry_q;
+    for(genvar p = 0 ; p < 2 ; p += 1) begin
+                    DifftestInstrCommit DifftestInstrCommit_p (
+                        .clock         (clk             ),
+                        .coreid        ('0              ),
+                        .index         (p               ),
+                        .valid         (cm_valid        ),
+                        .pc            (cm_pc           ),
+                        .instr         (cm_instr        ),
+                        .skip          ('0              ),
+                        .is_TLBFILL    (cm_inst_info.tlbfill_en && cm_valid), // TODO: CHECK
+                        .TLBFILL_index (debug_rand_index),
+                        .is_CNTinst    (cm_inst_info.csr_rdcnt != '0),
+                        .timer_64_value(cb_timer_64     ),
+                        .wen           (cm_waddr == '0 ? '0 : cm_wen          ),
+                        .wdest         (cm_waddr        ),
+                        .wdata         (cm_waddr == '0 ? '0 : cm_wdata),
+                        .csr_rstat     (p == 0          ),
+                        .csr_data      (csr_q.estat)
+                      );
+                      DifftestLoadEvent DifftestLoadEvent_p (
+                        .clock (clk),
+                        .coreid(0),
+                        .index (p),
+                        .valid (cm_valid && cm_inst_info.mem_read),
+                        .paddr (cm_paddr),
+                        .vaddr (cm_vaddr)
+                      );
+        end
+                  DifftestExcpEvent DifftestExcpEvent (
+                    .clock     (clk                                       ),
+                    .coreid    (0                                         ),
+                    .excp_valid(DIFFTEST[0].cm_excp || DIFFTEST[1].cm_excp),
+                    // .excp_valid         ('0),
+                    .eret      (DIFFTEST[0].cm_ertn || DIFFTEST[1].cm_ertn),
+                    // .eret               ('0),
+                    .intrNo    (csr_q.estat[12:2]                   ),
+                    .cause     (csr_q.estat[21:16]                  ),
+                    .exceptionPC((DIFFTEST[0].cm_ertn || DIFFTEST[0].cm_excp) ?
+                                DIFFTEST[0].cm_pc : DIFFTEST[1].cm_pc     ), 
+                    .exceptionInst((DIFFTEST[0].cm_ertn || DIFFTEST[0].cm_excp) ?
+                                DIFFTEST[0].cm_instr : DIFFTEST[1].cm_instr)  
+                  );
+                
+                  DifftestTrapEvent DifftestTrapEvent (
+                    .clock   (clk       ),
+                    .coreid  (0         ),
+                    .valid   ('0/*TODO*/),
+                    .code    ('0/*TODO*/),
+                    .pc      ('0/*TODO*/),
+                    .cycleCnt('0/*TODO*/),
+                    .instrCnt('0/*TODO*/)
+                  );
+
+                  DifftestCSRRegState DifftestCSRRegState_inst (
+                    .clock    (clk                            ),
+                    .coreid   (0                              ),
+                    .crmd     (csr_q.crmd                     ),
+                    .prmd     (csr_q.prmd                     ),
+                    .euen     (csr_q.euen                     ),
+                    .ecfg     (csr_q.ectl                     ),
+                    .estat    (csr_q.estat                    ),
+                    .era      (csr_q.era                      ),
+                    .badv     (csr_q.badv                     ),
+                    .eentry   (csr_q.eentry                   ),
+                    .tlbidx   (csr_q.tlbidx                   ),
+                    .tlbehi   (csr_q.tlbehi                   ),
+                    .tlbelo0  (csr_q.tlbelo0                  ),
+                    .tlbelo1  (csr_q.tlbelo1                  ),
+                    .asid     (csr_q.asid                     ),
+                    .pgdl     (csr_q.pgdl                     ),
+                    .pgdh     (csr_q.pgdh                     ),
+                    .save0    (csr_q.save0                    ),
+                    .save1    (csr_q.save1                    ),
+                    .save2    (csr_q.save2                    ),
+                    .save3    (csr_q.save3                    ),
+                    .tid      (csr_q.tid                      ),
+                    .tcfg     (csr_q.tcfg                     ),
+                    .tval     (csr_q.tval                     ),
+                    .ticlr    (csr_q.ticlr                    ),
+                    .tlbrentry(csr_q.tlbrentry                ),
+                    .dmw0     (csr_q.dmw0                     ),
+                    .dmw1     (csr_q.dmw1                     ),
+                    .llbctl   ({csr_q.llbctl,1'b0,csr_q.llbit})
+                  );
+`endif
+
 endmodule

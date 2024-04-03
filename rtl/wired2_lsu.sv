@@ -305,5 +305,17 @@ module wired_lsu(
         end
         endcase
     end
+    
+    // 对所有 Store 指令进行提交处理
+    DifftestStoreEvent DifftestStoreEvent_p (
+      .clock     (clk),
+      .coreid    (0  ),
+      .index     (p  ),
+      .valid     (cm_valid && cm_inst_info.mem_write &&
+        (!cm_inst_info.llsc_inst || cm_llbit)),
+      .storePAddr(cm_paddr),
+      .storeVAddr(cm_vaddr),
+      .storeData (cm_mdata)
+    );
 
 endmodule

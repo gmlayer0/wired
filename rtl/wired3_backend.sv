@@ -264,6 +264,22 @@ module wired_backend #(
     .cdb_i(cdb),
     .flush_i(c_flush)
   );
+  commit_lsu_req_t   c_lsu_req;
+  commit_lsu_resp_t c_lsu_resp;
+  wired_lsu_iq wired_lsu_iq_inst (
+    `_WIRED_GENERAL_CONN,
+    .p_ctrl_i(p_pkg_q),
+    .p_data_i(p_data),
+    .p_valid_i(lsu_valid),
+    .p_ready_o(lsu_ready),
+    .cdb_o(raw_cdb[2]),
+    .cdb_ready_i(raw_cdb_ready[2]),
+    .cdb_i(cdb),
+    .flush_i(c_flush),
+
+    .c_lsu_req_i(c_lsu_req),
+    .c_lsu_resp_o(c_lsu_resp)
+  );
 
   // CDB ARBITER
   wired_cdb_arb # (
@@ -277,8 +293,6 @@ module wired_backend #(
   );
 
   // COMMIT 流水线
-  commit_lsu_req_t   c_lsu_req;
-  commit_lsu_resp_t c_lsu_resp;
   wired_commit  wired_commit_inst (
     `_WIRED_GENERAL_CONN,
     .c_rrrid_o(c_rrrid),
