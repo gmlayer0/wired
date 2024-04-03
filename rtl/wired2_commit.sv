@@ -818,47 +818,69 @@ module wired_commit (
         );
     rob_entry_t [1:0] df_entry_q;
     always_ff @(posedge clk) df_entry_q <= h_entry_q;
+    logic [`_TLBIDX_INDEX] dbg_tlb_rndsel;
+    logic [63:0] dbg_timer_64_q;
+    wire h_excp_inst = h_valid_inst_q[0] && h_entry_q[0].excp_found && fsm_q == S_NORMAL;
+    wire h_int_inst  = h_valid_inst_q[0] && int_pending_q && fsm_q == S_NORMAL;
+    logic dbg_excp_inst, dbg_int_inst;
+    always_ff @(posedge clk) begin
+        dbg_tlb_rndsel <= timer_64_q[`_TLBIDX_INDEX];
+        dbg_timer_64_q <= timer_64_q;
+        dbg_excp_inst  <= h_excp_inst;
+        dbg_int_inst   <= h_int_inst;
+    end
     for(genvar p = 0 ; p < 2 ; p += 1) begin
+                    // 假的地址翻译模块，用于拿到提交load指令的物理地址
+                    tlb_s_resp_t dbg_tlb_resp;
+                    wired_addr_trans # (
+                        .FETCH_ADDR('0)
+                    )
+                    wired_addr_trans_inst (
+                        `_WIRED_GENERAL_CONN,
+                        .clken_i('1),
+                        .vaddr_i(h_entry_q[p].target_addr),
+                        .csr_i(csr_q),
+                        .tlb_update_req_i(tlb_update_req_o),
+                        .trans_result_o(dbg_tlb_resp)
+                    );
                     DifftestInstrCommit DifftestInstrCommit_p (
                         .clock         (clk             ),
                         .coreid        ('0              ),
                         .index         (p               ),
-                        .valid         (cm_valid        ),
-                        .pc            (cm_pc           ),
-                        .instr         (cm_instr        ),
+                        .valid         (l_commit_o[p]   ),
+                        .pc            (df_entry_q[p].pc),
+                        .instr         (df_entry_q[p].di.inst),
                         .skip          ('0              ),
-                        .is_TLBFILL    (cm_inst_info.tlbfill_en && cm_valid), // TODO: CHECK
-                        .TLBFILL_index (debug_rand_index),
-                        .is_CNTinst    (cm_inst_info.csr_rdcnt != '0),
-                        .timer_64_value(cb_timer_64     ),
-                        .wen           (cm_waddr == '0 ? '0 : cm_wen          ),
-                        .wdest         (cm_waddr        ),
-                        .wdata         (cm_waddr == '0 ? '0 : cm_wdata),
-                        .csr_rstat     (p == 0          ),
+                        .is_TLBFILL    (df_entry_q[p].di.tlbfill_en && l_commit_o[p]), // TODO: CHECK
+                        .TLBFILL_index (dbg_tlb_rndsel  ),
+                        .is_CNTinst    ((df_entry_q[p].di.csr_rdcnt != '0) && l_commit_o[p]),
+                        .timer_64_value(dbg_timer_64_q  ),
+                        .wen           (l_warid_o[p] == '0 ? '0 : l_commit_o[p]),
+                        .wdest         (l_warid_o[p]),
+                        .wdata         (l_warid_o[p] == '0 ? '0 : l_data_o[p]),
+                        .csr_rstat     (df_entry_q[p].di.csr_op_en && l_commit_o[p]),
                         .csr_data      (csr_q.estat)
                       );
                       DifftestLoadEvent DifftestLoadEvent_p (
                         .clock (clk),
                         .coreid(0),
                         .index (p),
-                        .valid (cm_valid && cm_inst_info.mem_read),
-                        .paddr (cm_paddr),
-                        .vaddr (cm_vaddr)
+                        .valid (l_commit_o[p] && df_entry_q[p].di.mem_read),
+                        .paddr ({dbg_tlb_resp.value.ppn, df_entry_q[p].target_addr[11:0]}),
+                        .vaddr (df_entry_q[p].target_addr)
                       );
         end
                   DifftestExcpEvent DifftestExcpEvent (
                     .clock     (clk                                       ),
                     .coreid    (0                                         ),
-                    .excp_valid(DIFFTEST[0].cm_excp || DIFFTEST[1].cm_excp),
+                    .excp_valid(dbg_int_inst | dbg_excp_inst              ),
                     // .excp_valid         ('0),
-                    .eret      (DIFFTEST[0].cm_ertn || DIFFTEST[1].cm_ertn),
+                    .eret      (l_commit_o[0] && df_entry_q[0].di.ertn_inst),
                     // .eret               ('0),
-                    .intrNo    (csr_q.estat[12:2]                   ),
-                    .cause     (csr_q.estat[21:16]                  ),
-                    .exceptionPC((DIFFTEST[0].cm_ertn || DIFFTEST[0].cm_excp) ?
-                                DIFFTEST[0].cm_pc : DIFFTEST[1].cm_pc     ), 
-                    .exceptionInst((DIFFTEST[0].cm_ertn || DIFFTEST[0].cm_excp) ?
-                                DIFFTEST[0].cm_instr : DIFFTEST[1].cm_instr)  
+                    .intrNo    (csr_q.estat[12:2]),
+                    .cause     (csr_q.estat[21:16]),
+                    .exceptionPC(df_entry_q[0].pc), 
+                    .exceptionInst(df_entry_q[0].di.inst)  
                   );
                 
                   DifftestTrapEvent DifftestTrapEvent (
