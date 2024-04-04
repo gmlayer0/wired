@@ -114,8 +114,12 @@ module wired_lsu_iq #(
     // 例化 Reserve station entry
     for(genvar i = 0 ; i < IQ_SIZE ; i += 1) begin
         wire [1:0] update_by;
-            assign update_by[0] = iq_head_q == i[PTR_LEN-1:0] && p_valid_i[0];
-            assign update_by[1] = iq_head_p1_q == i[PTR_LEN-1:0] && p_valid_i[1];
+        wire [1:0] is_top;
+        assign is_top[0] = iq_head_q == i[PTR_LEN-1:0];
+        assign is_top[1] = iq_head_p1_q == i[PTR_LEN-1:0];
+            assign update_by[0] = is_top[0] && p_valid_i[0];
+            assign update_by[1] = p_valid_i[1] &&
+                                ((is_top[0] && !p_valid_i[0]) || (is_top[1] && p_valid_i[0]));
         wired_iq_entry # (
             .CDB_COUNT(2),
             .PAYLOAD_SIZE($bits(iq_static_t)),

@@ -54,7 +54,7 @@ module wired_registers_file #(
 
     // Read port generation
     for(genvar i = 0 ; i < R_PORT_COUNT ; i++) begin
-        assign rdata_o[i] = (NEED_FORWARD && raddr_i[i] == waddr_i) ? wdata_i : regfiles[raddr_i[i]];
+        assign rdata_o[i] = (NEED_FORWARD && we_i && raddr_i[i] == waddr_i) ? wdata_i : regfiles[raddr_i[i]];
     end
 
 endmodule
