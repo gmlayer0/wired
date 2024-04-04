@@ -23,6 +23,18 @@ module wired_cdb_arb #(
     pipeline_cdb_t [CDB_PORT_CNT-1:0] req_cdb;
     logic          [1:0][CDB_PORT_CNT-1:0] req_ready; // 输入的 bank split 被接受，实际 ready
     pipeline_cdb_t [1:0] sel_cdb;
+    // 仲裁器
+    for(genvar b = 0 ; b < 2 ; b += 1) begin
+        always_comb begin
+            req_ready[b] = '0;
+            for(integer i = CDB_PORT_CNT - 1 ; i >= 0; i -= 1) begin
+                if(req_valid[b][i]) begin
+                    req_ready[b] = '0;
+                    req_ready[b][i] = '1;
+                end
+            end
+        end
+    end
     for(genvar b = 0 ; b < 2 ; b += 1) begin
         always_comb begin
             sel_cdb[b] = '0;
@@ -53,11 +65,6 @@ module wired_cdb_arb #(
             end
             assign req_valid[b][i] = req_valid_pre | req_skid_q; // 需要
             assign bank_ready[b] = !req_skid_q;
-            if(i == 0) begin
-                assign req_ready[b][i] = req_valid[b][i];
-            end else begin
-                assign req_ready[b][i] = req_valid[b][i] & ~req_valid[b][i-1];
-            end
         end
         pipeline_cdb_t req_cdb_q;
         reg huge_skid_q;

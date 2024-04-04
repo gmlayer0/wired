@@ -44,7 +44,7 @@ module wired_commit (
     // 对于可能需要状态机处理或者修改 CSR 、产生跳转、刷新流水线效果的指令，仅允许在 SLOT0 提交。
     // 其它指令则无所谓
     wire slot1_ctrl_conflict, slot1_bank_conflict;
-    wire [1:0] f_valid = c_rob_valid_i & {((~slot1_ctrl_conflict) | l_flush_o) & ~slot1_bank_conflict, 1'd1};
+    wire [1:0] f_valid = c_rob_valid_i & {((~slot1_ctrl_conflict) | l_flush_o) & ~slot1_bank_conflict & c_rob_valid_i[0], 1'd1};
     rob_rid_t f_rob_ptr0_q;
     rob_rid_t f_rob_ptr1_q;
     always_ff @(posedge clk) begin
@@ -543,6 +543,8 @@ module wired_commit (
                         if(h_entry_q[0].uncached) begin
                             // 1. Uncached 请求（向 LSU 发出请求，等待 Uncached 读数据 / 写完成）
                             // （注意， Uncached Load 及 Uncached Store 均需要立即发出请求，且 Uncached Load 需要刷新流水线）
+                            l_commit = '0;
+                            l_retire = '0;
                             h_ready = '0;
                             if(h_entry_q[0].di.mem_write) begin
                                 fsm = S_WAIT_USTORE;
@@ -566,6 +568,8 @@ module wired_commit (
                                     // 2. 非 SC 的 Store 请求 MISS ，等待 Cache 重填后再执行（暂停等待）
                                     if(!c_lsu_resp_i.storebuf_hit) begin
                                         h_ready = '0;
+                                        l_commit = '0;
+                                        l_retire = '0;
                                         fsm = S_WAIT_MSTORE;
                                     end else begin
                                         c_lsu_req_o.storebuf_commit = '1;

@@ -191,6 +191,7 @@ module wired_rob (
   logic [3:0] p_rob_valid_pt, p_rob_valid_ct;
   logic [1:0] c_rob_valid_pt, c_rob_valid_ct;
   assign p_rob_valid_o = p_rob_valid_pt ^ p_rob_valid_ct;
+  // 不用再等待数据就绪，全部送往提交级
   assign c_rob_valid_o = c_rob_valid_q & ((c_rob_valid_pt ^ c_rob_valid_ct) | {flush_i, flush_i});
   logic [1:0] p_rob_last_valid, c_rob_last_valid;
   wired_registers_file_banked # (
@@ -225,8 +226,9 @@ module wired_rob (
                               );
 
   logic[`_WIRED_PARAM_ROB_LEN:0] valid_rob_entry_q;
-  logic[`_WIRED_PARAM_ROB_LEN:0] valid_rob_entry_diff;
+  logic[`_WIRED_PARAM_ROB_LEN:0] valid_rob_entry_diff, valid_rob_entry_next;
   assign valid_rob_entry_diff = p_valid_i[1] + p_valid_i[0] - c_retire_i[1] - c_retire_i[0];
+  assign valid_rob_entry_next = valid_rob_entry_diff + valid_rob_entry_q;
 
   always_ff @(posedge clk)
   begin
@@ -237,9 +239,9 @@ module wired_rob (
     end
     else
     begin
-      valid_rob_entry_q <= valid_rob_entry_q + valid_rob_entry_diff;
-      c_rob_valid_q[0] <= (valid_rob_entry_q + valid_rob_entry_diff) >= 1;
-      c_rob_valid_q[1] <= (valid_rob_entry_q + valid_rob_entry_diff) >= 2;
+      valid_rob_entry_q <= valid_rob_entry_next;
+      c_rob_valid_q[0]  <= valid_rob_entry_next >= 1;
+      c_rob_valid_q[1]  <= valid_rob_entry_next >= 2;
     end
   end
 
