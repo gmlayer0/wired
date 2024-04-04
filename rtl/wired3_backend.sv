@@ -241,7 +241,8 @@ module wired_backend #(
     .c_rrrid_i(c_rrrid),
     .c_rob_valid_o(c_rob_valid),
     .c_rob_entry_o(c_rob_entry),
-    .c_retire_i(c_retire)
+    .c_retire_i(c_retire),
+    .flush_i(c_flush)
   );
 
   // IQ（分发 / ROB 写回）
