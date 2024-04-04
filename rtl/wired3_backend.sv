@@ -142,11 +142,17 @@ module wired_backend #(
     wire [27:0] addr_imm = mkimm_addr(r_pkg[p].di.addr_imm_type, raw_imm);
     always_comb begin
         r_p_data[p] = '0;
+        r_p_pkg[p] = '0;
         r_p_data[p].valid = r_arf_valid[p];
         r_p_data[p].rreg = r_rrrid[p];
+        for(integer i = 0 ; i < 2 ; i += 1) begin
+          if(p == 1 && r_raddr[1][i] == r_waddr[0] && r_waddr[0] != '0) begin
+            r_p_data[p].rreg[i] = r_wrrid[0]; // 内部依赖
+            r_p_pkg[p].scyc_raw[i] = '1;
+          end
+        end
         r_p_data[p].rdata[0] = r_pkg[p].di.reg_type_r0 == `_REG_R0_IMM ? data_imm : r_rdata[p][0];
         r_p_data[p].rdata[1] = r_rdata[p][1];
-        r_p_pkg[p] = '0;
         r_p_pkg[p].di   = get_p_from_d(r_pkg[p].di);
         r_p_pkg[p].wreg.arch_id = r_waddr[p];
         r_p_pkg[p].wreg.rob_id = r_wrrid[p];
@@ -218,6 +224,7 @@ module wired_backend #(
             cdb[p_data_q[p].rreg[i][0]].wid[`_WIRED_PARAM_ROB_LEN-1:1] == p_data_q[p].rreg[i][`_WIRED_PARAM_ROB_LEN-1:1]) begin
           p_data[p].rdata[i] = cdb[p_data_q[p].rreg[i][0]].wdata;
         end
+        p_data[p].valid[i] &= !p_pkg_q[p].scyc_raw[i];
       end
     end
   end

@@ -163,6 +163,7 @@ endfunction
 
 typedef struct packed{
   decode_info_p_t di; // 指令控制信息
+  logic[1:0]      scyc_raw;    // 同周期内出现 RAW 冲突需要解决
   reg_ctrl_t      wreg;
   logic           wtier;       // 写寄存器 tier id
   logic[27:0]     addr_imm;    // 传入 LSU，用于计算 vaddr 或者计算 csr_id（给 ALU）
