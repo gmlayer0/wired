@@ -214,15 +214,6 @@ always_comb begin
   p_predict_o = '0;
   pc_is_cal = '0;
   pc_is_ret = '0;
-  for(integer i = 0 ; i < 2 ; i += 1) begin
-    p_predict_o[i].tid = tier_id_q;
-    p_predict_o[i].predict_pc = npc;
-    p_predict_o[i].lphr = l2_cnt[i];
-    p_predict_o[i].history = info_rdata[i].history;
-    p_predict_o[i].target_type = info_rdata[i].target_type;
-    p_predict_o[i].dir_type = info_rdata[i].conditional_jmp;
-    p_predict_o[i].ras_ptr = ras_ptr_q;
-  end
   if(mask_0_valid_q && branch_need_jmp[0]) begin
     p_predict_o[0].taken = '1;
     p_mask_o[1] = '0;
@@ -238,6 +229,15 @@ always_comb begin
   if(p_correct_i.redirect) begin
     p_valid_o = '0;
     npc = p_correct_i.true_target;
+  end
+  for(integer i = 0 ; i < 2 ; i += 1) begin
+    p_predict_o[i].tid = tier_id_q;
+    p_predict_o[i].predict_pc = npc;
+    p_predict_o[i].lphr = l2_cnt[i];
+    p_predict_o[i].history = info_rdata[i].history;
+    p_predict_o[i].target_type = info_rdata[i].target_type;
+    p_predict_o[i].dir_type = info_rdata[i].conditional_jmp;
+    p_predict_o[i].ras_ptr = ras_ptr_q;
   end
 end
 
