@@ -63,7 +63,8 @@ module wired_commit (
     assign slot1_bank_conflict = c_rob_entry_i[1].wreg[0] == c_rob_entry_i[0].wreg[0] &&
                                  c_rob_entry_i[0].wreg    != '0;
     assign slot1_ctrl_conflict = c_rob_entry_i[1].di.slot0 ||
-                                 c_rob_entry_i[1].excp_found;
+                                 c_rob_entry_i[1].excp_found ||
+                                 c_rob_entry_i[1].bpu_predict.taken; // 错误预测的跳转，也强制送到第一条管线检查
     assign c_retire_o = f_valid & {f_skid_ready_q, f_skid_ready_q};
 
     always_ff @(posedge clk) begin
