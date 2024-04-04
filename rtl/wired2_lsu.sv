@@ -236,6 +236,7 @@ module wired_lsu(
         logic             llsc;     // llsc 指令，读时需要申请写权限
         logic       [1:0] msize;    // 访存大小-1
         logic      [31:0] paddr;    // 请求物理地址
+        logic      [31:0] vaddr;    // 请求物理地址
         logic             uncache;  // Uncached 请求
         logic      [31:0] wdata;    // 写数据
         logic       [3:0] hit;      // 这里不用更新，到达此处的命中指令被认为已经完成访存
@@ -258,6 +259,7 @@ module wired_lsu(
         m2.llsc = m1.llsc;
         m2.msize = m1.msize;
         m2.paddr = m1.paddr;
+        m2.vaddr = m1.vaddr;
         m2.uncache = m1.uncache;
         m2.wdata = m1.wdata;
         m2.hit = m1_rhit;
@@ -294,8 +296,8 @@ module wired_lsu(
     iq_lsu_resp_t m2_c_q;
     assign lsu_resp_valid_o = m2_c_valid_q;
     assign lsu_resp_o = m2_c_q;
-    always_ff @(poosedge clk) if(m2_c_ready) m2_c_q <= m2_c;
     assign m2_c_ready = !m2_c_valid_q || lsu_resp_ready_i;
+    always_ff @(posedge clk) if(m2_c_ready) m2_c_q <= m2_c;
     always_ff @(posedge clk) begin
         if(!rst_n || flush_i) begin
             m2_c_valid_q <= '0;
@@ -314,7 +316,6 @@ module wired_lsu(
         S_CUCSTRD, // Uncached store
         S_CREFILL  // Store miss(SC exclude) REFILL
     } fsm_e;
-    typedef logic[3:0] fsm_e;
     typedef enum logic[1:0] {
         M_NORMAL,
         M_HANDLED,
@@ -349,10 +350,25 @@ module wired_lsu(
         end
     end
     // 主状态机转移逻辑
+    logic  [3:0] sb_fwd_mask;
+    logic [31:0] sb_fwd_data;
     always_comb begin
+        m2_c_valid = '0; // 主要输出握手
         m2_c = '0;       // 主要输出数据
         m2_c.excp = m2_q.excp;
-        m2_c_valid = '0; // 主要输出握手
+        m2_c.uncached = m2_q.uncache;
+        m2_c.vaddr = m2_q.vaddr;
+        m2_c.rdata = '0;
+        for(integer i = 0 ; i < 4 ; i += 1) begin
+            m2_c.rdata |= m2_q.hit[i] ? m2_q.data[i] : '0;
+        end
+        sb_fwd_mask = '0;
+        sb_fwd_data = '0;
+        for(integer i = 0 ; i < 4 ; i += 1) begin
+            sb_fwd_mask |= m2_q.sb_hit[i] ? sb_entry[i].strb : '0;
+            sb_fwd_data |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
+        end
+        m2_c.rdata = gen_mask_word(m2_c.rdata, sb_fwd_data, sb_fwd_mask);
         unc_msize = unc_msize_q;
         unc_paddr = unc_paddr_q;
         fsm_rdata = fsm_rdata_q;
@@ -439,26 +455,46 @@ module wired_lsu(
         S_MREFILL: begin
             bus_req_o.valid = '1;
             bus_req_o.inv_req = m2_q.llsc ? WR_ALLOC : RD_ALLOC; // 对于 ll 指令，需要申请写权限
+            if(bus_resp_i.ready) begin
+                fsm = S_NORMAL;
+                mod = M_HANDLED;
+                fsm_rdata = bus_resp_i.rdata[31:0];
+            end
         end
         S_MCACOP: begin
             bus_req_o.valid = '1;
             bus_req_o.inv_req = m2_q.cacop; // 对于 ll 指令，需要申请写权限
+            if(bus_resp_i.ready) begin
+                fsm = S_NORMAL;
+                mod = M_HANDLED;
+            end
         end
         S_CUCLOAD: begin
             bus_req_o.valid = '1;
             bus_req_o.uncached_load_req = '1;
             bus_req_o.target_paddr = unc_paddr_q;
             c_lsu_resp_o.ready = bus_resp_i.ready;
+            if(bus_resp_i.ready) begin
+                fsm = S_NORMAL;
+            end
         end
         S_CUCSTRD: begin
             bus_req_o.valid = '1;
             bus_req_o.uncached_store_req = '1;
             bus_req_o.target_paddr = unc_paddr_q;
+            c_lsu_resp_o.ready = bus_resp_i.ready;
+            if(bus_resp_i.ready) begin
+                fsm = S_NORMAL;
+            end
         end
         S_CREFILL: begin
             bus_req_o.valid = '1;
             bus_req_o.inv_req = WR_ALLOC;
             bus_req_o.target_paddr = sb_top.paddr;
+            c_lsu_resp_o.ready = bus_resp_i.ready;
+            if(bus_resp_i.ready) begin
+                fsm = S_NORMAL;
+            end
         end
         endcase
     end

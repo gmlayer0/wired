@@ -246,7 +246,7 @@ module wired_backend #(
 
   // IQ（分发 / ROB 写回）
   // CDB 仲裁信号
-  localparam CDB_MAX_COUNT = 2;
+  localparam CDB_MAX_COUNT = 3;
   logic [CDB_MAX_COUNT-1:0] raw_cdb_ready;
   pipeline_cdb_t [CDB_MAX_COUNT-1:0]  raw_cdb;
   wire [1:0] ifet_excp = {(|p_pkg_q[1].excp), (|p_pkg_q[0].excp)};
