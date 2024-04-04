@@ -64,7 +64,8 @@ module wired_commit (
                                  c_rob_entry_i[0].wreg    != '0;
     assign slot1_ctrl_conflict = c_rob_entry_i[1].di.slot0 ||
                                  c_rob_entry_i[1].excp_found ||
-                                 c_rob_entry_i[1].bpu_predict.taken; // 错误预测的跳转，也强制送到第一条管线检查
+                                 c_rob_entry_i[1].bpu_predict.taken || // 错误预测的跳转，也强制送到第一条管线检查
+                                 c_rob_entry_i[1].di.mem_write || c_rob_entry_i[1].uncached; // 写指令 / uncached 指令需要特殊处理
     assign c_retire_o = f_valid & {f_skid_ready_q, f_skid_ready_q};
 
     always_ff @(posedge clk) begin
@@ -393,7 +394,7 @@ module wired_commit (
         f_upd.tid = h_tid_q;
         f_upd.pc = h_entry_q[0].pc;
         f_upd.true_taken = h_entry_q[0].need_jump;
-        f_upd.true_target = h_entry_q[0].target_addr; // 对于分支指令，这就是最终目标，对于非分支指令，这里不会使用，若跳转类型错误，后面会做纠正
+        f_upd.true_target = h_flushtarget_q; // 这里已经更新过了 // 对于分支指令，这就是最终目标，对于非分支指令，这里不会使用，若跳转类型错误，后面会做纠正
         f_upd.btb_target  = h_entry_q[0].target_addr;
         f_upd.lphr = h_entry_q[0].bpu_predict.lphr;
         f_upd.history = h_entry_q[0].bpu_predict.history;
@@ -559,6 +560,7 @@ module wired_commit (
                                     if((!c_lsu_resp_i.storebuf_hit) || (!csr_q.llbit)) begin // 其它 Cache Coherent Master probe 了这行，不再原子
                                         l_commit = 2'b01;
                                         l_data[0] = 32'd0;
+                                        f_upd.redirect = '1;
                                         fsm = S_WAIT_FLUSH; // 对于失败的 SC ，需要 refresh 流水线
                                     end else begin
                                         // 成功的 SC，弹栈
@@ -588,7 +590,7 @@ module wired_commit (
                         f_upd.miss = '1;
                         f_upd.need_update = '1;
                         f_upd.redirect = '1;
-                        if(!h_entry_q[0].need_jump) f_upd.true_target = h_flushtarget_q; // 这里已经更新过了
+                        if(h_entry_q[0].need_jump) f_upd.true_target = h_entry_q[0].target_addr;
                         fsm = S_WAIT_FLUSH;
                     end
                     // end
@@ -704,10 +706,6 @@ module wired_commit (
                         fsm = h_entry_q[0].di.wait_inst ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
                     end
                 end
-                if(h_ready && f_upd.redirect) begin
-                    h_tid = ~h_tid_q;
-                    f_upd.tid = ~h_tid_q;
-                end
             end
             S_WAIT_ULOAD: begin
                 h_ready = '0;
@@ -718,6 +716,7 @@ module wired_commit (
                     l_retire = h_valid_inst_q;
                     l_commit = 2'b01;
                     l_data[0] = c_lsu_resp_i.uncached_load_resp;
+                    f_upd.redirect = '1;
                     fsm = S_WAIT_FLUSH; // 对于 Uncached load ，需要 refresh 流水线
                     // 由于流水线被刷新，对于 uncache load，不一定设置 dbar，更不需要解除 dbar
                 end
@@ -766,6 +765,10 @@ module wired_commit (
                 end
             end
         endcase
+        if(h_ready && f_upd.redirect) begin
+            h_tid = ~h_tid_q;
+            f_upd.tid = ~h_tid_q;
+        end
     end
 
     // CSR 输出

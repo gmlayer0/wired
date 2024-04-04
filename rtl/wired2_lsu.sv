@@ -355,6 +355,7 @@ module wired_lsu(
     always_comb begin
         m2_c_valid = '0; // 主要输出握手
         m2_c = '0;       // 主要输出数据
+        sb_inv = '0;
         m2_c.excp = m2_q.excp;
         m2_c.uncached = m2_q.uncache;
         m2_c.vaddr = m2_q.vaddr;
