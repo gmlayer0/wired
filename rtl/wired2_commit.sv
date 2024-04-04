@@ -579,18 +579,18 @@ module wired_commit (
                         end
                     end
                     // 跳转指令处理，注意刷新管线
-                    if(h_entry_q[0].di.jump_inst) begin
-                        // 特殊处理未命中情况，刷新流水线，重定向控制流
-                        if( (h_entry_q[0].need_jump && (!h_entry_q[0].bpu_predict.taken || h_entry_q[0].bpu_predict.predict_pc != h_entry_q[0].target_addr)) ||
-                           (!h_entry_q[0].need_jump && h_entry_q[0].bpu_predict.taken)) begin
-                            l_commit = 2'b01;
-                            f_upd.miss = '1;
-                            f_upd.need_update = '1;
-                            f_upd.redirect = '1;
-                            if(!h_entry_q[0].need_jump) f_upd.true_target = h_flushtarget_q; // 这里已经更新过了
-                            fsm = S_WAIT_FLUSH;
-                        end
+                    // if(h_entry_q[0].di.jump_inst) begin // 对非访存指令，也可能会误预测。
+                    // 特殊处理未命中情况，刷新流水线，重定向控制流
+                    if( (h_entry_q[0].need_jump && (!h_entry_q[0].bpu_predict.taken || h_entry_q[0].bpu_predict.predict_pc != h_entry_q[0].target_addr)) ||
+                       (!h_entry_q[0].need_jump && h_entry_q[0].bpu_predict.taken)) begin
+                        l_commit = 2'b01;
+                        f_upd.miss = '1;
+                        f_upd.need_update = '1;
+                        f_upd.redirect = '1;
+                        if(!h_entry_q[0].need_jump) f_upd.true_target = h_flushtarget_q; // 这里已经更新过了
+                        fsm = S_WAIT_FLUSH;
                     end
+                    // end
                     
                     // CSR 读写指令处理，注意刷新管线
                     // 所有指令的读取实际在 ALU 中已经完成了，这里只需要检查读结果是否有效并写入，合适的刷新管线即可
