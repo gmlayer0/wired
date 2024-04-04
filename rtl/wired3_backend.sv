@@ -181,7 +181,7 @@ module wired_backend #(
   end
   /* 分发级 P */
   wire alu_ready;
-  wire lsu_ready = '1;
+  wire lsu_ready;
   wire mdu_ready = '1;
   wire [1:0] p_issue; // 是否有指令被提交
   pipeline_ctrl_p_t [1:0] p_pkg_q;

@@ -38,16 +38,12 @@ module wired_lsu(
 
 );
 
-    // IQ-M1 真握手信号
-    logic iq_m1_ready; // iq -> m1 的通路就绪
     // M1-M2 真握手信号
     logic m1_m2_ready, m1_m2_valid;
+    logic m1_m2_ready_q;
+    always_ff @(posedge clk) m1_m2_ready_q <= m1_m2_ready;
     // STOREBUFFER 握手信号
     logic store_buffer_ready;
-
-    // IQ-M1 握手生成
-    assign lsu_req_ready_o = iq_m1_ready;
-
     // M1 信号定义
     tlb_s_resp_t m1_tlb_resp;
     // 同时开始地址翻译请求与 SRAM 请求。
@@ -57,7 +53,7 @@ module wired_lsu(
     )
     wired_addr_trans_inst (
         `_WIRED_GENERAL_CONN,
-        .clken_i(iq_m1_ready),
+        .clken_i(lsu_req_ready_o),
         .vaddr_i(lsu_req_i.vaddr),
         .csr_i(csr_i),
         .tlb_update_req_i(tlb_update_i),
@@ -65,17 +61,17 @@ module wired_lsu(
     );
 
     // M1 主要流水
-    logic m1_valid_q, m1_skid_valid_q;
-    assign m1_m2_valid = m1_valid_q | m1_skid_valid_q;
+    logic m1_valid_q, m1_skid_busy_q;
+    assign m1_m2_valid = m1_valid_q;
     always_ff @(posedge clk) begin
         if(!rst_n) begin
-            m1_skid_valid_q <= '0;
+            m1_skid_busy_q <= '0;
         end else begin
-            if(m1_skid_valid_q) begin
-                m1_skid_valid_q <= !m1_m2_ready;
+            if(m1_skid_busy_q) begin
+                m1_skid_busy_q <= !m1_m2_ready;
             end else begin 
-                if(!m1_m2_ready && m1_m2_valid) begin
-                    m1_skid_valid_q <= '1;
+                if(!m1_m2_ready && m1_valid_q) begin
+                    m1_skid_busy_q <= lsu_req_valid_i;
                 end
             end
         end
@@ -100,17 +96,17 @@ module wired_lsu(
         if(!rst_n) begin
             m1_valid_q <= '0;
         end else begin
-            if(iq_m1_ready) m1_valid_q <= lsu_req_valid_i;
+            if(lsu_req_ready_o && m1_m2_ready) m1_valid_q <= lsu_req_valid_i;
         end
     end
     iq_lsu_req_t m1_req_q;
     always_ff @(posedge clk) begin
-        if(iq_m1_ready) m1_req_q <= lsu_req_i;
+        if(lsu_req_ready_o) m1_req_q <= lsu_req_i;
     end
     m1_pack_t m1_raw, m1_nosnop, m1; // m1_raw 直接来自输入打一拍， m1_nosnop 在 skid 与 raw 之间进行选择，经过 snoop 得到 m1
-    m1_pack_t m1_skid_q;
-    assign iq_m1_ready = !m1_skid_valid_q;
-    assign p_addr_o = m1_skid_valid_q ? m1_req_q.vaddr[11:0] : lsu_req_i.vaddr[11:0];
+    m1_pack_t m1_buf_q;
+    assign lsu_req_ready_o = !m1_skid_busy_q;
+    assign p_addr_o = m1_skid_busy_q ? m1_req_q.vaddr[11:0] : lsu_req_i.vaddr[11:0];
 
     // m1_raw 逻辑
     logic m1_tlb_no_excp; // TODO:对于 (sc && llbit == '0) || (cacheop && no_addr_trans)不触发异常
@@ -138,11 +134,11 @@ module wired_lsu(
     end
 
     // m1_nosnop 逻辑
-    assign m1_nosnop = m1_skid_valid_q ? m1_skid_q : m1_raw;
+    assign m1_nosnop = m1_m2_ready_q ? m1_raw : m1_buf_q;
 
-    // m1_skid_q 逻辑
+    // m1_buf_q 逻辑
     always_ff @(posedge clk) begin
-        m1_skid_q <= m1;
+        m1_buf_q <= m1;
     end
 
     // m1 逻辑，主要是 snoop sram 的所有写入

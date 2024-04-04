@@ -39,7 +39,7 @@ module wired_alu_iq #(
     // UPD0: 3 2 1 0 7 6 5 4
     // UPD1: 4 5 6 7 0 1 2 3
     logic [1:0][IQ_SIZE-1:0] fire_sel_oh;
-    parameter integer FIREPIO [IQ_SIZE-1:0] = {0,1,2,3,4,5,6,7};
+    parameter integer FIREPIO [IQ_SIZE-1:0] = {7,6,5,4,3,2,1,0};
     parameter integer FIRERANGE = 3 * IQ_SIZE / 4; // [IQ_SIZE/2, IQ_SIZE]
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENFIRE_PER_ALU
         always_comb begin
