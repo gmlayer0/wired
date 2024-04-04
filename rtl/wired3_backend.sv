@@ -266,6 +266,9 @@ module wired_backend #(
   );
   commit_lsu_req_t   c_lsu_req;
   commit_lsu_resp_t c_lsu_resp;
+  logic lsu_iq_valid, lsu_iq_ready, iq_lsu_valid, iq_lsu_ready;
+  iq_lsu_req_t  iq_lsu_req;
+  iq_lsu_resp_t lsu_iq_resp;
   wired_lsu_iq wired_lsu_iq_inst (
     `_WIRED_GENERAL_CONN,
     .p_ctrl_i(p_pkg_q),
@@ -276,8 +279,12 @@ module wired_backend #(
     .cdb_ready_i(raw_cdb_ready[2]),
     .cdb_i(cdb),
     .flush_i(c_flush),
-
-    
+    .lsu_req_valid_o(iq_lsu_valid),
+    .lsu_req_ready_i(iq_lsu_ready),
+    .lsu_req_o(iq_lsu_req),
+    .lsu_resp_valid_i(lsu_iq_valid),
+    .lsu_resp_ready_o(lsu_iq_ready),
+    .lsu_resp_i(lsu_iq_resp)
   );
   // LSU 例化
   lsu_bus_req_t bus_req;
@@ -293,7 +300,7 @@ module wired_backend #(
   logic [11:4] t_addr;
   logic  [3:0] t_we;
   cache_tag_t  t_wtag;
-  cache_tag_t  [3:0] t_rtag
+  cache_tag_t  [3:0] t_rtag;
   dsram_snoop_t snoop;
   wired_cache_sram # (
              .WORD_SIZE(32)
@@ -321,8 +328,8 @@ module wired_backend #(
           .lsu_resp_valid_o(lsu_iq_valid),
           .lsu_resp_ready_i(lsu_iq_ready),
           .lsu_resp_o(lsu_iq_resp),
-          .commit_lsu_req_i(c_lsu_req),
-          .commit_lsu_resp_o(c_lsu_resp),
+          .c_lsu_req_i(c_lsu_req),
+          .c_lsu_resp_o(c_lsu_resp),
           .bus_req_o(bus_req),
           .bus_resp_i(bus_resp),
           .snoop_i(snoop),

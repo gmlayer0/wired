@@ -283,7 +283,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             // unc call
             crq_unc_cal   = '0; // crq drive
             crq_unc_wreq  = '0;
-            crq_unc_wdata = bus_req_i.wdata;
+            crq_unc_wdata = q.data;
             crq_unc_histrb = (&q.size) ? 4'b1111 : 4'b0000;
             crq_unc_strb = q.size[1] ? 4'b1111 : (q.size[0] ? 
                                     (q.addr[1] ? 4'b1100 : 4'b0011) : 
@@ -296,14 +296,13 @@ module wired_tl_adapter import tl_pkg::*; #(
             // cpu writeback
             crq_data_valid = '0;
             crq_data_way = bus_req_i.way;
-            crq_data_addr = '0;
+            crq_data_addr = {bus_req_i.sram_addr[11:4], 4'd0};
             crq_data_wstrb = '0;
             crq_data_wdata = '0;
+            crq_data_wdata[bus_req_i.sram_addr[3:2]] = bus_req_i.wdata;
             if(bus_req_i.sram_wb_req) begin // 最最最高优先级，一定保证
                 crq_data_valid = '1;
-                crq_data_addr  = {bus_req_i.target_paddr[11:4], 4'd0};
-                for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.target_paddr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
-                crq_data_wdata[bus_req_i.target_paddr[3:2]] = bus_req_i.wdata;
+                for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.sram_addr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
             end
             case (fsm_q)
             /*S_FREE*/default:begin
@@ -454,10 +453,9 @@ module wired_tl_adapter import tl_pkg::*; #(
                         d.prb_sel = '0;
                         d.addr = crq_inv_addr;
                         d.parm = crq_inv_parm;
+                        d.mask = d.addr[17:14]; // 直接索引形式
                         if(d.parm inside {IDX_INV, IDX_INIT}) begin
-                            d.mask = d.addr[15:12];
-                        end else begin
-                            d.mask = '0;
+                            d.mask[d.addr[13:12]] = '1;
                         end
                     end
                 end
@@ -585,9 +583,9 @@ module wired_tl_adapter import tl_pkg::*; #(
                         if(q.parm inside {PRB_HIT_ADDR_B, PRB_HIT_ADDR_N}) begin
                             prb_inv_ret = '1;
                             fsm = S_FREE;
-                        end 
-                    end else begin
-                        fsm = S_TLD;
+                        end else begin
+                            fsm = S_TLD;
+                        end
                     end
                 end
                 S_TLD: begin

@@ -303,15 +303,15 @@ typedef struct packed {
   logic uncached_load_req;
   logic uncached_store_req;
   inv_parm_e inv_req; // Cache Line 状态请求
+
+  logic [1:0]  size;         // UNC: 0-1bytes, 1-2bytes, 2-4bytes, 3-8bytes
+  logic [31:0] target_paddr; 
   
   logic sram_wb_req;
-
-  logic [3:0]  inv_mask;
-  logic [1:0]  size; // 0-1bytes, 1-2bytes, 2-4bytes, 3-8bytes
-  logic [1:0]  way;
+  logic [1:0]  way;     // 仅供写入 sram 时使用
   logic [3:0]  wstrobe; // 仅供写入 sram 时使用
   logic [31:0] wdata;
-  logic [31:0] target_paddr;
+  logic [31:0] sram_addr;
 
 } lsu_bus_req_t;
 

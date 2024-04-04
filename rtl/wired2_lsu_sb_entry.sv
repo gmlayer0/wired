@@ -9,12 +9,12 @@ module wired_lsu_sb_entry(
     // 写入端口
     input  logic        invalid_i, // 表项提交
     input  logic        valid_i,   // 表项创建
-
-
+    
     input  sb_meta_t    meta_i,
-
+    
     // 查询端口
     output logic        valid_o,
+    output logic        valid_fwd_o,
     output sb_meta_t    meta_o,
 
     // SRAM Snoop 端口，实时更新所有 sb 表项
@@ -25,6 +25,7 @@ module wired_lsu_sb_entry(
   // 表项有效性追踪
   logic valid_q;
   assign valid_o = valid_q;
+  assign valid_fwd_o = !invalid_i && valid_q;
   always_ff @(posedge clk)
   begin
     // if(!rst_n)
