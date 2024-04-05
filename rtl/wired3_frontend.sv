@@ -352,7 +352,7 @@ module wired_frontend #(
     begin
       if(skid_b_ready)
       begin
-        b_valid_q <= (b_q.p[0].bpu_predict.tid == b_tid_q) && skid_b_valid; // 丢弃无用包
+        b_valid_q <= (d_b.p[0].bpu_predict.tid == b_tid_q) && skid_b_valid; // 丢弃无用包
       end
     end
   end

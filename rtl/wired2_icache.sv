@@ -106,7 +106,7 @@ module wired_icache #(
   end
   always_ff @(posedge clk)
   begin
-    if(!rst_n)
+    if(!rst_n || flush_i)
     begin
       f1_skid_busy_q <= '0;
     end
