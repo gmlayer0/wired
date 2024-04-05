@@ -347,9 +347,11 @@ module wired_commit (
     // end
     // 打拍后的中断向量
     logic timer_interrupt;
+    logic [1:0] soft_interrupt;
+    logic [1:0] soft_interrupt_q;
     logic [8:0] f_interrupt_q;
     always_ff @(posedge clk) f_interrupt_q <= f_interrupt_i;
-    wire  [12:0] int_vec = {f_interrupt_q[8] ,timer_interrupt, 1'd0, f_interrupt_q[7:0], csr_q.estat[1:0]};
+    wire  [12:0] int_vec = {f_interrupt_q[8] ,timer_interrupt, 1'd0, f_interrupt_q[7:0], /*csr_q.estat[1:0]*/ soft_interrupt_q};
     wire  [12:0] int_mask = csr_q.ectl[12:0] & {13{csr_q.crmd[`_CRMD_IE]}};
     wire  [12:0] masked_int = int_mask & int_vec;
     logic int_pending_q;
@@ -357,12 +359,14 @@ module wired_commit (
     always_ff @(posedge clk) begin
         int_vec_q <= int_vec;
         int_pending_q <= |masked_int;
+        soft_interrupt_q <= soft_interrupt;
     end
     // SUPER SUPER HUGE LOGIC BEGIN !
     // MAIN PROCESSOR STATES ARE MAINTAINED HERE !
     always_comb begin
         tlb_update_req_o = '0;
         timer_interrupt = int_vec_q[11];
+        soft_interrupt = soft_interrupt_q;
         
         tlb_update_req_o.tlb_w_entry.key.vppn = csr_q.tlbehi[31:13];
         // tlb_update_req_o.tlb_w_entry.key.ps   = csr_q.tlbidx[29:24]; // P72
@@ -434,7 +438,7 @@ module wired_commit (
                 timer_interrupt = '1;
             end
         end
-        csr.estat[12:2] = int_vec[12:2];
+        csr.estat[12:0] = int_vec[12:0];
         case (fsm_q)
             S_NORMAL: begin
                 f_upd.need_update = h_valid_inst_q[0] && ((|slot0_target_type) || (slot0_target_type != h_entry_q[0].bpu_predict.target_type));
@@ -617,7 +621,7 @@ module wired_commit (
                         `_CSR_PRMD:      begin `_MW(prmd, `_PRMD_PPLV);`_MW(prmd, `_PRMD_PIE); end
                         `_CSR_EUEN:      begin `_MW(euen, `_EUEN_FPE); end
                         `_CSR_ECTL:      begin `_MW(ectl, `_ECTL_LIE1);`_MW(ectl, `_ECTL_LIE2); end
-                        `_CSR_ESTAT:     begin `_MW(estat, 1:0); end
+                        `_CSR_ESTAT:     begin /*`_MW(estat, 1:0);*/ soft_interrupt = csr_wdata[1:0]; end
                         `_CSR_ERA:       begin `_MW(era, 31:0); end
                         `_CSR_BADV:      begin `_MW(badv, 31:0); end
                         `_CSR_EENTRY:    begin `_MW(eentry, `_EENTRY_VA); end
