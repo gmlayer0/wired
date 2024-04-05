@@ -289,15 +289,17 @@ module wired_frontend #(
 
   for(genvar i = 0 ; i < 2 ; i++)
   begin : gen_decoder
+    wire decode_err;
     wired_decoder decoder(
                     .inst_i(d_q.inst[i]),
-                    .decode_err_o(d_skid.p[i].ine),
+                    .decode_err_o(decode_err),
                     .is_o(d_skid.p[i].di)
                   );
     assign d_skid.p[i].ri = get_register_info(d_skid.p[i].di, d_q.inst[i]);
     assign d_skid.p[i].pc = {d_q.pc[31:3], (i==0 ? d_q.pc[2] : 1'd1), d_q.pc[1:0]};
     assign d_skid.p[i].bpu_predict = d_q.predict[i];
     assign d_skid.p[i].fetch_excp = d_q.excp;
+    assign d_skid.p[i].ine = ~(|d_q.excp) & decode_err;
   end
   assign d_skid.mask = d_q.mask;
 
