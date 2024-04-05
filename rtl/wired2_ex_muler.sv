@@ -1,6 +1,6 @@
 `include "wired0_defines.svh"
 
-module wired_muler (
+module wired_ex_muler (
     `_WIRED_GENERAL_DEFINE,
     input  wire flush_i,
 
@@ -12,7 +12,7 @@ module wired_muler (
     output wire valid_o,
     output iq_mdu_resp_t resp_o
 );
-    assign ready_o = '1;
+    assign ready_o = ready_i;
 
     logic inp_valid_q, cal_valid_q, oup_valid_q;
     rob_rid_t inp_wid_q, cal_wid_q, oup_wid_q;

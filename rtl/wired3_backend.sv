@@ -182,13 +182,14 @@ module wired_backend #(
   /* 分发级 P */
   wire alu_ready;
   wire lsu_ready;
-  wire mdu_ready = '1;
+  wire mul_ready;
+  wire div_ready;
   wire [1:0] p_issue; // 是否有指令被提交
   pipeline_ctrl_p_t [1:0] p_pkg_q;
   pipeline_data_t [1:0] p_data, p_data_q;
   logic [1:0] p_valid_mask_q;
   assign p_issue = p_valid_mask_q & {r_p_ready, r_p_ready};
-  assign r_p_ready = alu_ready & lsu_ready & mdu_ready;
+  assign r_p_ready = alu_ready & lsu_ready & mul_ready & div_ready;
   always_ff @(posedge clk) begin
     if(!rst_n) begin
       p_valid_mask_q <= '0;
@@ -254,12 +255,13 @@ module wired_backend #(
 
   // IQ（分发 / ROB 写回）
   // CDB 仲裁信号
-  localparam CDB_MAX_COUNT = 3;
+  localparam CDB_MAX_COUNT = 5;
   logic [CDB_MAX_COUNT-1:0] raw_cdb_ready;
   pipeline_cdb_t [CDB_MAX_COUNT-1:0]  raw_cdb;
   wire [1:0] ifet_excp = {(|p_pkg_q[1].excp), (|p_pkg_q[0].excp)};
   wire [1:0] lsu_valid = p_issue & {p_pkg_q[1].di.lsu_inst,p_pkg_q[0].di.lsu_inst} & ~ifet_excp;
-  wire [1:0] mdu_valid = p_issue & {p_pkg_q[1].di.mdu_inst,p_pkg_q[0].di.mdu_inst} & ~ifet_excp;
+  wire [1:0] div_valid = p_issue & {p_pkg_q[1].di.mdu_inst & p_pkg_q[1].di.alu_op[2],p_pkg_q[0].di.mdu_inst & p_pkg_q[0].di.alu_op[2]} & ~ifet_excp;
+  wire [1:0] mul_valid = p_issue & {p_pkg_q[1].di.mdu_inst & !p_pkg_q[1].di.alu_op[2],p_pkg_q[0].di.mdu_inst & !p_pkg_q[1].di.alu_op[2]} & ~ifet_excp;
   wire [1:0] alu_valid = p_issue & ({p_pkg_q[1].di.alu_inst,p_pkg_q[0].di.alu_inst} | ifet_excp); // 取指阶段存在异常的指令全部送入 ALU
   wired_alu_iq wired_alu_iq_inst (
     `_WIRED_GENERAL_CONN,
@@ -369,6 +371,65 @@ module wired_backend #(
         .t_rtag_i(t_rtag),
         `TL_FORWARD_HOST_PORT(tl, tl)
       );
+  // MDU 例化
+  logic ex_mul_req_valid, ex_mul_req_ready, ex_mul_resp_valid, ex_mul_resp_ready;
+  logic ex_div_req_valid, ex_div_req_ready, ex_div_resp_valid, ex_div_resp_ready;
+  iq_mdu_req_t ex_mul_req, ex_div_req;
+  iq_mdu_resp_t ex_mul_resp, ex_div_resp;
+  wired_mdu_iq wired_mul_iq_inst (
+    `_WIRED_GENERAL_CONN,
+    .p_ctrl_i(p_pkg_q),
+    .p_data_i(p_data),
+    .p_valid_i(mul_valid),
+    .p_ready_o(mul_ready),
+    .cdb_o(raw_cdb[3]),
+    .cdb_ready_i(raw_cdb_ready[3]),
+    .cdb_i(cdb),
+    .flush_i(c_flush),
+    .ex_valid_o(ex_mul_req_valid),
+    .ex_ready_i(ex_mul_req_ready),
+    .ex_req_o(ex_mul_req),
+    .ex_valid_i(ex_mul_resp_valid),
+    .ex_ready_o(ex_mul_resp_ready),
+    .ex_resp_i(ex_mul_resp)
+  );
+  wired_mdu_iq wired_div_iq_inst (
+    `_WIRED_GENERAL_CONN,
+    .p_ctrl_i(p_pkg_q),
+    .p_data_i(p_data),
+    .p_valid_i(div_valid),
+    .p_ready_o(div_ready),
+    .cdb_o(raw_cdb[4]),
+    .cdb_ready_i(raw_cdb_ready[4]),
+    .cdb_i(cdb),
+    .flush_i(c_flush),
+    .ex_valid_o(ex_div_req_valid),
+    .ex_ready_i(ex_div_req_ready),
+    .ex_req_o(ex_div_req),
+    .ex_valid_i(ex_div_resp_valid),
+    .ex_ready_o(ex_div_resp_ready),
+    .ex_resp_i(ex_div_resp)
+  );
+  wired_ex_muler wired_ex_muler_inst (
+    `_WIRED_GENERAL_CONN,
+    .flush_i(c_flush),
+    .valid_i(ex_mul_req_valid),
+    .ready_o(ex_mul_req_ready),
+    .req_i(ex_mul_req),
+    .ready_i(ex_mul_resp_ready),
+    .valid_o(ex_mul_resp_valid),
+    .resp_o(ex_mul_resp)
+  );
+  wired_ex_divider wired_ex_divider_inst (
+    `_WIRED_GENERAL_CONN,
+    .flush_i(c_flush),
+    .valid_i(ex_div_req_valid),
+    .ready_o(ex_div_req_ready),
+    .req_i(ex_div_req),
+    .ready_i(ex_div_resp_ready),
+    .valid_o(ex_div_resp_valid),
+    .resp_o(ex_div_resp)
+  );
 
   // CDB ARBITER
   wired_cdb_arb # (
