@@ -283,7 +283,8 @@ typedef struct packed {
   logic  [3:0] strb;
   inv_parm_e   cacop;
   logic  dbar;          // 显式 dbar
-  logic  llsc;       // LL 指令，需要写权限
+  logic  llsc;          // LL 指令，需要写权限
+  rob_rid_t    wid;     // 写回地址
   logic  [1:0] msize;   // 访存大小-1
   logic [31:0] vaddr;   // 虚拟地址
   logic [31:0] wdata;   // 写地址
@@ -293,6 +294,7 @@ typedef struct packed {
 typedef struct packed {
   lsu_excp_t  excp;
   logic       uncached;
+  rob_rid_t   wid;     // 写回地址
   logic[31:0] vaddr;
   logic[31:0] rdata;
 } iq_lsu_resp_t;

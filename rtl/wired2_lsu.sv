@@ -40,8 +40,8 @@ module wired_lsu(
 
     // M1-M2 真握手信号
     logic m1_m2_ready, m1_m2_valid;
-    logic m1_m2_ready_q;
-    always_ff @(posedge clk) m1_m2_ready_q <= m1_m2_ready;
+    logic m1_m2_stall_q;
+    always_ff @(posedge clk) m1_m2_stall_q <= !m1_m2_ready && m1_m2_valid;
     // STOREBUFFER 握手信号
     logic store_buffer_ready;
     // M1 信号定义
@@ -64,7 +64,7 @@ module wired_lsu(
     logic m1_valid_q, m1_skid_busy_q;
     assign m1_m2_valid = m1_valid_q;
     always_ff @(posedge clk) begin
-        if(!rst_n) begin
+        if(!rst_n || flush_i) begin
             m1_skid_busy_q <= '0;
         end else begin
             if(m1_skid_busy_q) begin
@@ -79,6 +79,7 @@ module wired_lsu(
     // M1 请求结构体
     typedef struct packed {
         logic             wreq;   // 写请求
+        rob_rid_t         wid;    // 写回地址
         logic       [3:0] strb;    // 写掩码
         logic       [2:0] cacop;   // cache 请求
         logic             dbar;    // 产生 dbar 效果
@@ -93,10 +94,17 @@ module wired_lsu(
         logic inv; logic pme; logic ppi; logic ale; logic tlbr; // TLB EXCP
     } m1_pack_t;
     always_ff @(posedge clk) begin
-        if(!rst_n) begin
+        if(!rst_n || flush_i) begin
             m1_valid_q <= '0;
         end else begin
-            if(lsu_req_ready_o && m1_m2_ready) m1_valid_q <= lsu_req_valid_i;
+            if(m1_valid_q) begin
+                if(m1_m2_ready && lsu_req_ready_o) begin
+                    m1_valid_q <= lsu_req_valid_i;
+                end
+            end else begin
+                m1_valid_q <= lsu_req_valid_i;
+            end
+            // if(lsu_req_ready_o && m1_m2_ready) m1_valid_q <= lsu_req_valid_i;
         end
     end
     iq_lsu_req_t m1_req_q;
@@ -112,6 +120,7 @@ module wired_lsu(
     logic m1_tlb_no_excp; // TODO:对于 (sc && llbit == '0) || (cacheop && no_addr_trans)不触发异常
     assign m1_tlb_no_excp = m1_req_q.cacop inside {IDX_INIT, IDX_INV};
     always_comb begin
+        m1_raw.wid  = m1_req_q.wid;
         m1_raw.wreq = |m1_req_q.strb;
         m1_raw.strb = m1_req_q.strb;
         m1_raw.cacop = m1_req_q.cacop;
@@ -134,7 +143,7 @@ module wired_lsu(
     end
 
     // m1_nosnop 逻辑
-    assign m1_nosnop = m1_m2_ready_q ? m1_raw : m1_buf_q;
+    assign m1_nosnop = m1_m2_stall_q ? m1_buf_q : m1_raw;
 
     // m1_buf_q 逻辑
     always_ff @(posedge clk) begin
@@ -226,6 +235,7 @@ module wired_lsu(
     // M2 请求结构体
     typedef struct packed {
         logic             wreq;     // 写请求
+        rob_rid_t         wid;    // 写回地址
         logic       [3:0] strb;     // 写掩码
         logic       [2:0] cacop;    // cache 请求
         logic             dbar;     // 产生 dbar 效果
@@ -248,6 +258,8 @@ module wired_lsu(
     m2_pack_t m2;
     m2_pack_t m2_q;
     always_comb begin
+        m2 = '0;
+        m2.wid = m1.wid;
         m2.wreq = m1.wreq;
         m2.strb = m1.strb;
         m2.cacop = m1.cacop;
@@ -278,7 +290,7 @@ module wired_lsu(
         end
     end
     always_ff @(posedge clk) begin
-        if(!rst_n) begin
+        if(!rst_n || flush_i) begin
             m2_valid_q <= '0;
         end else if(m1_m2_ready) begin
             m2_valid_q <= m1_m2_valid;
@@ -359,6 +371,7 @@ module wired_lsu(
         for(integer i = 0 ; i < 4 ; i += 1) begin
             m2_c.rdata |= m2_q.hit[i] ? m2_q.data[i] : '0;
         end
+        m2_c.wid = m2_q.wid;
         sb_fwd_mask = '0;
         sb_fwd_data = '0;
         for(integer i = 0 ; i < 4 ; i += 1) begin

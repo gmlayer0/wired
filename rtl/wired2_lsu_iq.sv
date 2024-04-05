@@ -155,25 +155,30 @@ module wired_lsu_iq #(
             s_top_valid_q <= top_valid;
         end
     end
-    rob_rid_t lsu_resp_rid;
-    wired_fifo #(
-        .DATA_WIDTH($bits(rob_rid_t)), // rid, wdata, jumppc, jump
-        .DEPTH(8) // FIXME: FIND MIN-VALUE
-    ) wired_rid_fifo (
-        .clk(clk),
-        .rst_n(rst_n && !flush_i),
-        .inport_valid_i(lsu_req_valid_o & lsu_req_ready_i),
-        .inport_ready_o(),
-        .inport_payload_i(s_iq_q.wreg),
-        .outport_valid_o(),
-        .outport_ready_i(lsu_resp_valid_i & lsu_resp_ready_o),
-        .outport_payload_o(lsu_resp_rid)
-    );
-    always_ff @(posedge clk) s_data_q <= s_data;
-    always_ff @(posedge clk) s_iq_q <= s_static;
+    // rob_rid_t lsu_resp_rid;
+    // wired_fifo #(
+    //     .DATA_WIDTH($bits(rob_rid_t)), // rid, wdata, jumppc, jump
+    //     .DEPTH(8) // FIXME: FIND MIN-VALUE
+    // ) wired_rid_fifo (
+    //     .clk(clk),
+    //     .rst_n(rst_n && !flush_i),
+    //     .inport_valid_i(lsu_req_valid_o & lsu_req_ready_i),
+    //     .inport_ready_o(),
+    //     .inport_payload_i(s_iq_q.wreg),
+    //     .outport_valid_o(),
+    //     .outport_ready_i(lsu_resp_valid_i & lsu_resp_ready_o),
+    //     .outport_payload_o(lsu_resp_rid)
+    // );
+    always_ff @(posedge clk) begin
+        if(top_ready) begin
+            s_data_q <= s_data;
+            s_iq_q <= s_static;
+        end
+    end
     iq_lsu_req_t s_lsu_req;
     always_comb begin
         s_lsu_req = '0;
+        s_lsu_req.wid = s_iq_q.wreg;
         s_lsu_req.vaddr = {{4{s_iq_q.addr_imm[27]}},
                               s_iq_q.addr_imm} + s_data_q[1];
         s_lsu_req.msize = '0;
@@ -211,7 +216,7 @@ module wired_lsu_iq #(
     assign fifo_cdb.target_addr       = lsu_resp_i.vaddr;
     assign fifo_cdb.uncached          = lsu_resp_i.uncached;
     assign fifo_cdb.wdata             = lsu_resp_i.rdata;
-    assign fifo_cdb.wid               = lsu_resp_rid;
+    assign fifo_cdb.wid               = lsu_resp_i.wid;
     assign fifo_cdb.valid             = '0;
     logic cdb_raw_valid;
     pipeline_cdb_t cdb_raw;
