@@ -214,7 +214,7 @@ module wired_lsu(
     logic [3:0] m1_sb_hit;
     // 检查四项 sb_entry
     for(genvar i = 0 ; i < 4 ; i += 1) begin
-        assign m1_sb_hit[i] = sb_entry[i].paddr[31:2] == m1.paddr[31:2] && sb_valid_fwd[i];
+        assign m1_sb_hit[i] = sb_entry[i].paddr[31:2] == m1.paddr[31:2] && sb_valid[i]; // TODO: CHECKME
     end
     // 由于约束， 至多存在一项 hit，也仅有一组 strb。
     logic [31:0] m1_sb_rdata;
@@ -438,7 +438,8 @@ module wired_lsu(
                         fsm = S_MREFILL;
                         m1_m2_ready = '0;
                         m2_c_valid = '0;
-                    end else if(!m2_q.found_excp && m2_q.wreq && m2_q.any_sbhit) begin // 重叠的写请求
+                    end else if(!m2_q.found_excp && m2_q.wreq && (m2_q.sb_hit & sb_valid) != '0) begin // 重叠的写请求
+                        // 由于这条指令在 M2 级别，也就是写入过 SB 的最新指令，后续指令在这条指令前进之前，不会写 SB。
                         fsm = S_MWAITSB;
                         m1_m2_ready = '0;
                         m2_c_valid = '0;
@@ -469,7 +470,7 @@ module wired_lsu(
         end
         S_MWAITSB: begin
             // 等待重复命中的表项被提交或者冲刷
-            if(flush_i || c_lsu_req_i.storebuf_commit && m2_q.sb_hit[sb_top_ptr]) begin
+            if(flush_i || (m2_q.sb_hit & sb_valid) == '0) begin
                 fsm = S_NORMAL;
             end
         end
