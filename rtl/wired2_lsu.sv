@@ -341,6 +341,7 @@ module wired_lsu(
     logic [31:0] unc_paddr_q;
     logic [31:0] fsm_rdata;
     logic [31:0] fsm_rdata_q;
+    always_ff @(posedge clk) unc_msigned_q <= unc_msigned;
     always_ff @(posedge clk) unc_msize_q <= unc_msize;
     always_ff @(posedge clk) unc_paddr_q <= unc_paddr;
     always_ff @(posedge clk) fsm_rdata_q <= fsm_rdata;
