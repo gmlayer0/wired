@@ -677,7 +677,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             case (fsm_q)
             default/*S_FREE*/: begin
                 if(crq_acq_cal) begin
-                    d.addr = crq_acq_addr;
+                    d.addr = {crq_acq_addr, 4'd0};
                     d.way  = crq_acq_way;
                     d.wp   = crq_acq_wp;
                     fsm    = S_TLA;
@@ -868,7 +868,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     assign sram_data_strb_mult[1] = acq_data_wstrb;
     assign sram_data_strb_mult[2] = '0;
     assign sram_data_w_mult[0] = crq_data_wdata;
-    assign sram_data_w_mult[1] = acq_data_wstrb;
+    assign sram_data_w_mult[1] = acq_data_wdata;
     assign sram_data_w_mult[2] = '0;
     assign inv_data = m_rdata_i;
     assign sram_data_ready_mult[0] = '1;
