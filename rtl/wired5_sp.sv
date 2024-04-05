@@ -67,7 +67,7 @@ module wired_sp (
               .CPU_ID(0)
             ) cpu (
               `_WIRED_GENERAL_CONN,
-              .interrupt_i({1'd1,interrupt_i}),
+              .interrupt_i({1'd0,interrupt_i}),
               `TL_CONNECT_HOST_PORT(tl, tl_cpu)
             );
 

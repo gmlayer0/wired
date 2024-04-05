@@ -308,13 +308,17 @@ module wired_commit (
     commit_fsm_e fsm;
     logic h_tid;
     logic h_tid_q; // 跳转使用的 id 标识
+    logic timer_en;
+    logic timer_en_q;  // CSR 时钟使能
     always_ff @(posedge clk) begin
         if(~rst_n) begin
             fsm_q <= S_NORMAL;
             h_tid_q <= '0;
+            timer_en_q <= '0;
         end else begin
             fsm_q <= fsm;
             h_tid_q <= h_tid;
+            timer_en_q <= timer_en;
         end
     end
 
@@ -343,8 +347,10 @@ module wired_commit (
     // end
     // 打拍后的中断向量
     logic timer_interrupt;
-    logic [12:0] int_vec = {f_interrupt_i[8] ,timer_interrupt, 1'd0, f_interrupt_i[7:0], csr_q.estat[1:0]};
-    logic [12:0] int_mask = csr_q.ectl[12:0];
+    logic [8:0] f_interrupt_q;
+    always_ff @(posedge clk) f_interrupt_q <= f_interrupt_i;
+    wire  [12:0] int_vec = {f_interrupt_q[8] ,timer_interrupt, 1'd0, f_interrupt_q[7:0], csr_q.estat[1:0]};
+    wire  [12:0] int_mask = csr_q.ectl[12:0] & {13{csr_q.crmd[`_CRMD_IE]}};
     wire  [12:0] masked_int = int_mask & int_vec;
     logic int_pending_q;
     logic [12:0] int_vec_q;
@@ -380,6 +386,7 @@ module wired_commit (
         csr = csr_q;
         h_tid = h_tid_q;
         fsm = fsm_q;
+        timer_en = timer_en_q;
         h_ready = '1;
         l_flush = '0;  // 流水线需要冲刷
         l_retire = '0; // 标识指令的信息需要进入 Rename，注意，所有进入 ROB 的指令无论实际是否执行一定需要 retire。
@@ -415,7 +422,7 @@ module wired_commit (
         if(h_entry_q[0].op_code == 5'd1) csr_wmask = '1;
         csr_wdata = (csr_wmask & h_entry_q[0].wdata) | ((~csr_wmask) & h_csr_rdata_q);
         // 时钟处理
-        if(csr_q.tcfg[`_TCFG_EN]) begin
+        if(/*csr_q.tcfg[`_TCFG_EN]*/ timer_en_q) begin
             if(csr_q.tval != '0) begin
                 csr.tval = csr_q.tval - 1;
             end else if(csr_q.tcfg[`_TCFG_PERIODIC]) begin
@@ -423,10 +430,11 @@ module wired_commit (
                 timer_interrupt = '1;
             end else begin
                 // tval == '0, en =='1, periodic == '0;
-                csr.tcfg[`_TCFG_EN] = '0;
+                /*csr.tcfg[`_TCFG_EN]*/timer_en = '0;
                 timer_interrupt = '1;
             end
-        end 
+        end
+        csr.estat[12:2] = int_vec[12:2];
         case (fsm_q)
             S_NORMAL: begin
                 f_upd.need_update = h_valid_inst_q[0] && ((|slot0_target_type) || (slot0_target_type != h_entry_q[0].bpu_predict.target_type));
@@ -627,7 +635,7 @@ module wired_commit (
                         `_CSR_SAVE2:     begin `_MW(save2, 31:0); end
                         `_CSR_SAVE3:     begin `_MW(save3, 31:0); end
                         `_CSR_TID:       begin `_MW(tid, 31:0); end
-                        `_CSR_TCFG:      begin `_MW(tcfg,31:0);csr.tval[1:0] = '0;`_MW(tval,`_TCFG_INITVAL); end
+                        `_CSR_TCFG:      begin `_MW(tcfg,31:0);csr.tval[1:0] = '0;`_MW(tval,`_TCFG_INITVAL); if(csr_wmask & 32'd1) timer_en = h_entry_q[0].wdata[0]; end
                         // `_CSR_TVAL:      begin `_MW(); end // 只读
                         `_CSR_TICLR:     begin if(csr_wdata[0]) timer_interrupt = '0; end
                         `_CSR_LLBCTL:    begin `_MW(llbctl, `_LLBCT_KLO); if(csr_wdata[`_LLBCT_WCLLB]) csr.llbit = 1'b0; end
@@ -710,6 +718,10 @@ module wired_commit (
                                 csr.llbctl[`_LLBCT_KLO] = '0;
                             end else begin
                                 csr.llbit = 1'b0;
+                            end
+                            if(csr_q.estat[21]) begin
+                                csr.crmd[`_CRMD_DA] = '0;
+                                csr.crmd[`_CRMD_PG] = '1;
                             end
                         end
                         l_commit = 2'b01;
