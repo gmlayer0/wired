@@ -221,10 +221,14 @@ module wired_alu_iq #(
     // 例化两个 ALU 和 jump 模块 用于处理所有计算指令以及分支指令
     logic[1:0]       ex_jump;
     logic[1:0][31:0] ex_jump_target;
+    logic[1:0][31:0] ex_jump_target_ext; // 为 csr 及其它特殊指令准备
     logic[1:0][31:0] ex_wdata;
+    logic[1:0][31:0] ex_wdata_ext; // 为 csr 指令准备
     assign fwd_data = ex_wdata;
     word_t [1:0][1:0] real_data; // 转发后的数据
     for(genvar p = 0 ; p < 2 ; p += 1) begin
+        wire [4:0] attach_rd = sel_static_q[p].addr_imm[22:18];
+        wire [4:0] attach_rj = sel_static_q[p].addr_imm[27:23];
         always_comb begin
             for(integer i = 0 ; i < 2 ; i += 1) begin
                 real_data[p][i] = (|sel_forward_q[p][i]) ? '0 : sel_data_q[p][i];
@@ -241,6 +245,9 @@ module wired_alu_iq #(
             .op_i(sel_static_q[p].di.alu_op),
             .res_o(ex_wdata[p])
         );
+        logic [31:0] csrxchg_wdata; // 实际上是写 mask
+        assign csrxchg_wdata = real_data[p][0];
+        assign ex_wdata_ext[p] = sel_static_q[p].di.csr_op_en ? csrxchg_wdata : ex_wdata[p];
         wired_jump  wired_jump_inst (
             .r0_i(real_data[p][0]),
             .r1_i(real_data[p][1]),
@@ -251,6 +258,9 @@ module wired_alu_iq #(
             .jump_o(ex_jump[p]),
             .jump_target_o(ex_jump_target[p])
         );
+        logic [31:0] csrxchg_jump_target; // 实际上是写 mask
+        assign csrxchg_jump_target = attach_rj == 5'd0 ? '0 : (attach_rj == 5'd1 ? '1 : real_data[p][1]);
+        assign ex_jump_target_ext[p] = sel_static_q[p].di.csr_op_en ? csrxchg_jump_target : ex_jump_target[p];
     end
 
     // 连接到 CDB 的两个 FIFO
@@ -268,7 +278,8 @@ module wired_alu_iq #(
             .rst_n(rst_n && !flush_i),
             .inport_valid_i(excute_valid_q[p]),
             .inport_ready_o(fifo_ready[p]),
-            .inport_payload_i({ex_rid[p], ex_wdata[p], ex_jump_target[p], ex_jump[p]}),
+            // 对于 csr 指令， ex_wdata == r0, target_addr = rj == 0 ? '0 : rj == 1 ? '1 : r1;
+            .inport_payload_i({ex_rid[p], ex_wdata_ext[p], ex_jump_target_ext[p], ex_jump[p]}),
             .outport_valid_o(cdb_o[p].valid),
             .outport_ready_i(cdb_ready_i[p]),
             .outport_payload_o({c_rid, c_wdata, c_jump_target, c_jump})

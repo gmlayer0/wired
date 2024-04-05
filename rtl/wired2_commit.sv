@@ -702,6 +702,16 @@ module wired_commit (
                     end
                     // flush / ertn 逻辑 及 idle 逻辑
                     if(l_commit[0] && h_entry_q[0].di.priv_inst) begin
+                        if(h_entry_q[0].di.ertn_inst) begin
+                            // 执行异常返回操作，更新寄存器
+                            csr.crmd[`_CRMD_PLV] = csr_q.prmd[`_PRMD_PPLV];
+                            csr.crmd[`_CRMD_IE]  = csr_q.prmd[`_PRMD_PIE];
+                            if(csr_q.llbctl[`_LLBCT_KLO]) begin
+                                csr.llbctl[`_LLBCT_KLO] = '0;
+                            end else begin
+                                csr.llbit = 1'b0;
+                            end
+                        end
                         l_commit = 2'b01;
                         f_upd.redirect = '1;
                         f_upd.true_target = h_flushtarget_q;

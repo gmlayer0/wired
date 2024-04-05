@@ -112,6 +112,7 @@ typedef logic [0 : 0] dbarrier_t;
 
 typedef struct packed {
     cmp_type_t cmp_type;
+    csr_op_en_t csr_op_en;
 } decode_info_c_alu_common_t;
 
 typedef struct packed {
@@ -128,6 +129,7 @@ typedef struct packed {
 
 typedef struct packed {
     cmp_type_t cmp_type;
+    csr_op_en_t csr_op_en;
     dbarrier_t dbarrier;
     inst_t inst;
     jump_inst_t jump_inst;
@@ -157,6 +159,7 @@ typedef struct packed {
     alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
     cmp_type_t cmp_type;
+    csr_op_en_t csr_op_en;
     target_type_t target_type;
 } decode_info_alu_t;
 
@@ -257,12 +260,14 @@ typedef struct packed {
 function automatic decode_info_c_alu_common_t get_c_alu_common_from_alu(input decode_info_alu_t alu);
     decode_info_c_alu_common_t ret;
     ret.cmp_type = alu.cmp_type;
+    ret.csr_op_en = alu.csr_op_en;
     return ret;
 endfunction
 
 function automatic decode_info_c_alu_common_t get_c_alu_common_from_c(input decode_info_c_t c);
     decode_info_c_alu_common_t ret;
     ret.cmp_type = c.cmp_type;
+    ret.csr_op_en = c.csr_op_en;
     return ret;
 endfunction
 
@@ -301,6 +306,7 @@ endfunction
 function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
     decode_info_c_t ret;
     ret.cmp_type = rob.cmp_type;
+    ret.csr_op_en = rob.csr_op_en;
     ret.dbarrier = rob.dbarrier;
     ret.inst = rob.inst;
     ret.jump_inst = rob.jump_inst;
@@ -336,6 +342,7 @@ function automatic decode_info_alu_t get_alu_from_p(input decode_info_p_t p);
     ret.alu_grand_op = p.alu_grand_op;
     ret.alu_op = p.alu_op;
     ret.cmp_type = p.cmp_type;
+    ret.csr_op_en = p.csr_op_en;
     ret.target_type = p.target_type;
     return ret;
 endfunction
