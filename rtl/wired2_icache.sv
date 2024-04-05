@@ -100,8 +100,13 @@ module wired_icache #(
     end
     else
     begin
-      if(f_ready_o)
+      if(f1_valid_q) begin
+        if(f1_f2_ready && f_ready_o) begin
+            f1_valid_q <= f_valid_i;
+        end
+      end else begin
         f1_valid_q <= f_valid_i;
+      end
     end
   end
   always_ff @(posedge clk)
@@ -150,7 +155,9 @@ module wired_icache #(
   begin
     f1_skid_q <= f1; // 每拍都打
   end
-  assign f1_sel = f1_skid_busy_q ? f1_skid_q : f1_raw;
+  logic f1_f2_stall_q;
+  assign f1_sel = f1_f2_stall_q ? f1_skid_q : f1_raw;
+  always_ff @(posedge clk) f1_f2_stall_q <= !f1_f2_ready && f1_f2_valid;
 
   // SNOP 逻辑开始
   always_comb

@@ -42,7 +42,7 @@ module wired_packer #(
   end
   always_ff @(posedge clk) begin
     if(skid_en) begin
-      skid_nz_q   <= nz_i;
+      skid_nz_q   <= nz_i[skid_sel];
       skid_bank_q <= bank_i[skid_sel];
       skid_pkg_q  <= pkg_i[skid_sel];
     end
