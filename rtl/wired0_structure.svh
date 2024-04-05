@@ -286,7 +286,7 @@ typedef struct packed {
   rob_rid_t   wid;     // 写回地址
 } iq_mdu_req_t;
 typedef struct packed {
-  logic[31:0] rdata;
+  logic[31:0] result;
   rob_rid_t   wid;     // 写回地址
 } iq_mdu_resp_t;
 

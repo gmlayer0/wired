@@ -1,3 +1,5 @@
+`include "wired0_defines.svh"
+
 module wired_muler (
     `_WIRED_GENERAL_DEFINE,
     input  wire flush_i,
