@@ -43,7 +43,7 @@ module wired_ex_divider (
     );
 
     assign valid_o = valid_q & !busy;
-    assign ready_o = ready_i || !valid_q;
+    assign ready_o = (ready_i && !busy) || !valid_q;
     assign resp_o.wid = wid_q;
     assign resp_o.result = op_q[1] ? rem : quo;
 

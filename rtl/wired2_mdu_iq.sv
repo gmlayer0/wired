@@ -168,7 +168,7 @@ module wired_mdu_iq #(
     logic excute_valid_q;
     assign excute_ready = !excute_valid_q || ex_ready_i;
     always_ff @(posedge clk) begin
-        if(rst_n || flush_i) begin
+        if(!rst_n || flush_i) begin
             excute_valid_q <= '0;
         end else begin
             excute_valid_q <= excute_valid;

@@ -224,6 +224,7 @@ module wired_backend #(
             cdb[p_data_q[p].rreg[i][0]].valid &&
             cdb[p_data_q[p].rreg[i][0]].wid[`_WIRED_PARAM_ROB_LEN-1:1] == p_data_q[p].rreg[i][`_WIRED_PARAM_ROB_LEN-1:1]) begin
           p_data[p].rdata[i] = cdb[p_data_q[p].rreg[i][0]].wdata;
+          p_data[p].valid[i] = '1;
         end
         p_data[p].valid[i] &= !p_pkg_q[p].scyc_raw[i];
       end
