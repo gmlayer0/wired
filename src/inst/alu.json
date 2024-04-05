@@ -25,7 +25,7 @@
 
         "_MDU_TYPE_MULL": "3'b000",
         "_MDU_TYPE_MULH": "3'b001",
-        "_MDU_TYPE_MULHU": "3'b010",
+        "_MDU_TYPE_MULHU": "3'b011",
 
         "_MDU_TYPE_DIV": "3'b100",
         "_MDU_TYPE_DIVU": "3'b101",
