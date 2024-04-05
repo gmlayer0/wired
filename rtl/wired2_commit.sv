@@ -650,7 +650,7 @@ module wired_commit (
                     end
 `undef _MW
                     // 实现 RDCNT 指令
-                    if(h_entry_q[0].di.csr_rdcnt[0]) begin
+                    if(h_entry_q[0].di.csr_rdcnt != '0) begin
                         // RDCNT LOW | ID
                         l_data[0] = h_csr_rdata_q; // 强制刷新 csr 数据
                     end
@@ -713,7 +713,7 @@ module wired_commit (
                         end
                     end
                     // flush / ertn 逻辑 及 idle 逻辑
-                    if(l_commit[0] && h_entry_q[0].di.priv_inst) begin
+                    if(l_commit[0] && (h_entry_q[0].di.priv_inst || h_entry_q[0].di.csr_rdcnt)) begin
                         if(h_entry_q[0].di.ertn_inst) begin
                             // 执行异常返回操作，更新寄存器
                             csr.crmd[`_CRMD_PLV] = csr_q.prmd[`_PRMD_PPLV];
@@ -857,13 +857,14 @@ module wired_commit (
     rob_entry_t [1:0] df_entry_q;
     always_ff @(posedge clk) df_entry_q <= h_entry_q;
     logic [`_TLBIDX_INDEX] dbg_tlb_rndsel;
-    logic [63:0] dbg_timer_64_q;
+    logic [63:0] dbg0_timer_64_q, dbg_timer_64_q;
     wire h_excp_inst = h_valid_inst_q[0] && h_entry_q[0].excp_found && fsm_q == S_NORMAL;
     wire h_int_inst  = h_valid_inst_q[0] && int_pending_q && fsm_q == S_NORMAL;
     logic dbg_excp_inst, dbg_int_inst;
     always_ff @(posedge clk) begin
         dbg_tlb_rndsel <= timer_64_q[`_TLBIDX_INDEX];
-        dbg_timer_64_q <= timer_64_q;
+        dbg0_timer_64_q <= timer_64_q;
+        dbg_timer_64_q <= dbg0_timer_64_q;
         dbg_excp_inst  <= h_excp_inst;
         dbg_int_inst   <= h_int_inst;
     end
