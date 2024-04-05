@@ -31,10 +31,10 @@ module wired_mdu_iq #(
 
     input  logic         ex_valid_i,
     output logic         ex_ready_o,
-    input  iq_mdu_resp_t ex_resp_i
+    input  iq_mdu_resp_t ex_resp_i,
 
     // FLUSH 端口
-    input logic flush_i, // 后端正在清洗管线，发射所有指令而不等待就绪
+    input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
 );
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
@@ -165,6 +165,7 @@ module wired_mdu_iq #(
             sel_data_q    <= sel_data;
         end
     end
+    logic excute_valid_q;
     assign excute_ready = !excute_valid_q || ex_ready_i;
     always_ff @(posedge clk) begin
         if(rst_n || flush_i) begin

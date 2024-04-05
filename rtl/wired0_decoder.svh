@@ -48,13 +48,13 @@
 `define _ALU_STYPE_SRL (2'b00)
 `define _ALU_STYPE_SLL (2'b01)
 `define _ALU_STYPE_SRA (2'b10)
-`define _MDU_TYPE_MULL (3'b000)
-`define _MDU_TYPE_MULH (3'b001)
-`define _MDU_TYPE_MULHU (3'b010)
-`define _MDU_TYPE_DIV (3'b100)
-`define _MDU_TYPE_DIVU (3'b101)
-`define _MDU_TYPE_MOD (3'b110)
-`define _MDU_TYPE_MODU (3'b111)
+`define _MDU_TYPE_MULL (2'b00)
+`define _MDU_TYPE_MULH (2'b01)
+`define _MDU_TYPE_MULHU (2'b11)
+`define _MDU_TYPE_DIV (2'b00)
+`define _MDU_TYPE_DIVU (2'b01)
+`define _MDU_TYPE_MOD (2'b10)
+`define _MDU_TYPE_MODU (2'b11)
 `define _TARGET_REL (1'b0)
 `define _TARGET_ABS (1'b1)
 `define _CMP_NOCONDITION (4'b1110)
@@ -88,7 +88,8 @@ typedef logic [0 : 0] tlbfill_en_t;
 typedef logic [0 : 0] invtlb_en_t;
 typedef logic [31 : 0] inst_t;
 typedef logic [0 : 0] alu_inst_t;
-typedef logic [0 : 0] mdu_inst_t;
+typedef logic [0 : 0] mul_inst_t;
+typedef logic [0 : 0] div_inst_t;
 typedef logic [0 : 0] lsu_inst_t;
 typedef logic [1 : 0] reg_type_r0_t;
 typedef logic [0 : 0] reg_type_r1_t;
@@ -114,6 +115,7 @@ typedef struct packed {
 } decode_info_c_alu_common_t;
 
 typedef struct packed {
+    alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
 } decode_info_alu_mdu_common_t;
 
@@ -138,6 +140,7 @@ typedef struct packed {
 } decode_info_c_t;
 
 typedef struct packed {
+    alu_grand_op_t alu_grand_op;
     alu_op_t alu_op;
 } decode_info_mdu_t;
 
@@ -189,17 +192,18 @@ typedef struct packed {
     csr_op_en_t csr_op_en;
     csr_rdcnt_t csr_rdcnt;
     dbarrier_t dbarrier;
+    div_inst_t div_inst;
     ertn_inst_t ertn_inst;
     inst_t inst;
     invtlb_en_t invtlb_en;
     jump_inst_t jump_inst;
     llsc_inst_t llsc_inst;
     lsu_inst_t lsu_inst;
-    mdu_inst_t mdu_inst;
     mem_cacop_t mem_cacop;
     mem_read_t mem_read;
     mem_type_t mem_type;
     mem_write_t mem_write;
+    mul_inst_t mul_inst;
     priv_inst_t priv_inst;
     refetch_t refetch;
     slot0_t slot0;
@@ -222,6 +226,7 @@ typedef struct packed {
     csr_op_en_t csr_op_en;
     csr_rdcnt_t csr_rdcnt;
     dbarrier_t dbarrier;
+    div_inst_t div_inst;
     ertn_inst_t ertn_inst;
     imm_type_t imm_type;
     inst_t inst;
@@ -229,11 +234,11 @@ typedef struct packed {
     jump_inst_t jump_inst;
     llsc_inst_t llsc_inst;
     lsu_inst_t lsu_inst;
-    mdu_inst_t mdu_inst;
     mem_cacop_t mem_cacop;
     mem_read_t mem_read;
     mem_type_t mem_type;
     mem_write_t mem_write;
+    mul_inst_t mul_inst;
     priv_inst_t priv_inst;
     refetch_t refetch;
     reg_type_r0_t reg_type_r0;
@@ -263,12 +268,14 @@ endfunction
 
 function automatic decode_info_alu_mdu_common_t get_alu_mdu_common_from_mdu(input decode_info_mdu_t mdu);
     decode_info_alu_mdu_common_t ret;
+    ret.alu_grand_op = mdu.alu_grand_op;
     ret.alu_op = mdu.alu_op;
     return ret;
 endfunction
 
 function automatic decode_info_alu_mdu_common_t get_alu_mdu_common_from_alu(input decode_info_alu_t alu);
     decode_info_alu_mdu_common_t ret;
+    ret.alu_grand_op = alu.alu_grand_op;
     ret.alu_op = alu.alu_op;
     return ret;
 endfunction
@@ -308,6 +315,7 @@ endfunction
 
 function automatic decode_info_mdu_t get_mdu_from_p(input decode_info_p_t p);
     decode_info_mdu_t ret;
+    ret.alu_grand_op = p.alu_grand_op;
     ret.alu_op = p.alu_op;
     return ret;
 endfunction
@@ -367,17 +375,18 @@ function automatic decode_info_p_t get_p_from_d(input decode_info_d_t d);
     ret.csr_op_en = d.csr_op_en;
     ret.csr_rdcnt = d.csr_rdcnt;
     ret.dbarrier = d.dbarrier;
+    ret.div_inst = d.div_inst;
     ret.ertn_inst = d.ertn_inst;
     ret.inst = d.inst;
     ret.invtlb_en = d.invtlb_en;
     ret.jump_inst = d.jump_inst;
     ret.llsc_inst = d.llsc_inst;
     ret.lsu_inst = d.lsu_inst;
-    ret.mdu_inst = d.mdu_inst;
     ret.mem_cacop = d.mem_cacop;
     ret.mem_read = d.mem_read;
     ret.mem_type = d.mem_type;
     ret.mem_write = d.mem_write;
+    ret.mul_inst = d.mul_inst;
     ret.priv_inst = d.priv_inst;
     ret.refetch = d.refetch;
     ret.slot0 = d.slot0;

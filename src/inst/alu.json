@@ -23,19 +23,19 @@
         "_ALU_STYPE_SLL": "2'b01",
         "_ALU_STYPE_SRA": "2'b10",
 
-        "_MDU_TYPE_MULL": "3'b000",
-        "_MDU_TYPE_MULH": "3'b001",
-        "_MDU_TYPE_MULHU": "3'b011",
+        "_MDU_TYPE_MULL": "2'b00",
+        "_MDU_TYPE_MULH": "2'b01",
+        "_MDU_TYPE_MULHU": "2'b11",
 
-        "_MDU_TYPE_DIV": "3'b100",
-        "_MDU_TYPE_DIVU": "3'b101",
-        "_MDU_TYPE_MOD": "3'b110",
-        "_MDU_TYPE_MODU": "3'b111"
+        "_MDU_TYPE_DIV": "2'b00",
+        "_MDU_TYPE_DIVU": "2'b01",
+        "_MDU_TYPE_MOD": "2'b10",
+        "_MDU_TYPE_MODU": "2'b11"
     },
     "signal": {
         "alu_grand_op": {
             "length": 2,
-            "stage": "alu",
+            "stage": "alu_mdu_common",
             "default_value": 0
         },
         "alu_op": {
@@ -162,7 +162,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1,
+            "mul_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mulh.w": {
@@ -172,7 +172,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1,
+            "mul_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mulh.wu": {
@@ -182,7 +182,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1,
+            "mul_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "div.w": {
@@ -192,7 +192,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1,
+            "div_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mod.w": {
@@ -202,7 +202,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1,
+            "div_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "div.wu": {
@@ -212,7 +212,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1,
+            "div_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "mod.wu": {
@@ -222,7 +222,7 @@
             "reg_type_r0": "`_REG_R0_RK",
             "reg_type_r1": "`_REG_R1_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "mdu_inst": 1,
+            "div_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
         "slli.w": {

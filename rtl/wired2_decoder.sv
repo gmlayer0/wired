@@ -22,7 +22,8 @@ module wired_decoder(
         is_o.invtlb_en = 1'd0;
         is_o.inst = inst_i;
         is_o.alu_inst = 1'd0;
-        is_o.mdu_inst = 1'd0;
+        is_o.mul_inst = 1'd0;
+        is_o.div_inst = 1'd0;
         is_o.lsu_inst = 1'd0;
         is_o.reg_type_r0 = `_REG_R0_NONE;
         is_o.reg_type_r1 = `_REG_R1_NONE;
@@ -462,7 +463,7 @@ module wired_decoder(
             end
             32'b00000000000111000???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.mdu_inst = 1'd1;
+                is_o.mul_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
@@ -470,7 +471,7 @@ module wired_decoder(
             end
             32'b00000000000111001???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.mdu_inst = 1'd1;
+                is_o.mul_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
@@ -478,7 +479,7 @@ module wired_decoder(
             end
             32'b00000000000111010???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.mdu_inst = 1'd1;
+                is_o.mul_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
@@ -486,7 +487,7 @@ module wired_decoder(
             end
             32'b00000000001000000???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.mdu_inst = 1'd1;
+                is_o.div_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
@@ -494,7 +495,7 @@ module wired_decoder(
             end
             32'b00000000001000001???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.mdu_inst = 1'd1;
+                is_o.div_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
@@ -502,7 +503,7 @@ module wired_decoder(
             end
             32'b00000000001000010???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.mdu_inst = 1'd1;
+                is_o.div_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
@@ -510,7 +511,7 @@ module wired_decoder(
             end
             32'b00000000001000011???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.mdu_inst = 1'd1;
+                is_o.div_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;

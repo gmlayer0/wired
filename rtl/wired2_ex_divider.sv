@@ -14,7 +14,7 @@ module wired_ex_divider (
 );
 
     logic valid_q;
-    logic op_q;
+    logic [1:0] op_q;
     rob_rid_t wid_q;
     logic busy;
     always_ff @(posedge clk) begin
@@ -26,12 +26,12 @@ module wired_ex_divider (
     end
     always_ff @(posedge clk) begin
         if(ready_o) begin
-            op_q <= req_i.op[0];
+            op_q <= req_i.op[1:0];
             wid_q <= req_i.wid;
         end
     end
     logic [31:0] rem, quo;
-    wired_div_fast(
+    wired_div_fast divider_core (
         `_WIRED_GENERAL_CONN,
         .A(req_i.r1),
         .B(req_i.r0),

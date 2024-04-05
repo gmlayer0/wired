@@ -260,8 +260,8 @@ module wired_backend #(
   pipeline_cdb_t [CDB_MAX_COUNT-1:0]  raw_cdb;
   wire [1:0] ifet_excp = {(|p_pkg_q[1].excp), (|p_pkg_q[0].excp)};
   wire [1:0] lsu_valid = p_issue & {p_pkg_q[1].di.lsu_inst,p_pkg_q[0].di.lsu_inst} & ~ifet_excp;
-  wire [1:0] div_valid = p_issue & {p_pkg_q[1].di.mdu_inst & p_pkg_q[1].di.alu_op[2],p_pkg_q[0].di.mdu_inst & p_pkg_q[0].di.alu_op[2]} & ~ifet_excp;
-  wire [1:0] mul_valid = p_issue & {p_pkg_q[1].di.mdu_inst & !p_pkg_q[1].di.alu_op[2],p_pkg_q[0].di.mdu_inst & !p_pkg_q[1].di.alu_op[2]} & ~ifet_excp;
+  wire [1:0] div_valid = p_issue & {p_pkg_q[1].di.div_inst,p_pkg_q[0].di.div_inst} & ~ifet_excp;
+  wire [1:0] mul_valid = p_issue & {p_pkg_q[1].di.mul_inst,p_pkg_q[0].di.mul_inst} & ~ifet_excp;
   wire [1:0] alu_valid = p_issue & ({p_pkg_q[1].di.alu_inst,p_pkg_q[0].di.alu_inst} | ifet_excp); // 取指阶段存在异常的指令全部送入 ALU
   wired_alu_iq wired_alu_iq_inst (
     `_WIRED_GENERAL_CONN,
