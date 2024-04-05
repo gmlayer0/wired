@@ -278,6 +278,18 @@ typedef enum logic[2:0] {
                   // otherwise, invalidate random way and return.
 } inv_parm_e;
 
+// IQ 到 Muler / Divider 的请求及反馈
+typedef struct packed {
+  logic[1:0]  op;
+  logic[31:0] r0;
+  logic[31:0] r1;
+  rob_rid_t   wid;     // 写回地址
+} iq_mdu_req_t;
+typedef struct packed {
+  logic[31:0] rdata;
+  rob_rid_t   wid;     // 写回地址
+} iq_mdu_resp_t;
+
 // LSU IQ 到 LSU 的请求
 typedef struct packed {
   logic  [3:0] strb;
