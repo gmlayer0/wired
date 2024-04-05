@@ -265,6 +265,35 @@ function automatic logic[31:0] gen_mask_word(logic [31:0] o, logic [31:0] n, log
   return r;
 endfunction
 
+function automatic logic[31:0] mkrsft(input logic[31:0] raw, input logic[31:0] va, input logic[1:0] siz, input logic sign);
+  // M1 RDATA 电路
+  logic ext_sign;
+  case(siz)
+    default : begin
+      ext_sign = raw[15] & sign;
+    end
+    2'b10 : begin
+      // HALF
+      ext_sign = va[1] ? (raw[31] & sign) :
+        (raw[15] & sign);
+    end
+    2'b11 : begin
+      ext_sign = va[1] ? (va[0] ? (raw[31] & sign) : (raw[23] & sign)) :
+        (va[0] ? (raw[15] & sign) : (raw[7] & sign));
+    end
+  endcase
+  if(!siz[1]) begin // 2 byte or 1 byte
+    mkrsft = {{16{ext_sign}}, va[1] ? raw[31:16] : raw[15:0]};
+    if(!siz[0]) begin // 1 byte
+      mkrsft[7:0]=va[0]?mkrsft[15:8] : mkrsft[7:0];
+      mkrsft[15:8] = {8{ext_sign}};
+    end
+  end
+  else begin
+    mkrsft = raw; // 4 byte
+  end
+endfunction
+
 typedef enum logic[2:0] {
   NOT_VALID_INV_PARM,
   HIT_INV,        // HIT AND INVALIDATE
@@ -297,6 +326,7 @@ typedef struct packed {
   logic  dbar;          // 显式 dbar
   logic  llsc;          // LL 指令，需要写权限
   rob_rid_t    wid;     // 写回地址
+  logic      msigned;   // 有符号拓展
   logic  [1:0] msize;   // 访存大小-1
   logic [31:0] vaddr;   // 虚拟地址
   logic [31:0] wdata;   // 写地址

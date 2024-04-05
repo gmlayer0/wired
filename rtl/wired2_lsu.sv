@@ -84,6 +84,7 @@ module wired_lsu(
         logic       [2:0] cacop;   // cache 请求
         logic             dbar;    // 产生 dbar 效果
         logic             llsc;    // llsc 指令，读时需要申请写权限
+        logic             msigned; // 有符号扩展
         logic       [1:0] msize;   // 访存大小-1
         logic      [31:0] paddr;   // 请求物理地址
         logic      [31:0] vaddr;   // 请求虚拟地址
@@ -126,6 +127,7 @@ module wired_lsu(
         m1_raw.cacop = m1_req_q.cacop;
         m1_raw.dbar = m1_req_q.dbar;
         m1_raw.llsc = m1_req_q.llsc;
+        m1_raw.msigned = m1_req_q.msigned;
         m1_raw.msize = m1_req_q.msize;
         m1_raw.paddr = {m1_tlb_resp.value.ppn, m1_req_q.vaddr[11:0]};
         m1_raw.vaddr = m1_req_q.vaddr;
@@ -240,6 +242,7 @@ module wired_lsu(
         logic       [2:0] cacop;    // cache 请求
         logic             dbar;     // 产生 dbar 效果
         logic             llsc;     // llsc 指令，读时需要申请写权限
+        logic             msigned;  // 有符号扩展
         logic       [1:0] msize;    // 访存大小-1
         logic      [31:0] paddr;    // 请求物理地址
         logic      [31:0] vaddr;    // 请求物理地址
@@ -265,6 +268,7 @@ module wired_lsu(
         m2.cacop = m1.cacop;
         m2.dbar = m1.dbar || m1.uncache; // TODO: MAKE SURE UNCACHED INST CAN ALSO CAUSE DBAR
         m2.llsc = m1.llsc;
+        m2.msigned = m1.msigned;
         m2.msize = m1.msize;
         m2.paddr = m1.paddr;
         m2.vaddr = m1.vaddr;
@@ -329,6 +333,8 @@ module wired_lsu(
         M_HANDLED,
         M_DBAR     // 阻塞 LSU 后续请求，但响应 CPU 请求
     } mod_e;
+    logic unc_msigned;
+    logic unc_msigned_q;
     logic [1:0]  unc_msize;
     logic [1:0]  unc_msize_q;
     logic [31:0] unc_paddr;
@@ -379,6 +385,9 @@ module wired_lsu(
             sb_fwd_data |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
         end
         m2_c.rdata = gen_mask_word(m2_c.rdata, sb_fwd_data, sb_fwd_mask);
+        // 偏移处理
+        m2_c.rdata = mkrsft(m2_c.rdata, m2_q.vaddr, m2_q.msize, m2_q.msigned);
+        unc_msigned = unc_msigned_q;
         unc_msize = unc_msize_q;
         unc_paddr = unc_paddr_q;
         fsm_rdata = fsm_rdata_q;
@@ -387,7 +396,7 @@ module wired_lsu(
         m1_m2_ready = '0;
         c_lsu_resp_o = '0; // 产生所有到提交级的响应
         c_lsu_resp_o.storebuf_hit = sb_top_hit;
-        c_lsu_resp_o.uncached_load_resp = bus_resp_i.rdata[31:0];
+        c_lsu_resp_o.uncached_load_resp = mkrsft(bus_resp_i.rdata[31:0], unc_paddr_q, unc_msize_q, unc_msigned_q);
         bus_req_o = '0;         // 产生所有到总线管理器的请求
         if(c_lsu_req_i.dbarrier_unlock) begin
             mod = M_NORMAL;
@@ -439,6 +448,7 @@ module wired_lsu(
                     end
                     if(m1_m2_ready && m2_q.dbar) begin
                         // 记录产生阻塞效果指令的物理地址（主要是 uncached load/store）
+                        unc_msigned = m2_q.msigned;
                         unc_msize = &m2_q.msize ? 2'd10 : m2_q.msize;
                         unc_paddr = m2_q.paddr;
                         // 阻塞住下一条指令

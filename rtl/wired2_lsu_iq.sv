@@ -187,6 +187,7 @@ module wired_lsu_iq #(
         2'd2: s_lsu_req.msize = 2'd1; // Half
         default/*2'd3*/: s_lsu_req.msize = 2'd0; // Byte
         endcase
+        s_lsu_req.msigned = !s_iq_q.di.mem_type[2];
         s_lsu_req.strb  = '0;
         if(s_iq_q.di.mem_write) begin
             case (s_iq_q.di.mem_type[1:0])

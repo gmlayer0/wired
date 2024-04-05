@@ -586,7 +586,7 @@ module wired_commit (
                     // 特殊处理未命中情况，刷新流水线，重定向控制流
                     if( (h_entry_q[0].need_jump && (!h_entry_q[0].bpu_predict.taken || h_entry_q[0].bpu_predict.predict_pc != h_entry_q[0].target_addr)) ||
                        (!h_entry_q[0].need_jump && h_entry_q[0].bpu_predict.taken)) begin
-                        l_commit = 2'b01;
+                        l_commit &= 2'b01;
                         f_upd.miss = '1;
                         f_upd.need_update = '1;
                         f_upd.redirect = '1;
@@ -700,7 +700,7 @@ module wired_commit (
                     end
                     // flush / ertn 逻辑 及 idle 逻辑
                     if(h_entry_q[0].di.priv_inst) begin
-                        l_commit = 2'b01;
+                        l_commit &= 2'b01;
                         f_upd.redirect = '1;
                         f_upd.true_target = h_flushtarget_q;
                         fsm = h_entry_q[0].di.wait_inst ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
