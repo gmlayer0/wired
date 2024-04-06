@@ -24,10 +24,9 @@ module wired_backend #(
     // 连接到内存总线（TILELINK-C）
     `TL_DECLARE_HOST_PORT(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl)
   );
+  /* 全局信号 */
   logic             c_flush;
   pipeline_cdb_t [1:0]  cdb;
-  /* 重命名级 R */
-  // 流水线寄存器信号
   logic             r_tid_q;
   always_ff @(posedge clk) begin
     if(!rst_n) begin
@@ -38,36 +37,16 @@ module wired_backend #(
       end
     end
   end
-  pipeline_ctrl_pack_t[1:0] r_pkg;
-  logic r_skid_busy_q;
-  assign pkg_ready_o = !r_skid_busy_q;
-  wire r_valid = pkg_valid_i | r_skid_busy_q;
-  wire r_ready;
-  logic [1:0] r_skid_mask_q;
-  pipeline_ctrl_pack_t [1:0] r_skid_q;
-  always_ff @(posedge clk) begin
-    if(!rst_n) begin
-        r_skid_busy_q <= 1'b0;
-    end else if(c_flush) begin
-        if(r_valid && r_pkg[0].bpu_predict.tid == r_tid_q) begin
-            r_skid_busy_q <= 1'b1;
-        end else begin
-            r_skid_busy_q <= 1'b0;
-        end
-    end else begin
-        r_skid_busy_q <= !r_ready && r_valid;
-    end
-  end
-  always_ff @(posedge clk) begin
-    if(!r_skid_busy_q) begin
-        r_skid_mask_q <= pkg_mask_i;
-        r_skid_q <= pkg_i;
-    end
-  end
-  logic[1:0] r_mask;
+
+  /* 重命名级 R */
+  wire clr_old = c_flush && pkg_i[0].bpu_predict.tid != r_tid_q; // 在刷新流水线时，阻止访问到的新指令被冲刷
+  wire[1:0] r_mask = {r_valid, r_valid} & pkg_mask_i;
   wire[1:0] r_issue = {r_ready, r_ready} & r_mask;
-  assign r_mask = {r_valid, r_valid} & (r_skid_busy_q ? r_skid_mask_q : pkg_mask_i);
-  assign r_pkg = r_skid_busy_q ? r_skid_q : pkg_i;
+  pipeline_ctrl_pack_t[1:0] r_pkg;
+  assign r_pkg = pkg_i;
+  assign pkg_ready_o = r_ready | clr_old;
+  wire r_valid = pkg_valid_i;
+  wire r_ready;
   // --- ARF ---
   // 连接到 r_pkg 中的寄存器号
   arch_rid_t [1:0][1:0] r_raddr;

@@ -232,6 +232,12 @@ module wired_frontend #(
   // D 级握手处理
   f_t d_icache;
   logic d_valid, d_ready;
+  // 进行 TID 过滤
+  logic d_tid_q;
+  always_ff @(posedge clk) begin
+    if(!rst_n) d_tid_q <= '0;
+    else if(g_flush) d_tid_q <= bpu_correct_i.tid;
+  end
   wired_fifo #(
     .DATA_WIDTH($bits(f_t)),
     .DEPTH(2)
@@ -242,7 +248,7 @@ module wired_frontend #(
     .inport_ready_o(f_resp_ready),
     .inport_payload_i(f_icache),
     .outport_valid_o(d_valid),
-    .outport_ready_i(d_ready),
+    .outport_ready_i(d_ready || (d_icache.predict[0].tid != d_tid_q)), // 开始过滤
     .outport_payload_o(d_icache)
   );
   // Align(already) Decode stage
@@ -275,7 +281,7 @@ module wired_frontend #(
   ) wired_db_pipe_inst (
     .clk(clk),
     .rst_n(rst_n && !g_flush),
-    .inp_valid_i(d_valid),
+    .inp_valid_i(d_valid && (d_icache.predict[0].tid == d_tid_q)),
     .inp_ready_o(d_ready),
     .inp_i(d_decode),
     .oup_valid_o(b_valid),
@@ -322,9 +328,13 @@ module wired_frontend #(
                `_WIRED_INPORT_CONN(inport, fifo_in),
                `_WIRED_OUTPORT_CONN(outport, fifo_out)
              );
+  // 随机暂停，积累足够多指令
+  logic [19:0] timer_q;
+  always_ff @(posedge clk) if(!rst_n) timer_q <= '0; else timer_q <= timer_q + 20'd1;
+  wire rnd_go = timer_q[6]; // 64 拍暂停，再执行
   assign pkg_o = fifo_out_payload.p;
   assign pkg_mask_o = fifo_out_payload.mask;
-  assign pkg_valid_o = fifo_out_valid;
-  assign fifo_out_ready = pkg_ready_i;
+  assign pkg_valid_o = fifo_out_valid & rnd_go;
+  assign fifo_out_ready = pkg_ready_i & rnd_go;
 
 endmodule

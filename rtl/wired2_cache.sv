@@ -442,9 +442,9 @@ always_comb begin
         end
       end
       else if(mod_q == M_HANDLED) begin
-        resp_valid = '1;
+        resp_valid = m2_valid_q;
         resp.rdata[SRAM_WIDTH-1:0] = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
-        if(resp_ready) begin
+        if(resp_ready || !m2_valid_q) begin
           m2_stall = '0;
           mod = m2_q.dbar ? M_DBAR : M_NORMAL;
         end

@@ -41,7 +41,7 @@ module wired_fifo #(
     // mem 堆 -> lutram | distributed ram
     T [DEPTH - 1 : 0] mem;
     T data;
-    assign data = (wptr_q == rptr) ? inport_payload : mem[rptr];
+    assign data = ((wptr_q == rptr) && ready_q) ? inport_payload : mem[rptr];
     `_WIRED_FF(data)
 
     always_ff @(posedge clk) begin
