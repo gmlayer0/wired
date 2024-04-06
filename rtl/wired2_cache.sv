@@ -6,7 +6,8 @@
 module wired_cache #(
     parameter bit ICACHE = 0,     // 配置是否为 ICache
     parameter bit OUTPUT_BUF = 1, // 状态机输出到 lsu_resp 再打一拍
-    parameter int SRAM_WIDTH = 64
+    parameter int SRAM_WIDTH = 32,
+    parameter int PKG_SIZE = 1
   )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -14,10 +15,12 @@ module wired_cache #(
     input  logic         lsu_req_valid_i,
     output logic         lsu_req_ready_o,
     input  iq_lsu_req_t  lsu_req_i,
+    input  logic [PKG_SIZE-1:0] lsu_pkg_i,
 
     output logic         lsu_resp_valid_o,
     input  logic         lsu_resp_ready_i,
     output iq_lsu_resp_t lsu_resp_o,
+    output logic [PKG_SIZE-1:0] lsu_pkg_o,
 
     // CPU COMMIT 中的交互端口
     input  commit_lsu_req_t  c_lsu_req_i,
@@ -70,6 +73,8 @@ typedef struct packed {
   cache_tag_t [3:0] tag;     // sram tag
   logic [3:0][SRAM_WIDTH-1:0] data;    // sram data
   logic inv; logic pme; logic ppi; logic ale; logic tlbr; // TLB EXCP
+
+  logic [PKG_SIZE-1:0] pkg;
 } m1_pack_t;
 
 // IQ -> M1 流水线
@@ -82,8 +87,13 @@ always_ff @(posedge clk) begin
   end
 end
 iq_lsu_req_t m1_req_q;
+
+logic [PKG_SIZE-1:0] req_pkg_q;
 tlb_s_resp_t m1_tlb_resp;
-always_ff @(posedge clk) if(!g_stall) m1_req_q <= lsu_req_i;
+always_ff @(posedge clk) if(!g_stall) begin
+  req_pkg_q <= lsu_pkg_i;
+  m1_req_q <= lsu_req_i;
+end
 wired_addr_trans # (
     .FETCH_ADDR('0)
 )
@@ -118,6 +128,8 @@ always_comb begin
   m1_raw.inv = !m1_raw.tlbr && !m1_tlb_resp.value.v && !m1_tlb_no_excp;
   m1_raw.ppi = !m1_raw.inv && (m1_tlb_resp.value.plv == 2'b00) && (csr_i.crmd[`_CRMD_PLV] == 2'd3) && !m1_tlb_no_excp;
   m1_raw.pme = !m1_raw.ppi && !m1_tlb_resp.value.d && (|m1_req_q.strb) && !m1_tlb_no_excp;
+
+  m1_raw.pkg = req_pkg_q;
 end
 // M1 生成
 always_comb begin
@@ -223,6 +235,8 @@ typedef struct packed {
   logic found_excp;
   lsu_excp_t   d_excp;
   fetch_excp_t f_excp;
+
+  logic [PKG_SIZE-1:0] pkg;
 } m2_pack_t;
 
 // M1 -> M2 流水线
@@ -254,6 +268,8 @@ always_comb begin
   m1_gat.f_excp.adef = m1.ale;             m1_gat.f_excp.tlbr = m1.tlbr;
   m1_gat.f_excp.pif  = m1.inv;             m1_gat.f_excp.ppi  = m1.ppi;
   m1_gat.found_excp = m1.inv | m1.pme | m1.ppi | m1.ale | m1.tlbr;
+
+  m1_gat.pkg = m1.pkg;
 end
 
 // M2 核心状态机
@@ -288,6 +304,7 @@ end
 // 输出接口
 logic resp_valid, resp_ready;
 iq_lsu_resp_t resp;
+logic [PKG_SIZE-1:0] resp_pkg;
 // 状态机局部数据存储
 typedef struct packed {
   logic      unc_msigned;
@@ -305,7 +322,8 @@ always_comb begin
   sb_inv = '0;     // sb 控制信号
   resp_valid = '0; // 主要输出握手
   resp = '0;       // 主要输出数据
-  resp.excp = m2_q.excp;
+  resp.excp = m2_q.d_excp;
+  resp.f_excp = m2_q.f_excp;
   resp.uncached = m2_q.uncache;
   resp.vaddr = m2_q.vaddr;
   for(integer i = 0 ; i < 4 ; i += 1) begin
@@ -316,6 +334,7 @@ always_comb begin
     end
   end
   resp.wid = m2_q.wid;
+  resp_pkg = m2_q.pkg;
   sb_fwd_mask = '0;
   sb_fwd_data = '0;
   if(ENABLE_STORE) begin
@@ -367,6 +386,8 @@ always_comb begin
     bus_req_o.sram_addr = sb_top.paddr;
     bus_req_o.wstrobe = sb_top.strb;
     bus_req_o.size = m2_var_q.unc_msize;
+  end else begin
+    bus_req_o.size = m2_q.msize; // 直接提出请求即可
   end
   case (fsm_q)
   default/*S_NORMAL*/: begin
@@ -411,7 +432,7 @@ always_comb begin
           if(!m2_stall && m2_q.dbar) begin
             // 记录产生阻塞效果指令的物理地址（主要是 uncached load/store）
             m2_var.unc_msigned = m2_q.msigned;
-            m2_var.unc_msize = &m2_q.msize ? 2'd10 : m2_q.msize;
+            m2_var.unc_msize = m2_q.msize;
             m2_var.unc_paddr = m2_q.paddr;
             // 阻塞住下一条指令
             mod = M_DBAR;
@@ -494,6 +515,7 @@ end
 if(OUTPUT_BUF) begin
   iq_lsu_resp_t resp_q;
   logic resp_valid_q;
+  logic [PKG_SIZE-1:0] resp_pkg_q;
   always_ff @(posedge clk) begin
     if(!rst_n || flush_i) begin
       resp_valid_q <= '0;
@@ -501,7 +523,10 @@ if(OUTPUT_BUF) begin
       resp_valid_q <= resp_valid;
     end
   end
-  always_ff @(posedge clk) resp_q <= resp;
+  always_ff @(posedge clk) begin 
+    resp_q <= resp;
+    resp_pkg_q <= resp_pkg;
+  end
   assign resp_ready = !resp_valid_q || lsu_resp_ready_i;
   assign lsu_resp_valid_o = resp_valid_q;
   assign lsu_resp_o = resp_q;
@@ -509,6 +534,7 @@ end else begin
   assign resp_ready = lsu_resp_ready_i;
   assign lsu_resp_valid_o = resp_valid;
   assign lsu_resp_o = resp;
+  assign lsu_pkg_o = resp_pkg;
 end
 
 `ifdef _VERILATORS

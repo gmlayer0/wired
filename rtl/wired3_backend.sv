@@ -331,11 +331,18 @@ module wired_backend #(
              .t_wtag_i(t_wtag),
              .t_rtag_o(t_rtag)
            );
-  wired_lsu  wired_lsu_inst (
+  wired_cache #(
+            .ICACHE(0),     // 配置是否为 ICache
+            .OUTPUT_BUF(1), // 状态机输出到 lsu_resp 再打一拍
+            .SRAM_WIDTH(32),
+            .PKG_SIZE(1)
+          )
+          wired_dcache_inst (
           `_WIRED_GENERAL_CONN,
           .lsu_req_valid_i(iq_lsu_valid),
           .lsu_req_ready_o(iq_lsu_ready),
           .lsu_req_i(iq_lsu_req),
+          .lsu_pkg_i('0),
           .lsu_resp_valid_o(lsu_iq_valid),
           .lsu_resp_ready_i(lsu_iq_ready),
           .lsu_resp_o(lsu_iq_resp),

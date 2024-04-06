@@ -335,7 +335,8 @@ typedef struct packed {
 
 // LSU 到 LSU IQ 的响应
 typedef struct packed {
-  lsu_excp_t  excp;
+  lsu_excp_t   excp;
+  fetch_excp_t f_excp;
   logic       uncached;
   rob_rid_t   wid;     // 写回地址
   logic[31:0] vaddr;

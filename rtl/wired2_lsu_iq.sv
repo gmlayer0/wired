@@ -89,7 +89,8 @@ module wired_lsu_iq #(
         decode_info_lsu_t di;
         logic[31:0] pc;
         logic[27:0] addr_imm;
-        rob_rid_t wreg;
+        rob_rid_t   wreg;
+        logic[4:0]  op_code;
     } iq_static_t;
     // 输入给 IQ 的 static 信息
     iq_static_t [1:0] p_static;
@@ -105,8 +106,9 @@ module wired_lsu_iq #(
         always_comb begin
             p_static[i].di       = get_lsu_from_p(p_ctrl_i[i].di);
             p_static[i].pc       = p_ctrl_i[i].pc;
-            p_static[i].wreg     = p_ctrl_i[i].wreg.rob_id;
             p_static[i].addr_imm = p_ctrl_i[i].addr_imm;
+            p_static[i].wreg     = p_ctrl_i[i].wreg.rob_id;
+            p_static[i].op_code  = p_ctrl_i[i].op_code;
         end
     end
 
@@ -183,7 +185,7 @@ module wired_lsu_iq #(
                               s_iq_q.addr_imm} + s_data_q[1];
         s_lsu_req.msize = '0;
         case (s_iq_q.di.mem_type[1:0])
-        2'd1: s_lsu_req.msize = 2'd3; // Word
+        2'd1: s_lsu_req.msize = 2'd2; // Word
         2'd2: s_lsu_req.msize = 2'd1; // Half
         default/*2'd3*/: s_lsu_req.msize = 2'd0; // Byte
         endcase
@@ -197,7 +199,23 @@ module wired_lsu_iq #(
             endcase
         end
         
-        s_lsu_req.cacop = s_iq_q.di.mem_cacop;
+        s_lsu_req.cacop = s_iq_q.di.mem_write ? WR_ALLOC : RD_ALLOC;
+        if(s_iq_q.di.mem_cacop) begin
+            if(s_iq_q.op_code[2:0] == 3'd1) begin// dcacheop
+                case(s_iq_q.op_code[4:3])
+                2'd0: begin
+                    s_lsu_req.cacop = IDX_INIT;
+                end
+                2'd1: begin
+                    s_lsu_req.cacop = IDX_INV;
+                end
+                default /*2'd2*/: begin
+                    s_lsu_req.cacop = HIT_INV;
+                end
+            end else begin
+                s_lsu_req.cacop = '0;
+            end
+        end
         s_lsu_req.dbar  = s_iq_q.di.dbarrier;
         s_lsu_req.llsc  = s_iq_q.di.llsc_inst;
         case (s_iq_q.di.mem_type[1:0])

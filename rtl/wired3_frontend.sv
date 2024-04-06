@@ -1,50 +1,59 @@
 `include "wired0_defines.svh"
 
 function reg_info_t get_register_info(
-  input decode_info_d_t di,
-  input logic[31:0] inst
-);
-reg_info_t ret;
+    input decode_info_d_t di,
+    input logic[31:0] inst
+  );
+  reg_info_t ret;
 
-logic [1:0] r0_sel, w_sel;
-logic r1_sel;
-r0_sel = di.reg_type_r0;
-r1_sel = di.reg_type_r1;
-w_sel  = di.reg_type_w;
-case(r0_sel)
-  default : begin
-    ret.r_reg[0] = '0;
-  end
-  `_REG_R0_RK : begin
-    ret.r_reg[0] = inst[14:10];
-  end
-  `_REG_R0_RD : begin
-    ret.r_reg[0] = inst[4:0];
-  end
-endcase
-case(r1_sel)
-  default : begin
-    ret.r_reg[1] = '0;
-  end
-  `_REG_R1_RJ : begin
-    ret.r_reg[1] = inst[9:5];
-  end
-endcase
-case(w_sel)
-  default : begin
-    ret.w_reg = '0;
-  end
-  `_REG_W_RD : begin
-    ret.w_reg = inst[4:0];
-  end
-  `_REG_W_RJD : begin
-    ret.w_reg = inst[4:0] | inst[9:5];
-  end
-  `_REG_W_BL1 : begin
-    ret.w_reg = 5'd1;
-  end
-endcase
-return ret;
+  logic [1:0] r0_sel, w_sel;
+  logic r1_sel;
+  r0_sel = di.reg_type_r0;
+  r1_sel = di.reg_type_r1;
+  w_sel  = di.reg_type_w;
+  case(r0_sel)
+    default :
+    begin
+      ret.r_reg[0] = '0;
+    end
+    `_REG_R0_RK :
+    begin
+      ret.r_reg[0] = inst[14:10];
+    end
+    `_REG_R0_RD :
+    begin
+      ret.r_reg[0] = inst[4:0];
+    end
+  endcase
+  case(r1_sel)
+    default :
+    begin
+      ret.r_reg[1] = '0;
+    end
+    `_REG_R1_RJ :
+    begin
+      ret.r_reg[1] = inst[9:5];
+    end
+  endcase
+  case(w_sel)
+    default :
+    begin
+      ret.w_reg = '0;
+    end
+    `_REG_W_RD :
+    begin
+      ret.w_reg = inst[4:0];
+    end
+    `_REG_W_RJD :
+    begin
+      ret.w_reg = inst[4:0] | inst[9:5];
+    end
+    `_REG_W_BL1 :
+    begin
+      ret.w_reg = 5'd1;
+    end
+  endcase
+  return ret;
 endfunction
 
 // Fuction module for Wired project
@@ -177,8 +186,47 @@ module wired_frontend #(
                      .t_wtag_i(t_wtag),
                      .t_rtag_o(t_rtag)
                    );
+  iq_lsu_req_t  icache_req;
+  iq_lsu_resp_t icache_resp;
+  always_comb begin
+    icache_req = '0;
+    icache_req.cacop = RD_ALLOC;
+    icache_req.msize = &w_f.mask ? 2'd3 : 2'd2; // 64 Bits / 32 Bits
+    icache_req.vaddr = w_f.pc;
+    assign f_raw.pc = icache_resp.vaddr;
+    assign f_raw.inst = icache_resp.rdata;
+    assign f_raw.excp = icache_resp.f_excp;
+  end
+  wired_cache #(
+                .ICACHE(1),     // 配置是否为 ICache
+                .OUTPUT_BUF(1), // 状态机输出到 lsu_resp 再打一拍
+                .SRAM_WIDTH(64),
+                .PKG_SIZE(2 * $bits(bpu_predict_t) + 2)
+              )
+              wired_icache_inst (
+                `_WIRED_GENERAL_CONN,
+                .lsu_req_valid_i(skid_f_valid),
+                .lsu_req_ready_o(skid_f_ready),
+                .lsu_req_i(icache_req),
+                .lsu_pkg_i({w_f.predict, w_f.mask}),
+                .lsu_resp_valid_o(f_skid_valid),
+                .lsu_resp_ready_i(f_skid_ready),
+                .lsu_resp_o(icache_resp),
+                .lsu_pkg_o({f_raw.predict, f_raw.mask})
+                .c_lsu_req_i('0),
+                // .c_lsu_resp_o/(/**/),
+                .bus_req_o(bus_req),
+                .bus_resp_i(bus_resp),
+                .snoop_i(snoop),
+                .csr_i(csr_i),
+                .tlb_update_i(tlb_update_i),
+                .p_addr_o(p_addr),
+                .p_rdata_i(p_rdata),
+                .p_tag_i(p_rtag),
+                .flush_i(g_flush)
+              );
   wired_icache # (
-                 .PACKED_SIZE(2 * $bits(bpu_predict_t))
+                 .PACKED_SIZE()
                )
                wired_icache_inst (
                  `_WIRED_GENERAL_CONN,
@@ -189,20 +237,6 @@ module wired_frontend #(
                  .f_pkg_i(w_f.predict),
                  .f_valid_o(f_skid_valid),
                  .f_ready_i(f_skid_ready),
-                 .f_mask_o(f_raw.mask),
-                 .f_pc_o(f_raw.pc),
-                 .f_inst_o(f_raw.inst),
-                 .f_pkg_o(f_raw.predict),
-                 .f_excp_o(f_raw.excp),
-                 .bus_req_o(bus_req),
-                 .bus_resp_i(bus_resp),
-                 .snoop_i(snoop),
-                 .csr_i(csr_i),
-                 .tlb_update_i(tlb_update_i),
-                 .p_addr_o(p_addr),
-                 .p_rdata_i(p_rdata),
-                 .p_tag_i(p_rtag),
-                 .flush_i(g_flush)
                );
   wired_tl_adapter # (
                      .SOURCE_WIDTH(SOURCE_WIDTH),
@@ -377,7 +411,7 @@ module wired_frontend #(
                  .PKG_SIZE($bits(pipeline_ctrl_pack_t))
                )
                wired_packer_inst (
-                `_WIRED_GENERAL_CONN,
+                 `_WIRED_GENERAL_CONN,
                  .flush_i(g_flush),
                  .valid_i(b_valid_q),
                  .ready_o(skid_b_ready),
