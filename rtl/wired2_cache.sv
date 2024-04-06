@@ -102,19 +102,13 @@ always_ff @(posedge clk) m1_q <= m1;
 logic m1_tlb_no_excp; // TODO:对于 (sc && llbit == '0) || (cacheop && no_addr_trans)不触发异常
 assign m1_tlb_no_excp = m1_req_q.cacop inside {IDX_INIT, IDX_INV};
 always_comb begin
-  m1_raw.vaddr = m1_req_q.vaddr;
-  m1_raw.paddr = {m1_tlb_resp.value.ppn, m1_req_q.vaddr[11:0]};
-  m1_raw.msize = m1_req_q.msize;
-  m1_raw.msigned = m1_req_q.msigned;
-  m1_raw.wid  = m1_req_q.wid;
-  m1_raw.wreq = |m1_req_q.strb;
-  m1_raw.strb = m1_req_q.strb;
-  m1_raw.wdata = m1_req_q.wdata; // 已对齐
+  m1_raw.vaddr = m1_req_q.vaddr; m1_raw.paddr = {m1_tlb_resp.value.ppn, m1_req_q.vaddr[11:0]};
+  m1_raw.msize = m1_req_q.msize; m1_raw.msigned = m1_req_q.msigned;
+  m1_raw.wid  = m1_req_q.wid;    m1_raw.wreq = |m1_req_q.strb;
+  m1_raw.strb = m1_req_q.strb;   m1_raw.wdata = m1_req_q.wdata; // 已对齐
   m1_raw.uncache = !m1_tlb_resp.value.mat[0];
-  m1_raw.cacop = m1_req_q.cacop;
-  m1_raw.dbar = m1_req_q.dbar;
-  m1_raw.llsc = m1_req_q.llsc;
-  m1_raw.tag = p_tag_i;
+  m1_raw.cacop = m1_req_q.cacop; m1_raw.dbar = m1_req_q.dbar;
+  m1_raw.llsc = m1_req_q.llsc;   m1_raw.tag = p_tag_i;
   m1_raw.data = p_rdata_i;
   m1_raw.ale = (m1_req_q.msize == 2'd0) ? '0 :
                ((m1_req_q.msize == 2'd1) ?  m1_req_q.vaddr[0] :
@@ -226,7 +220,8 @@ typedef struct packed {
   logic             any_sbhit;
   logic [3:0][SRAM_WIDTH-1:0] data;    // sram data
   logic found_excp;
-  lsu_excp_t  excp;
+  lsu_excp_t   d_excp;
+  fetch_excp_t f_excp;
 } m2_pack_t;
 
 // M1 -> M2 流水线
@@ -238,10 +233,56 @@ always_ff @(posedge clk) begin
     m2_valid_q <= m1_valid_q && sb_ready;
   end
 end
+m2_pack_t m1_gat; // 收集(gather) M1 侧的数据，生成 m2 数据
 m2_pack_t m2_q;
-always_ff @(posedge clk) if(!m2_stall) m2_q <= m1;
+always_ff @(posedge clk) if(!m2_stall) m2_q <= m1_gat;
+always_comb begin
+  m1_gat.vaddr     = m1.vaddr;   m1_gat.paddr     = m1.paddr;
+  m1_gat.msize     = m1.msize;   m1_gat.msigned   = m1.msigned;
+  m1_gat.wid       = m1.wid;     m1_gat.wreq      = m1.wreq;
+  m1_gat.strb      = m1.strb;    m1_gat.wdata     = m1.wdata;
+  m1_gat.uncache   = m1.uncache; m1_gat.cacop     = m1.cacop;
+  m1_gat.dbar      = m1.dbar || (m1.uncache && ENABLE_SC_UNCACHE);
+  m1_gat.llsc      = m1.llsc;    m1_gat.hit       = m1_rhit;
+  m1_gat.any_rhit  = |m1_rhit;   m1_gat.any_whit  = |m1_whit;
+  m1_gat.sb_hit    =  m1_sb_hit; m1_gat.any_sbhit = |m1_sb_hit;
+  m1_gat.data = m1.data;
+  m1_gat.d_excp.pil  = m1.inv && !m1.wreq; m1_gat.d_excp.pis  = m1.inv && m1.wreq;
+  m1_gat.d_excp.pme  = m1.pme;             m1_gat.d_excp.ppi  = m1.ppi;
+  m1_gat.d_excp.ale  = m1.ale;             m1_gat.d_excp.tlbr = m1.tlbr;
+  m1_gat.f_excp.adef = m1.ale;             m1_gat.f_excp.tlbr = m1.tlbr;
+  m1_gat.f_excp.pif  = m1.inv;             m1_gat.f_excp.ppi  = m1.ppi;
+  m1_gat.found_excp = m1.inv | m1.pme | m1.ppi | m1.ale | m1.tlbr;
+end
 
 // M2 核心状态机
+typedef enum logic[3:0] {
+  S_NORMAL,
+  S_MWAITSB, // Storebuffer Multihit
+  S_MREFILL, // Read miss(LL include) REFILL
+  S_MCACOP,  // Cache operation
+  S_CUCLOAD, // Uncached load
+  S_CUCSTRD, // Uncached store
+  S_CREFILL  // Store miss(SC exclude) REFILL
+} fsm_e;
+fsm_e fsm_q;
+fsm_e fsm;
+always_ff @(posedge clk) begin
+  if(!rst_n) fsm_q <= S_NORMAL;
+  else fsm_q <= fsm;
+end
+typedef enum logic[1:0] {
+  M_NORMAL,
+  M_HANDLED,
+  M_DBAR     // 阻塞 LSU 后续请求，但响应 CPU 请求
+} mod_e;
+mod_e mod_q;
+mod_e mod;
+always_ff @(posedge clk) begin
+  if(!rst_n || flush_i) mod_q <= M_NORMAL;
+  else mod_q <= mod;
+end
+
 
 
 `ifdef _VERILATORS
