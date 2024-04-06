@@ -48,26 +48,28 @@ module wired_cdb_arb #(
     end
 
     for(genvar i = 0 ; i < CDB_PORT_CNT ; i += 1) begin
-        logic [1:0] bank_ready;
-        for(genvar b = 0 ; b < 2 ; b += 1) begin
-            wire req_valid_pre = cdb_i[i].valid && (cdb_i[i].wid[0] == b[0]);
-            reg req_skid_q;
-            always_ff @(posedge clk) begin
-                if(!rst_n) begin
-                    req_skid_q <= '0;
-                end else begin
-                    if(req_skid_q) begin
-                        req_skid_q <= !req_ready[b][i];
-                    end else begin
-                        req_skid_q <= !req_ready[b][i] && req_valid_pre;
-                    end
-                end
-            end
-            assign req_valid[b][i] = req_valid_pre | req_skid_q; // 需要
-            assign bank_ready[b] = !req_skid_q;
-        end
-        pipeline_cdb_t req_cdb_q;
+        wire [1:0] req_valid_pre;
+        reg  [1:0] req_valid_pre_q;
         reg huge_skid_q;
+        pipeline_cdb_t req_cdb_q;
+        for(genvar b = 0 ; b < 2 ; b += 1) begin
+            assign req_valid_pre[b] = cdb_i[i].valid && (cdb_i[i].wid[0] == b[0]);
+        end
+        always_ff @(posedge clk) begin
+            if(!rst_n) begin
+                req_valid_pre_q <= '0;
+            end else if(!huge_skid_q) begin
+                req_valid_pre_q <= req_valid_pre;
+            end
+        end
+        always_ff @(posedge clk) begin
+            if(!huge_skid_q) begin
+                req_cdb_q <= cdb_i[i];
+            end
+        end
+        assign req_valid[0][i] = huge_skid_q ? req_valid_pre_q[0] : req_valid_pre[0];
+        assign req_valid[1][i] = huge_skid_q ? req_valid_pre_q[1] : req_valid_pre[1];
+        assign req_cdb[i]      = huge_skid_q ? req_cdb_q          : cdb_i[i];
         always_ff @(posedge clk) begin
             if(!rst_n) begin
                 huge_skid_q <= '0;
@@ -79,12 +81,6 @@ module wired_cdb_arb #(
                 end
             end
         end
-        always_ff @(posedge clk) begin
-            if(!huge_skid_q) begin
-                req_cdb_q <= cdb_i[i];
-            end
-        end
-        assign req_cdb[i] = huge_skid_q ? req_cdb_q : cdb_i[i];
         assign ready_o[i] = !huge_skid_q;
     end
 

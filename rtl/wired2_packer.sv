@@ -34,7 +34,7 @@ module wired_packer #(
   logic skid_en, skid_sel;
   logic skid_busy;
   always_ff @(posedge clk) begin
-    if(!rst_n) begin
+    if(!rst_n || flush_i) begin
       skid_busy_q <= '0;
     end else begin
       skid_busy_q <= skid_busy;

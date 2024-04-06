@@ -248,7 +248,7 @@ module wired_frontend #(
     .inport_ready_o(f_resp_ready),
     .inport_payload_i(f_icache),
     .outport_valid_o(d_valid),
-    .outport_ready_i(d_ready || (d_icache.predict[0].tid != d_tid_q)), // 开始过滤
+    .outport_ready_i(d_ready/* || (d_icache.predict[0].tid != d_tid_q)*/), // 开始过滤
     .outport_payload_o(d_icache)
   );
   // Align(already) Decode stage
@@ -281,7 +281,7 @@ module wired_frontend #(
   ) wired_db_pipe_inst (
     .clk(clk),
     .rst_n(rst_n && !g_flush),
-    .inp_valid_i(d_valid && (d_icache.predict[0].tid == d_tid_q)),
+    .inp_valid_i(d_valid/* && (d_icache.predict[0].tid == d_tid_q)*/),
     .inp_ready_o(d_ready),
     .inp_i(d_decode),
     .oup_valid_o(b_valid),

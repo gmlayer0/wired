@@ -215,7 +215,7 @@ module wired_alu_iq #(
                 end
             end
         end
-        assign l_excute_ready[p] = (!excute_valid_q[p]) || fifo_ready;
+        assign l_excute_ready[p] = (!excute_valid_q[p]) || fifo_ready[p];
     end
     assign excute_ready = &l_excute_ready;
     // 例化两个 ALU 和 jump 模块 用于处理所有计算指令以及分支指令

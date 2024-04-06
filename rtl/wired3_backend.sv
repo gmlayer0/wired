@@ -39,12 +39,12 @@ module wired_backend #(
   end
 
   /* 重命名级 R */
-  wire clr_old = c_flush && pkg_i[0].bpu_predict.tid != r_tid_q; // 在刷新流水线时，阻止访问到的新指令被冲刷
+  // wire clr_old = c_flush && pkg_i[0].bpu_predict.tid != r_tid_q; // 在刷新流水线时，阻止访问到的新指令被冲刷
   wire[1:0] r_mask = {r_valid, r_valid} & pkg_mask_i;
   wire[1:0] r_issue = {r_ready, r_ready} & r_mask;
   pipeline_ctrl_pack_t[1:0] r_pkg;
   assign r_pkg = pkg_i;
-  assign pkg_ready_o = r_ready | clr_old;
+  assign pkg_ready_o = r_ready/* | clr_old*/;
   wire r_valid = pkg_valid_i;
   wire r_ready;
   // --- ARF ---
