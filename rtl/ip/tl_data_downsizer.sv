@@ -197,7 +197,7 @@ module tl_data_downsizer import tl_pkg::*; import prim_util_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       d_data_q <= 'x;
       d_corrupt_q <= 1'b0;

@@ -302,7 +302,7 @@ module axi_tl_adapter import tl_pkg::*; import axi_pkg::*; #(
     endcase
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni)
+  always_ff @(posedge clk_i)
     if (!rst_ni) begin
       state_q <= StateIdle;
       id_q <= 'x;

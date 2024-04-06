@@ -97,7 +97,7 @@ module tl_source_downsizer import tl_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       a_tracker_valid_q <= '0;
     end else begin
@@ -156,7 +156,7 @@ module tl_source_downsizer import tl_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       c_tracker_valid_q <= '0;
     end else begin

@@ -60,7 +60,7 @@ module openip_round_robin_arbiter #(
     // Use masked_grant if it's not zero. Otherwise use unmasked_grant.
     assign grant = masked_request != 0 ? masked_grant : unmasked_grant;
 
-    always_ff @(posedge clk or negedge rstn)
+    always_ff @(posedge clk)
         if (!rstn) begin
             last_grant <= '0;
         end

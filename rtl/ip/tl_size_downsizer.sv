@@ -170,7 +170,7 @@ module tl_size_downsizer import tl_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       tracker_valid_q <= '0;
     end else begin
@@ -311,7 +311,7 @@ module tl_size_downsizer import tl_pkg::*; #(
     endcase
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       req_state_q <= ReqStateIdle;
       opcode_q <= tl_a_op_e'('x);

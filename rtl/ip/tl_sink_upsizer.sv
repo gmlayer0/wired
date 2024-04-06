@@ -119,7 +119,7 @@ module tl_sink_upsizer import tl_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       d_tracker_valid_q <= '0;
     end else begin

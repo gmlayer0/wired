@@ -97,7 +97,7 @@ module tl_socket_m1 import tl_pkg::*; import prim_util_pkg::*; #(
   );
 
   // Perform arbitration, and make sure that until we encounter device_req_last we keep the connection stable.
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       req_locked <= 1'b0;
       req_selected <= '0;
@@ -186,7 +186,7 @@ module tl_socket_m1 import tl_pkg::*; import prim_util_pkg::*; #(
     );
 
     // Perform arbitration, and make sure that until we encounter device_rel_last we keep the connection stable.
-    always_ff @(posedge clk_i or negedge rst_ni) begin
+    always_ff @(posedge clk_i) begin
       if (!rst_ni) begin
         rel_locked <= 1'b0;
         rel_selected <= '0;

@@ -66,7 +66,7 @@ module openip_regslice #(
         // We can accept read if the buffer is not empty.
         assign r_valid = valid;
 
-        always_ff @(posedge clk or negedge rstn) begin
+        always_ff @(posedge clk) begin
             if (!rstn) begin
                 valid <= 1'b0;
                 skid_valid <= 1'b0;
@@ -103,7 +103,7 @@ module openip_regslice #(
         assign w_ready = !valid;
         assign r_valid = valid;
 
-        always_ff @(posedge clk or negedge rstn)
+        always_ff @(posedge clk)
             if (!rstn) begin
                 valid <= 1'b0;
             end
@@ -130,7 +130,7 @@ module openip_regslice #(
         // We can write if the buffer is empty or will be emptied.
         assign w_ready = !valid || r_ready;
 
-        always_ff @(posedge clk or negedge rstn)
+        always_ff @(posedge clk)
             if (!rstn) begin
                 valid  <= 1'b0;
             end
@@ -159,7 +159,7 @@ module openip_regslice #(
         // We can write if the buffer is empty.
         assign w_ready = !valid;
 
-        always_ff @(posedge clk or negedge rstn)
+        always_ff @(posedge clk)
             if (!rstn) begin
                 valid <= 1'b0;
             end

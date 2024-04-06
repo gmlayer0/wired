@@ -134,7 +134,7 @@ module tl_axi_adapter import tl_pkg::*; #(
   );
 
   // Perform arbitration, and make sure that until we encounter host_d_last we keep the connection stable.
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       host_d_locked <= 1'b0;
       host_d_selected <= '0;
@@ -200,7 +200,7 @@ module tl_axi_adapter import tl_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       tracker_valid_q <= '0;
     end else begin
@@ -300,7 +300,7 @@ module tl_axi_adapter import tl_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       aw_sent_q <= 1'b0;
       w_sent_q <= 1'b0;

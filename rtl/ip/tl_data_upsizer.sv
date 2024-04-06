@@ -143,7 +143,7 @@ module tl_data_upsizer import tl_pkg::*; import prim_util_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       a_data_q <= 'x;
       a_mask_q <= 'x;
@@ -214,7 +214,7 @@ module tl_data_upsizer import tl_pkg::*; import prim_util_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       c_data_q <= 'x;
       c_corrupt_q <= 1'b0;

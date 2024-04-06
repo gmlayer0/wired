@@ -80,7 +80,7 @@ module tl_burst_tracker import tl_pkg::*; import prim_util_pkg::*; #(
   assign req_first_o = &req_left_q;
   assign req_last_o  = req_left_o == 0;
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       req_left_q <= '1;
     end else begin
@@ -102,7 +102,7 @@ module tl_burst_tracker import tl_pkg::*; import prim_util_pkg::*; #(
   assign rel_first_o = &rel_left_q;
   assign rel_last_o  = rel_left_o == 0;
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       rel_left_q <= '1;
     end else begin
@@ -124,7 +124,7 @@ module tl_burst_tracker import tl_pkg::*; import prim_util_pkg::*; #(
   assign gnt_first_o = &gnt_left_q;
   assign gnt_last_o  = gnt_left_o == 0;
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       gnt_left_q <= '1;
     end else begin

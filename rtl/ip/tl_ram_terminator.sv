@@ -208,7 +208,7 @@ module tl_ram_terminator import tl_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       sink_tracker_q <= '1;
       sink_q <= 'x;
@@ -249,7 +249,7 @@ module tl_ram_terminator import tl_pkg::*; #(
   );
 
   // Perform arbitration, and make sure that until we encounter device_a_last we keep the connection stable.
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       device_a_locked <= 1'b0;
       device_a_selected <= '0;
@@ -315,7 +315,7 @@ module tl_ram_terminator import tl_pkg::*; #(
   );
 
   // Perform arbitration, and make sure that until we encounter host_d_last we keep the connection stable.
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       host_d_locked <= 1'b0;
       host_d_selected <= '0;

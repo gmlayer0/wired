@@ -197,7 +197,7 @@ module tl_broadcast import tl_pkg::*; #(
   );
 
   // Perform arbitration, and make sure that until we encounter device_req_last we keep the connection stable.
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       device_req_locked <= 1'b0;
       device_req_selected <= '0;
@@ -264,7 +264,7 @@ module tl_broadcast import tl_pkg::*; #(
   );
 
   // Perform arbitration, and make sure that until we encounter host_gnt_last we keep the connection stable.
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       host_gnt_locked <= 1'b0;
       host_gnt_selected <= '0;
@@ -465,7 +465,7 @@ module tl_broadcast import tl_pkg::*; #(
     endcase
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni)
+  always_ff @(posedge clk_i)
     if (!rst_ni) begin
       state_q <= StateIdle;
       opcode_q <= tl_a_op_e'('x);
@@ -533,7 +533,7 @@ module tl_broadcast import tl_pkg::*; #(
     end
   end
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       probe_pending_q <= '0;
       probe_param_q <= 'x;

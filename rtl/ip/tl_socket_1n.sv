@@ -171,7 +171,7 @@ module tl_socket_1n import tl_pkg::*; import prim_util_pkg::*; #(
   );
 
   // Perform arbitration, and make sure that until we encounter host_gnt_last we keep the connection stable.
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
       gnt_locked <= 1'b0;
       gnt_selected <= '0;
