@@ -55,6 +55,7 @@ module wired_cache #(
   wire g_stall = !sb_ready | m2_stall;
   logic g_stall_q;
   always_ff @(posedge clk) g_stall_q <= g_stall;
+  assign lsu_req_ready_o = !g_stall;
 
   // M1 主要结构体
 typedef struct packed {
@@ -445,6 +446,7 @@ always_comb begin
         resp_valid = '1;
         resp.rdata[SRAM_WIDTH-1:0] = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
         if(resp_ready) begin
+          m2_stall = '0;
           mod = m2_q.dbar ? M_DBAR : M_NORMAL;
         end
       end
@@ -530,6 +532,7 @@ if(OUTPUT_BUF) begin
   assign resp_ready = !resp_valid_q || lsu_resp_ready_i;
   assign lsu_resp_valid_o = resp_valid_q;
   assign lsu_resp_o = resp_q;
+  assign lsu_pkg_o = resp_pkg_q;
 end else begin
   assign resp_ready = lsu_resp_ready_i;
   assign lsu_resp_valid_o = resp_valid;
