@@ -302,7 +302,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             crq_data_wdata[bus_req_i.sram_addr[3:2]] = bus_req_i.wdata;
             if(bus_req_i.sram_wb_req) begin // 最最最高优先级，一定保证
                 crq_data_valid = '1;
-                for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[{bus_req_i.sram_addr[3:2],i[1:0]}] = bus_req_i.wstrobe[i];
+                for(integer i = 0 ; i < 4 ; i += 1) crq_data_wstrb[bus_req_i.sram_addr[3:2]][i[1:0]] = bus_req_i.wstrobe[i];
             end
             case (fsm_q)
             /*S_FREE*/default:begin
