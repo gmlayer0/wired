@@ -471,8 +471,8 @@ module wired_commit (
                         excp.itlbr: begin
                             csr.estat[`_ESTAT_ECODE] = 6'h3f;
                             csr.estat[`_ESTAT_ESUBCODE] = '0;
-                            csr.crmd[`_CRMD_DA] = 1'b0;
-                            csr.crmd[`_CRMD_PG] = 1'b1;
+                            csr.crmd[`_CRMD_DA] = 1'b1;
+                            csr.crmd[`_CRMD_PG] = 1'b0;
                             csr.badv = h_entry_q[0].pc;
                             csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
                             f_upd.true_target = csr_q.tlbrentry;
@@ -513,35 +513,35 @@ module wired_commit (
                         excp.tlbr: begin
                             csr.estat[`_ESTAT_ECODE] = 6'h3f;
                             csr.estat[`_ESTAT_ESUBCODE] = '0;
-                            csr.crmd[`_CRMD_DA] = 1'b0;
-                            csr.crmd[`_CRMD_PG] = 1'b1;
+                            csr.crmd[`_CRMD_DA] = 1'b1;
+                            csr.crmd[`_CRMD_PG] = 1'b0;
                             csr.badv = h_entry_q[0].target_addr;
-                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].target_addr[`_TLBEHI_VPPN];
                             f_upd.true_target = csr_q.tlbrentry;
                         end
                         excp.pis: begin
                             csr.estat[`_ESTAT_ECODE] = 6'h02;
                             csr.estat[`_ESTAT_ESUBCODE] = '0;
                             csr.badv = h_entry_q[0].target_addr;
-                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].target_addr[`_TLBEHI_VPPN];
                         end
                         excp.pil: begin
                             csr.estat[`_ESTAT_ECODE] = 6'h01;
                             csr.estat[`_ESTAT_ESUBCODE] = '0;
                             csr.badv = h_entry_q[0].target_addr;
-                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].target_addr[`_TLBEHI_VPPN];
                         end
                         excp.ppi: begin
                             csr.estat[`_ESTAT_ECODE] = 6'h07;
                             csr.estat[`_ESTAT_ESUBCODE] = '0;
                             csr.badv = h_entry_q[0].target_addr;
-                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].target_addr[`_TLBEHI_VPPN];
                         end
                         excp.pme: begin
                             csr.estat[`_ESTAT_ECODE] = 6'h04;
                             csr.estat[`_ESTAT_ESUBCODE] = '0;
                             csr.badv = h_entry_q[0].target_addr;
-                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
+                            csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].target_addr[`_TLBEHI_VPPN];
                         end
                     endcase
                     // end
