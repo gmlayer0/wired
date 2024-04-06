@@ -57,6 +57,9 @@ module wired_cache #(
   always_ff @(posedge clk) g_stall_q <= g_stall;
   assign lsu_req_ready_o = !g_stall;
 
+  // 连接 SRAM
+  assign p_addr_o = lsu_req_i.vaddr;
+
   // M1 主要结构体
 typedef struct packed {
   logic      [31:0] vaddr;   // 请求虚拟地址
@@ -96,7 +99,7 @@ always_ff @(posedge clk) if(!g_stall) begin
   m1_req_q <= lsu_req_i;
 end
 wired_addr_trans # (
-    .FETCH_ADDR('0)
+    .FETCH_ADDR(ICACHE)
 )
 wired_addr_trans_inst (
     `_WIRED_GENERAL_CONN,
@@ -139,7 +142,7 @@ always_comb begin
   if(snoop_i.daddr[11:4] == m1.paddr[11:4]) begin // 是同一个 Cache line
     if(ENABLE_64 && snoop_i.dstrb[{m1.paddr[3],1'b0}][0]) begin // 写一部分，就是全写了
       m1.data[snoop_i.dway] = {snoop_i.d[{m1.paddr[3],1'b1}], snoop_i.d[{m1.paddr[3],1'b0}]}; // 不存在部分写存在，全部转发即可
-    end else begin
+    end else if(!ENABLE_64) begin
       m1.data[snoop_i.dway] = gen_mask_word(m1.data[snoop_i.dway], snoop_i.d[m1.paddr[3:2]], snoop_i.dstrb[m1.paddr[3:2]]);
     end
   end
@@ -328,11 +331,7 @@ always_comb begin
   resp.uncached = m2_q.uncache;
   resp.vaddr = m2_q.vaddr;
   for(integer i = 0 ; i < 4 ; i += 1) begin
-    if(!ENABLE_64) begin
-      resp.rdata[31:0] |= m2_q.hit[i] ? m2_q.data[i] : '0;
-    end else begin
-      resp.rdata       |= m2_q.hit[i] ? m2_q.data[i] : '0;
-    end
+    resp.rdata[SRAM_WIDTH-1:0]       |= m2_q.hit[i] ? m2_q.data[i] : '0;
   end
   resp.wid = m2_q.wid;
   resp_pkg = m2_q.pkg;
@@ -343,11 +342,11 @@ always_comb begin
       sb_fwd_mask |= m2_q.sb_hit[i] ? sb_entry[i].strb : '0;
       sb_fwd_data |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
     end
-    resp.rdata[31:0] = gen_mask_word(resp.rdata[31:0], sb_fwd_data, sb_fwd_mask);
+    resp.rdata = gen_mask_word(resp.rdata[31:0], sb_fwd_data, sb_fwd_mask);
   end
   if(!ENABLE_64) begin
     // 偏移处理
-    resp.rdata[31:0] = mkrsft(resp.rdata[31:0], m2_q.vaddr, m2_q.msize, m2_q.msigned);
+    resp.rdata = mkrsft(resp.rdata[31:0], m2_q.vaddr, m2_q.msize, m2_q.msigned);
   end
 
   // M2 Var 处理
@@ -424,7 +423,7 @@ always_comb begin
               fsm = S_MWAITSB;
               m2_stall = '1;
               resp_valid = '0;
-            end else if(m2_q.cacop) begin // Cache 无效化请求
+            end else if(m2_q.cacop inside {HIT_INV, IDX_INIT, IDX_INV}) begin // Cache 无效化请求
               fsm = S_MCACOP;
               m2_stall = '1;
               resp_valid = '0;
