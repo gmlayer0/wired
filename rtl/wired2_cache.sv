@@ -4,7 +4,8 @@
 
 // 2024.4.6 这个模块是前后端通用的 cache 模块
 module wired_cache #(
-    parameter bit ICACHE = 0, // 配置是否为 ICache
+    parameter bit ICACHE = 0,     // 配置是否为 ICache
+    parameter bit OUTPUT_BUF = 1, // 状态机输出到 lsu_resp 再打一拍
     parameter int SRAM_WIDTH = 64
   )(
     `_WIRED_GENERAL_DEFINE,
@@ -261,6 +262,7 @@ typedef enum logic[3:0] {
   S_MWAITSB, // Storebuffer Multihit
   S_MREFILL, // Read miss(LL include) REFILL
   S_MCACOP,  // Cache operation
+  S_MUCLOAD, // Uncached load(Weakly ordered)
   S_CUCLOAD, // Uncached load
   S_CUCSTRD, // Uncached store
   S_CREFILL  // Store miss(SC exclude) REFILL
@@ -283,7 +285,231 @@ always_ff @(posedge clk) begin
   else mod_q <= mod;
 end
 
+// 输出接口
+logic resp_valid, resp_ready;
+iq_lsu_resp_t resp;
+// 状态机局部数据存储
+typedef struct packed {
+  logic      unc_msigned;
+  logic [1:0]  unc_msize;
+  logic [31:0] unc_paddr;
+  logic [SRAM_WIDTH-1:0] fsm_rdata;
+} m2_var_t;
+m2_var_t m2_var;
+m2_var_t m2_var_q;
+logic [3:0]  sb_fwd_mask;
+logic [31:0] sb_fwd_data;
+always_ff @(posedge clk) m2_var_q <= m2_var;
+always_comb begin
+  // 主要输出及 sb
+  sb_inv = '0;     // sb 控制信号
+  resp_valid = '0; // 主要输出握手
+  resp = '0;       // 主要输出数据
+  resp.excp = m2_q.excp;
+  resp.uncached = m2_q.uncache;
+  resp.vaddr = m2_q.vaddr;
+  for(integer i = 0 ; i < 4 ; i += 1) begin
+    if(!ENABLE_64) begin
+      resp.rdata[31:0] |= m2_q.hit[i] ? m2_q.data[i] : '0;
+    end else begin
+      resp.rdata       |= m2_q.hit[i] ? m2_q.data[i] : '0;
+    end
+  end
+  resp.wid = m2_q.wid;
+  sb_fwd_mask = '0;
+  sb_fwd_data = '0;
+  if(ENABLE_STORE) begin
+    for(integer i = 0 ; i < 4 ; i += 1) begin
+      sb_fwd_mask |= m2_q.sb_hit[i] ? sb_entry[i].strb : '0;
+      sb_fwd_data |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
+    end
+    resp.rdata[31:0] = gen_mask_word(resp.rdata[31:0], sb_fwd_data, sb_fwd_mask);
+  end
+  if(!ENABLE_64) begin
+    // 偏移处理
+    resp.rdata[31:0] = mkrsft(resp.rdata[31:0], m2_q.vaddr, m2_q.msize, m2_q.msigned);
+  end
 
+  // M2 Var 处理
+  m2_var = m2_var_q;
+
+  // 主状态
+  mod = mod_q;
+  fsm = fsm_q;
+
+  // 握手
+  m2_stall = '1;
+
+  // 与提交级交互接口
+  c_lsu_resp_o = '0; // 产生所有到提交级的响应
+  if(!ICACHE) begin
+    c_lsu_resp_o.storebuf_hit = |sb_top.hit;
+    c_lsu_resp_o.uncached_load_resp =
+  mkrsft(bus_resp_i.rdata[31:0], m2_var_q.unc_paddr, m2_var_q.unc_msize, m2_var_q.unc_msigned);
+  end
+
+  // 与总线管理器交互接口
+  bus_req_o = '0;
+  bus_req_o.target_paddr = m2_q.paddr;
+  if(c_lsu_req_i.dbarrier_unlock) begin
+      mod = M_NORMAL;
+  end
+  if(ENABLE_STORE) begin
+    // Cache 写操作请求
+    for(integer i = 0 ; i < 4 ; i += 1) begin
+      bus_req_o.way |= sb_top.hit[i] ? i[1:0] : '0;
+    end
+    if(c_lsu_req_i.storebuf_commit) begin
+      bus_req_o.sram_wb_req = '1;
+      sb_inv = '1;
+    end
+    bus_req_o.wdata = sb_top.wdata; // 巧合的是，unc也存在这里
+    bus_req_o.sram_addr = sb_top.paddr;
+    bus_req_o.wstrobe = sb_top.strb;
+    bus_req_o.size = m2_var_q.unc_msize;
+  end
+  case (fsm_q)
+  default/*S_NORMAL*/: begin
+      if(!ICACHE && c_lsu_req_i.valid) begin // 响应来自提交级的请求
+        case(1'b1)
+        c_lsu_req_i.uncached_load_req: begin
+          fsm = S_CUCLOAD;
+        end
+        c_lsu_req_i.uncached_store_req: begin
+          fsm = S_CUCSTRD;
+        end
+        c_lsu_req_i.refill_store_req: begin
+          fsm = S_CREFILL;
+        end
+        endcase
+      end
+      else if(mod_q == M_NORMAL) begin // 注意，flush 的时候不能进这些状态
+        m2_stall = '0;
+        if(m2_valid_q/* && !flush_i*/) begin
+          m2_stall = !resp_ready; // resp 不 ready 的时候也得阻塞住
+          resp_valid = '1;
+          if(!m2_q.found_excp) begin
+            if(!m2_q.uncache && m2_q.cacop == RD_ALLOC && (!m2_q.any_rhit || (!m2_q.any_whit && m2_q.llsc)) && !(m2_q.any_sbhit && sb_fwd_mask == '1)) begin // 未命中（rhit for all || whit for ll.w）的 cached 读请求
+              fsm = S_MREFILL;
+              m2_stall = '1;
+              resp_valid = '0;
+            end else if(!ENABLE_SC_UNCACHE && m2_q.uncache && m2_q.cacop == RD_ALLOC) begin // Uncached 读请求，且弱序
+              fsm = S_MUCLOAD;
+              m2_stall = '1;
+              resp_valid = '0;
+            end else if(m2_q.wreq && (m2_q.sb_hit & sb_valid) != '0) begin // 重叠的写请求
+              // 由于这条指令在 M2 级别，也就是写入过 SB 的最新指令，后续指令在这条指令前进之前，不会写 SB。
+              fsm = S_MWAITSB;
+              m2_stall = '1;
+              resp_valid = '0;
+            end else if(m2_q.cacop) begin // Cache 无效化请求
+              fsm = S_MCACOP;
+              m2_stall = '1;
+              resp_valid = '0;
+            end
+          end
+          if(!m2_stall && m2_q.dbar) begin
+            // 记录产生阻塞效果指令的物理地址（主要是 uncached load/store）
+            m2_var.unc_msigned = m2_q.msigned;
+            m2_var.unc_msize = &m2_q.msize ? 2'd10 : m2_q.msize;
+            m2_var.unc_paddr = m2_q.paddr;
+            // 阻塞住下一条指令
+            mod = M_DBAR;
+          end
+        end else begin
+          resp_valid = '0;
+        end
+      end
+      else if(mod_q == M_HANDLED) begin
+        resp_valid = '1;
+        resp.rdata[SRAM_WIDTH-1:0] = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
+        if(resp_ready) begin
+          mod = m2_q.dbar ? M_DBAR : M_NORMAL;
+        end
+      end
+  end
+  S_MWAITSB: begin
+    // 等待重复命中的表项被提交或者冲刷
+    if(flush_i || (m2_q.sb_hit & sb_valid) == '0) begin
+      fsm = S_NORMAL;
+    end
+  end
+  S_MREFILL: begin
+    bus_req_o.valid = '1;
+    bus_req_o.inv_req = (!ICACHE && m2_q.llsc) ? WR_ALLOC : RD_ALLOC; // 对于 ll 指令，需要申请写权限
+    if(bus_resp_i.ready) begin
+      fsm = S_NORMAL;
+      mod = M_HANDLED;
+      m2_var.fsm_rdata = bus_resp_i.rdata[SRAM_WIDTH-1:0];
+    end
+  end
+  S_MCACOP: begin
+      bus_req_o.valid = '1;
+      bus_req_o.inv_req = m2_q.cacop; // 对于 ll 指令，需要申请写权限
+      if(bus_resp_i.ready) begin
+          fsm = S_NORMAL;
+          mod = M_HANDLED;
+      end
+  end
+  S_MUCLOAD: begin
+    bus_req_o.valid = '1;
+    bus_req_o.uncached_load_req = '1;
+    if(bus_resp_i.ready) begin
+      fsm = S_NORMAL;
+      mod = M_HANDLED;
+      m2_var.fsm_rdata = bus_resp_i.rdata[SRAM_WIDTH-1:0];
+    end
+  end
+  S_CUCLOAD: begin
+      bus_req_o.valid = '1;
+      bus_req_o.uncached_load_req = '1;
+      bus_req_o.target_paddr = m2_var_q.unc_paddr;
+      c_lsu_resp_o.ready = bus_resp_i.ready;
+      if(bus_resp_i.ready) begin
+          fsm = S_NORMAL;
+      end
+  end
+  S_CUCSTRD: begin
+      bus_req_o.valid = '1;
+      bus_req_o.uncached_store_req = '1;
+      bus_req_o.target_paddr = m2_var_q.unc_paddr;
+      c_lsu_resp_o.ready = bus_resp_i.ready;
+      if(bus_resp_i.ready) begin
+          fsm = S_NORMAL;
+      end
+  end
+  S_CREFILL: begin
+      bus_req_o.valid = '1;
+      bus_req_o.inv_req = WR_ALLOC;
+      bus_req_o.target_paddr = sb_top.paddr;
+      c_lsu_resp_o.ready = bus_resp_i.ready;
+      if(bus_resp_i.ready) begin
+          fsm = S_NORMAL;
+      end
+  end
+  endcase
+end
+
+// 输出握手
+if(OUTPUT_BUF) begin
+  iq_lsu_resp_t resp_q;
+  logic resp_valid_q;
+  always_ff @(posedge clk) begin
+    if(!rst_n || flush_i) begin
+      resp_valid_q <= '0;
+    end else if(resp_ready) begin
+      resp_valid_q <= resp_valid;
+    end
+  end
+  always_ff @(posedge clk) resp_q <= resp;
+  assign resp_ready = !resp_valid_q || lsu_resp_ready_i;
+  assign lsu_resp_valid_o = resp_valid_q;
+  assign lsu_resp_o = resp_q;
+end else begin
+  assign resp_ready = lsu_resp_ready_i;
+  assign lsu_resp_valid_o = resp_valid;
+  assign lsu_resp_o = resp;
+end
 
 `ifdef _VERILATORS
   if(ENABLE_STORE) : store_difftest
