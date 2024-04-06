@@ -261,16 +261,21 @@ module wired_frontend #(
   for(genvar i = 0 ; i < 2 ; i++)
   begin : gen_decoder
     wire decode_err;
+    decode_info_d_t di;
     wired_decoder decoder(
                     .inst_i(d_icache.inst[i]),
                     .decode_err_o(decode_err),
-                    .is_o(d_decode.p[i].di)
+                    .is_o(di)
                   );
-    assign d_decode.p[i].ri = get_register_info(d_decode.p[i].di, d_icache.inst[i]);
-    assign d_decode.p[i].pc = {d_icache.pc[31:3], (i==0 ? d_icache.pc[2] : 1'd1), d_icache.pc[1:0]};
-    assign d_decode.p[i].bpu_predict = d_icache.predict[i];
-    assign d_decode.p[i].fetch_excp = d_icache.excp;
-    assign d_decode.p[i].ine = ~(|d_icache.excp) & decode_err;
+    always_comb begin
+      d_decode.p[i].di = di;
+      d_decode.p[i].ri = get_register_info(di, d_icache.inst[i]);
+      d_decode.p[i].pc = {d_icache.pc[31:3], (i==0 ? d_icache.pc[2] : 1'd1), d_icache.pc[1:0]};
+      d_decode.p[i].bpu_predict = d_icache.predict[i];
+      d_decode.p[i].fetch_excp = d_icache.excp;
+      d_decode.p[i].ine = !(|d_icache.excp) &&
+      (decode_err || (di.invtlb_en && (d_icache.inst[i][4:0] >= 5'd7)));
+    end
   end
   assign d_decode.mask = d_icache.mask;
 
