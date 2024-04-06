@@ -212,7 +212,7 @@ module wired_frontend #(
                 .lsu_resp_valid_o(f_skid_valid),
                 .lsu_resp_ready_i(f_skid_ready),
                 .lsu_resp_o(icache_resp),
-                .lsu_pkg_o({f_raw.predict, f_raw.mask})
+                .lsu_pkg_o({f_raw.predict, f_raw.mask}),
                 .c_lsu_req_i('0),
                 // .c_lsu_resp_o/(/**/),
                 .bus_req_o(bus_req),
@@ -225,19 +225,6 @@ module wired_frontend #(
                 .p_tag_i(p_rtag),
                 .flush_i(g_flush)
               );
-  wired_icache # (
-                 .PACKED_SIZE()
-               )
-               wired_icache_inst (
-                 `_WIRED_GENERAL_CONN,
-                 .f_valid_i(skid_f_valid),
-                 .f_ready_o(skid_f_ready),
-                 .f_mask_i(w_f.mask),
-                 .f_pc_i(w_f.pc),
-                 .f_pkg_i(w_f.predict),
-                 .f_valid_o(f_skid_valid),
-                 .f_ready_i(f_skid_ready),
-               );
   wired_tl_adapter # (
                      .SOURCE_WIDTH(SOURCE_WIDTH),
                      .SINK_WIDTH(SINK_WIDTH),

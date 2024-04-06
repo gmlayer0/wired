@@ -16,7 +16,7 @@ module wired_lsu_sb(
     // 查询端口（M1 级）
     output logic     [3:0] valid_o,
     // output logic     [3:0] valid_fwd_o,
-    // output sb_meta_t [3:0] meta_o,
+    output sb_meta_t [3:0] meta_o,
     output logic     [1:0] top_o,
 
     // 提交端口（C 级，顶层命中状态）

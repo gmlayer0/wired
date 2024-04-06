@@ -212,6 +212,7 @@ module wired_lsu_iq #(
                 default /*2'd2*/: begin
                     s_lsu_req.cacop = HIT_INV;
                 end
+                endcase
             end else begin
                 s_lsu_req.cacop = '0;
             end
