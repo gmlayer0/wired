@@ -339,7 +339,7 @@ typedef struct packed {
   logic       uncached;
   rob_rid_t   wid;     // 写回地址
   logic[31:0] vaddr;
-  logic[31:0] rdata;
+  logic[63:0] rdata;   // 高位是 ICACHE 专用
 } iq_lsu_resp_t;
 
 // LSU 到 Manager 的请求

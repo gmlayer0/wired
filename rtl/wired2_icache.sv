@@ -1,7 +1,7 @@
 // icache cpu side
 `include "wired0_defines.svh"
 
-module wired_icache #(
+module wired_icache_old #(
     parameter integer PACKED_SIZE = 32
   )(
     `_WIRED_GENERAL_DEFINE,
