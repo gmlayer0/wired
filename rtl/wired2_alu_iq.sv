@@ -259,8 +259,11 @@ module wired_alu_iq #(
             .jump_target_o(ex_jump_target[p])
         );
         logic [31:0] csrxchg_jump_target; // 实际上是写 mask
+        logic [31:0] invtlb_target; // 实际上是写 mask
+        assign invtlb_target = {real_data[p][0][31:13], 3'd0, real_data[p][1][9:0]};
         assign csrxchg_jump_target = attach_rj == 5'd0 ? '0 : (attach_rj == 5'd1 ? '1 : real_data[p][1]);
-        assign ex_jump_target_ext[p] = sel_static_q[p].di.csr_op_en ? csrxchg_jump_target : ex_jump_target[p];
+        assign ex_jump_target_ext[p] = sel_static_q[p].di.csr_op_en ? csrxchg_jump_target : 
+                                       sel_static_q[p].di.invtlb_en ? invtlb_target       :ex_jump_target[p];
     end
 
     // 连接到 CDB 的两个 FIFO
