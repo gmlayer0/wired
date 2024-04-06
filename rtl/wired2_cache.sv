@@ -279,7 +279,6 @@ end
 // M2 核心状态机
 typedef enum logic[3:0] {
   S_NORMAL,
-  S_MWAITSB, // Storebuffer Multihit
   S_MREFILL, // Read miss(LL include) REFILL
   S_MCACOP,  // Cache operation
   S_MUCLOAD, // Uncached load(Weakly ordered)
@@ -297,6 +296,7 @@ typedef enum logic[1:0] {
   M_NORMAL,
   M_HANDLED,
   M_DBAR     // 阻塞 LSU 后续请求，但响应 CPU 请求
+//M_WAITSB    // Storebuffer Multihit
 } mod_e;
 mod_e mod_q;
 mod_e mod;
@@ -420,7 +420,7 @@ always_comb begin
               resp_valid = '0;
             end else if(m2_q.wreq && (m2_q.sb_hit & sb_valid) != '0) begin // 重叠的写请求
               // 由于这条指令在 M2 级别，也就是写入过 SB 的最新指令，后续指令在这条指令前进之前，不会写 SB。
-              fsm = S_MWAITSB;
+              // mod = M_WAITSB;
               m2_stall = '1;
               resp_valid = '0;
             end else if(m2_q.cacop inside {HIT_INV, IDX_INIT, IDX_INV}) begin // Cache 无效化请求
@@ -450,12 +450,12 @@ always_comb begin
         end
       end
   end
-  S_MWAITSB: begin
-    // 等待重复命中的表项被提交或者冲刷
-    if(flush_i || (m2_q.sb_hit & sb_valid) == '0) begin
-      fsm = S_NORMAL;
-    end
-  end
+  // M_WAITSB: begin
+  //   // 等待重复命中的表项被提交或者冲刷
+  //   if(flush_i || (m2_q.sb_hit & sb_valid) == '0) begin
+  //     fsm = S_NORMAL;
+  //   end
+  // end
   S_MREFILL: begin
     bus_req_o.valid = '1;
     bus_req_o.inv_req = (!ICACHE && m2_q.llsc) ? WR_ALLOC : RD_ALLOC; // 对于 ll 指令，需要申请写权限
