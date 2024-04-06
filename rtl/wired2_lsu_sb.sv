@@ -15,14 +15,14 @@ module wired_lsu_sb(
 
     // 查询端口（M1 级）
     output logic     [3:0] valid_o,
-    output logic     [3:0] valid_fwd_o,
-    output sb_meta_t [3:0] meta_o,
+    // output logic     [3:0] valid_fwd_o,
+    // output sb_meta_t [3:0] meta_o,
     output logic     [1:0] top_o,
 
     // 提交端口（C 级，顶层命中状态）
     input  logic invalid_i,
-    output logic top_hit_o,
-    output sb_meta_t top_meta_o,
+    // output logic top_hit_o,
+    // output sb_meta_t top_meta_o,
 
     // SRAM Snoop 端口，实时更新所有 sb 表项
     input  dsram_snoop_t  snoop_i
@@ -78,7 +78,7 @@ module wired_lsu_sb(
                           .valid_i(lvalid),
                           .meta_i(meta_i),
                           .valid_o(valid_o[i]),
-                          .valid_fwd_o(valid_fwd_o[i]),
+                          // .valid_fwd_o(valid_fwd_o[i]),
                           .meta_o(meta_o[i]),
                           .snoop_i(snoop_i)
                         );
@@ -87,7 +87,7 @@ module wired_lsu_sb(
   // 输出逻辑
   assign top_o = r_ptr_q;
   assign ready_o = !full_q;
-  assign top_meta_o = meta_o[r_ptr_q];
-  assign top_hit_o = |(meta_o[r_ptr_q].hit);
+  // assign top_meta_o = meta_o[r_ptr_q];
+  // assign top_hit_o = |(meta_o[r_ptr_q].hit);
 
 endmodule
