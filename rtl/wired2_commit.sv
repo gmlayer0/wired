@@ -409,7 +409,7 @@ module wired_commit (
         f_upd.btb_target  = h_entry_q[0].target_addr;
         f_upd.lphr = h_entry_q[0].bpu_predict.lphr;
         f_upd.history = h_entry_q[0].bpu_predict.history;
-        f_upd.true_target_type = slot0_target_type;
+        f_upd.true_target_type = bpu_target_type_e'(slot0_target_type);
         f_upd.true_conditional_jmp = (|h_entry_q[0].di.cmp_type[3:1]) && !(&h_entry_q[0].di.cmp_type[3:1]);
         f_upd.ras_ptr = h_entry_q[0].bpu_predict.ras_ptr;
         if(slot0_target_type == 2'd1 && (slot0_target_type != h_entry_q[0].bpu_predict.target_type)) begin
