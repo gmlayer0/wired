@@ -1,5 +1,5 @@
 `include "tl_util.svh"
-`include "axi_util.svh"
+`include "wired_axi_util.svh"
 
 // AXI to TL-UH bridge.
 module axi_tl_adapter import tl_pkg::*; import wired_axi_pkg::*; #(

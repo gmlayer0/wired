@@ -1,5 +1,5 @@
 `include "tl_util.svh"
-`include "axi_util.svh"
+`include "wired_axi_util.svh"
 
 // TL-UH to AXI bridge.
 //

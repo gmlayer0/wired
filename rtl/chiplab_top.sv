@@ -1,4 +1,4 @@
-`include "axi_util.svh"
+`include "wired_axi_util.svh"
 
 module core_top
   (
@@ -44,7 +44,7 @@ module core_top
     input           wready,
     //write back
     input    [ 3:0] bid,
-    input    [ 1:0] bresp,
+    input logic[ 1:0] bresp,
     input           bvalid,
     output          bready,
 

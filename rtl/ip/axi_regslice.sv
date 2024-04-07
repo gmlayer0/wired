@@ -1,4 +1,4 @@
-`include "axi_util.svh"
+`include "wired_axi_util.svh"
 
 module axi_regslice #(
   parameter  int unsigned DataWidth     = 64,
