@@ -343,6 +343,9 @@ always_comb begin
       sb_fwd_data |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
     end
     resp.rdata = gen_mask_word(resp.rdata[31:0], sb_fwd_data, sb_fwd_mask);
+    if(m2_q.llsc && m2_q.wreq) begin
+      resp.rdata = 32'd1;
+    end
   end
   if(!ENABLE_64) begin
     // 偏移处理

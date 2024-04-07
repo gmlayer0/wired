@@ -590,6 +590,11 @@ module wired_commit (
                                         c_lsu_req_o.storebuf_commit = '1;
                                     end
                                 end
+                            end else begin
+                                // load inst
+                                if(h_entry_q[0].di.llsc_inst) begin
+                                    csr.llbit = '1;
+                                end
                             end
                         end
                     end
