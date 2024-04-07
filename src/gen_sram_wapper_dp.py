@@ -15,6 +15,18 @@ smic_tdpram_config = [
     },
     {
         'words': 512,
+        'bits': 64,
+        'mux': 4,
+        'bit_write': True
+    },
+    {
+        'words': 256,
+        'bits': 22,
+        'mux': 4,
+        'bit_write': False
+    },
+    {
+        'words': 512,
         'bits': 30,
         'mux': 4,
         'bit_write': False

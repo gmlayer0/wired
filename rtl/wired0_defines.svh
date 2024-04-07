@@ -1,7 +1,8 @@
 `ifndef _WIRED_HEADER
 `define _WIRED_HEADER
 
-`define _VERILATOR
+// `define _VERILATOR
+`define _ASIC
 
 `include "wired0_decoder.svh"
 `include "wired0_macros.svh"

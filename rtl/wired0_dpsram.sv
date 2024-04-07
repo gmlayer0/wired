@@ -92,7 +92,7 @@ module wired_dpsram #(
         for(integer i = 0 ; i < (DATA_WIDTH/BYTE_SIZE) ; i++) begin
             if(we0_i[i]) begin
                 rdata0_split_q[i] <= wdata0_split[i];
-                sim_ram[addr0_i][i] <= wdata0_split[i];
+                // sim_ram[addr0_i][i] <= wdata0_split[i]; ONLY 1 PORT IS FOR WRITE.
             end else begin
                 rdata0_split_q[i] <= sim_ram[addr0_i][i];
             end
@@ -143,6 +143,42 @@ module wired_dpsram #(
       .WENB    (~en1_i),
       .BWENA   (~bwena),
       .BWENB   (~bwenb),
+      .AA      (addr0_i),
+      .AB      (addr1_i),
+      .DA      (wdata0_i),
+      .DB      (wdata1_i)
+      );
+    end
+
+    else if (DATA_DEPTH == 512 && DATA_WIDTH == 64 && BYTE_SIZE != DATA_WIDTH) begin
+      S018DP_RAM_DP_W512_B64_M4_BW S018DP_RAM_DP_W512_B64_M4_BW_INST (
+      .QA      (rdata0_o),
+      .QB      (rdata1_o),
+      .CLKA    (clk0    ),
+      .CLKB    (clk1    ),
+      .CENA    (~en0_i),
+      .CENB    (~en1_i),
+      .WENA    (~en0_i),
+      .WENB    (~en1_i),
+      .BWENA   (~bwena),
+      .BWENB   (~bwenb),
+      .AA      (addr0_i),
+      .AB      (addr1_i),
+      .DA      (wdata0_i),
+      .DB      (wdata1_i)
+      );
+    end
+
+    else if (DATA_DEPTH == 256 && DATA_WIDTH == 22 && BYTE_SIZE == DATA_WIDTH) begin
+      S018DP_RAM_DP_W256_B22_M4 S018DP_RAM_DP_W256_B22_M4_INST (
+      .QA      (rdata0_o),
+      .QB      (rdata1_o),
+      .CLKA    (clk0    ),
+      .CLKB    (clk1    ),
+      .CENA    (~en0_i),
+      .CENB    (~en1_i),
+      .WENA    (~we0_i),
+      .WENB    (~we1_i),
       .AA      (addr0_i),
       .AB      (addr1_i),
       .DA      (wdata0_i),

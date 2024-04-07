@@ -552,7 +552,7 @@ end else begin
   assign lsu_pkg_o = resp_pkg;
 end
 
-`ifdef _VERILATORS
+`ifdef _VERILATOR
   if(ENABLE_STORE) : store_difftest
   begin
     // 对所有 Store 指令进行提交处理
