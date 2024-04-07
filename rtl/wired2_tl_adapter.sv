@@ -445,6 +445,7 @@ module wired_tl_adapter import tl_pkg::*; #(
                     if(prb_inv_cal) begin // 这个优先级比较高哦
                         fsm = S_RTAG0;
                         d.prb_sel = '1;
+                        d.taddr = prb_inv_addr;
                         d.addr = prb_inv_addr;
                         d.parm = prb_inv_parm;
                         d.mask = '0;
@@ -950,20 +951,20 @@ module wired_tl_adapter import tl_pkg::*; #(
     //     $display("[%t] TL Adapter catch the theif %x %x %x %x %x!!!", $time, sram_data_valid_mult, sram_data_ready_mult, m_wstrb_o, m_wdata_o[0], m_way_o);
     //   end
         // 重填监视器
-        // if($time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && acq_d_ready && acq_d_valid && acq_d.opcode == tl_pkg::GrantData) begin
-        //     $display("<<[%t] TL Adapter refill@%x in way%d with data %x.", $time, {acq_fsm.q.addr[31:4],4'd0}, acq_fsm.q.way, acq_d.data);
-        //     if(acq_fsm.q.wp) $display("<<[--------------------] With Write Permission.");
+        // if(/*$time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && */acq_d_ready && acq_d_valid && acq_d.opcode == tl_pkg::GrantData) begin
+        //     $display("\033[1;91m<<[%t] %d TL Adapter refill@%x in way%d with data %x.\033[0m", $time, SOURCE_BASE, {acq_fsm.q.addr[31:4],4'd0}, acq_fsm.q.way, acq_d.data);
+        //     if(acq_fsm.q.wp) $display("\033[1;91m<<[--------------------] With Write Permission.\033[0m");
         // end
         // // 无效化监视器
-        // if($time > 10000000 && inv_fsm.q.taddr[31:4] == 32'h3fff8 && inv_c_ready && inv_c_valid) begin
-        //     $display(">>[%t] TL Adapter %s inv@%x in way%d, %s.", $time, inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ProbeAck} ? "probed" : "volunteer",
+        // if(/*$time > 10000000 && inv_fsm.q.taddr[31:4] == 32'h3fff8 && */inv_c_ready && inv_c_valid) begin
+        //     $display("\033[1;94m>>[%t] %d TL Adapter %s inv@%x in way%d, %s.\033[0m", $time, SOURCE_BASE, inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ProbeAck} ? "probed" : "volunteer",
         //     {inv_fsm.q.taddr[31:4],4'd0}, inv_fsm.q.taddr[1:0],
         //      inv_c.param == tl_pkg::TtoB ? "TtoB" : 
         //     (inv_c.param == tl_pkg::TtoN ? "TtoN" : 
         //     (inv_c.param == tl_pkg::BtoB ? "BtoB" : 
         //     (inv_c.param == tl_pkg::BtoN ? "BtoN" : "NtoN"))));
         //     if(inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ReleaseData}) begin
-        //         $display(">>[--------------------] With data: %x", inv_c.data);
+        //         $display("\033[1;94m>>[--------------------] With data: %x\033[0m", inv_c.data);
         //     end
         // end
     end

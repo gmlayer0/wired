@@ -904,7 +904,9 @@ module wired_commit (
                         .wdest         (l_warid_o[p]),
                         .wdata         (l_warid_o[p] == '0 ? '0 : l_data_o[p]),
                         .csr_rstat     (df_entry_q[p].di.csr_op_en && df_entry_q[p].csr_id[8:0] == `_CSR_ESTAT && l_commit_o[p]),
-                        .csr_data      (l_data_o[p])
+                        .csr_data      (l_data_o[p]),
+                        .is_SC_W       (df_entry_q[p].di.llsc_inst && df_entry_q[p].di.mem_write && l_commit_o[p]),
+                        .scw_llbit     (l_data_o[p][0])
                       );
                       DifftestLoadEvent DifftestLoadEvent_p (
                         .clock (clk),

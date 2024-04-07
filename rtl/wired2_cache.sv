@@ -115,7 +115,9 @@ m1_pack_t m1_q;
 always_ff @(posedge clk) m1_q <= m1;
 // m1_raw 生成
 logic m1_tlb_no_excp; // TODO:对于 (sc && llbit == '0) || (cacheop && no_addr_trans)不触发异常
-assign m1_tlb_no_excp = m1_req_q.cacop inside {IDX_INIT, IDX_INV} || m1_req_q.dbar; // barrier 不触发异常
+
+// 直接寻址的 cacop 不触发异常, barrier 不触发异常, LLBIT 为 0 的 SC 指令不触发异常
+assign m1_tlb_no_excp = m1_req_q.cacop inside {IDX_INIT, IDX_INV} || m1_req_q.dbar || (m1_req_q.llsc && m1_req_q.strb[0] && !csr_i.llbit);
 always_comb begin
   m1_raw.vaddr = m1_req_q.vaddr; m1_raw.paddr = {m1_tlb_resp.value.ppn, m1_req_q.vaddr[11:0]};
   m1_raw.msize = m1_req_q.msize; m1_raw.msigned = m1_req_q.msigned;
