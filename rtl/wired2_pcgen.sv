@@ -224,7 +224,7 @@ always_comb begin
     p_predict_o[1].taken = '1;
     pc_is_cal = info_rdata[1].target_type == BPU_TARGET_CALL;
     pc_is_ret = info_rdata[1].target_type == BPU_TARGET_RETURN;
-    npc = info_rdata[1].target_type == BPU_TARGET_RETURN ? ras_rdata_q : btb_rdata[0];
+    npc = info_rdata[1].target_type == BPU_TARGET_RETURN ? ras_rdata_q : btb_rdata[1];
   end
   if(p_correct_i.redirect) begin
     p_valid_o = '0;

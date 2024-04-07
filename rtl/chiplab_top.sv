@@ -84,7 +84,9 @@ module core_top
   assign awlock = mem_aw.lock;
   assign awcache = mem_aw.cache;
   assign awprot = mem_aw.prot;
-  assign wid = 4'd0;
+  reg [3:0] mem_aw_id_q;
+  always_ff @(posedge aclk) if(mem_aw_valid) mem_aw_id_q <= mem_aw.id;
+  assign wid =   mem_aw_valid ? mem_aw.id : mem_aw_id_q;
   assign wdata = mem_w.data;
   assign wstrb = mem_w.strb;
   assign wlast = mem_w.last;

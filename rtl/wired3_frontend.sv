@@ -336,7 +336,7 @@ module wired_frontend #(
   // 随机暂停，积累足够多指令
   logic [19:0] timer_q;
   always_ff @(posedge clk) if(!rst_n) timer_q <= '0; else timer_q <= timer_q + 20'd1;
-  wire rnd_go = timer_q[6]; // 64 拍暂停，再执行
+  wire rnd_go = /*timer_q[6]*/ '1; // 64 拍暂停，再执行
   assign pkg_o = fifo_out_payload.p;
   assign pkg_mask_o = fifo_out_payload.mask;
   assign pkg_valid_o = fifo_out_valid & rnd_go;
