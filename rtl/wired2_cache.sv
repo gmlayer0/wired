@@ -528,8 +528,10 @@ if(OUTPUT_BUF) begin
     end
   end
   always_ff @(posedge clk) begin 
-    resp_q <= resp;
-    resp_pkg_q <= resp_pkg;
+    if(resp_ready) begin
+      resp_q <= resp;
+      resp_pkg_q <= resp_pkg;
+    end
   end
   assign resp_ready = !resp_valid_q || lsu_resp_ready_i;
   assign lsu_resp_valid_o = resp_valid_q;
