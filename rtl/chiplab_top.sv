@@ -1,6 +1,6 @@
 `include "wired_axi_util.svh"
 
-module core_top
+module core_top import wired_axi_pkg::*; 
   (
     input           aclk,
     input           aresetn,
@@ -93,10 +93,10 @@ module core_top
 
   assign mem_r.id = rid;
   assign mem_r.data = rdata;
-  assign mem_r.resp = axi_resp_t'(rresp);
+  assign mem_r.resp = wired_axi_pkg::axi_resp_t'(rresp);
   assign mem_r.last = rlast;
   assign mem_b.id = bid;
-  assign mem_b.resp = axi_resp_t'(bresp);
+  assign mem_b.resp = wired_axi_pkg::axi_resp_t'(bresp);
   assign arvalid = mem_ar_valid;
   assign mem_ar_ready = arready;
   assign mem_r_valid = rvalid;
