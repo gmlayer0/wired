@@ -49,9 +49,9 @@ module wired_sp (
                  .HostSourceWidth (2),
                  .DeviceSourceWidth (4),
                  .SinkWidth (1),
-                 .NumCachedHosts (1),
-                 .SourceBase ({2'd1 /*,4'd0*/}),
-                 .SourceMask ({2'd2 /*,4'd14*/})
+                 .NumCachedHosts (2),
+                 .SourceBase ({2'd1 ,2'd0}),
+                 .SourceMask ({2'd2 ,2'd2})
                ) broadcast (
                 .clk_i(clk),
                 .rst_ni(rst_n),

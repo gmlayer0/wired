@@ -453,7 +453,8 @@ module wired_tl_adapter import tl_pkg::*; #(
                         d.prb_sel = '0;
                         d.addr = crq_inv_addr;
                         d.parm = crq_inv_parm;
-                        d.mask = d.addr[17:14]; // 直接索引形式
+                        // d.mask = d.addr[17:14]; // 直接索引形式
+                        d.mask = '0;
                         if(d.parm inside {IDX_INV, IDX_INIT}) begin
                             d.mask[d.addr[13:12]] = '1;
                         end

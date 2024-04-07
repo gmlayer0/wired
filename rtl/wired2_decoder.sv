@@ -185,6 +185,7 @@ module wired_decoder(
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b00100000????????????????????????: begin
                 decode_err_o = 1'b0;
@@ -275,6 +276,7 @@ module wired_decoder(
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_NONE;
                 is_o.addr_imm_type = `_ADDR_IMM_S12;
+                is_o.refetch = 1'd1;
                 is_o.mem_type = `_MEM_TYPE_BYTE;
                 is_o.mem_cacop = 1'd1;
             end
@@ -565,6 +567,7 @@ module wired_decoder(
                 is_o.wait_inst = 1'd1;
                 is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b00000110010010011???????????????: begin
                 decode_err_o = 1'b0;
@@ -574,6 +577,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_R0_RK;
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b00111000011100100???????????????: begin
                 decode_err_o = 1'b0;
@@ -592,6 +596,7 @@ module wired_decoder(
                 is_o.alu_inst = 1'd1;
                 is_o.reg_type_w = `_REG_W_RJD;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b0000000000000000011001??????????: begin
                 decode_err_o = 1'b0;
@@ -599,6 +604,7 @@ module wired_decoder(
                 is_o.alu_inst = 1'd1;
                 is_o.reg_type_w = `_REG_W_RJD;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001010??????????: begin
                 decode_err_o = 1'b0;
@@ -606,6 +612,7 @@ module wired_decoder(
                 is_o.tlbsrch_en = 1'd1;
                 is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001011??????????: begin
                 decode_err_o = 1'b0;
@@ -613,6 +620,7 @@ module wired_decoder(
                 is_o.tlbrd_en = 1'd1;
                 is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001100??????????: begin
                 decode_err_o = 1'b0;
@@ -620,6 +628,7 @@ module wired_decoder(
                 is_o.tlbwr_en = 1'd1;
                 is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001101??????????: begin
                 decode_err_o = 1'b0;
@@ -627,6 +636,7 @@ module wired_decoder(
                 is_o.tlbfill_en = 1'd1;
                 is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b0000011001001000001110??????????: begin
                 decode_err_o = 1'b0;
@@ -634,6 +644,7 @@ module wired_decoder(
                 is_o.priv_inst = 1'd1;
                 is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
         endcase
     end

@@ -157,6 +157,7 @@
             "opcode": "0000011000",
             "mem_type": "`_MEM_TYPE_BYTE",
             "mem_cacop": 1,
+            "refetch": 1,
             "reg_type_r0": "`_REG_R0_NONE",
             "reg_type_r1": "`_REG_R1_RJ",
             "addr_imm_type": "`_ADDR_IMM_S12",

@@ -713,7 +713,7 @@ module wired_commit (
                         end
                     end
                     // flush / ertn 逻辑 及 idle 逻辑
-                    if(l_commit[0] && (h_entry_q[0].di.priv_inst || h_entry_q[0].di.csr_rdcnt)) begin
+                    if(l_commit[0] && (h_entry_q[0].di.refetch)) begin
                         if(h_entry_q[0].di.ertn_inst) begin
                             // 执行异常返回操作，更新寄存器
                             csr.crmd[`_CRMD_PLV] = csr_q.prmd[`_PRMD_PPLV];
