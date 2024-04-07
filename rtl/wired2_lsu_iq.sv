@@ -215,7 +215,7 @@ module wired_lsu_iq #(
                 end
                 endcase
             end else begin
-                s_lsu_req.cacop = '0;
+                s_lsu_req.cacop = NOT_VALID_INV_PARM;
             end
         end
         s_lsu_req.dbar  = s_iq_q.di.dbarrier;
