@@ -439,7 +439,6 @@ module wired_commit (
                 timer_interrupt = '1;
             end
         end
-        csr.estat[12:0] = int_vec[12:0];
         case (fsm_q)
             S_NORMAL: begin
                 f_upd.need_update = h_valid_inst_q[0] && ((|slot0_target_type) || (slot0_target_type != h_entry_q[0].bpu_predict.target_type));
@@ -803,6 +802,7 @@ module wired_commit (
             h_tid = ~h_tid_q;
             f_upd.tid = ~h_tid_q;
         end
+        if(h_ready) csr.estat[12:0] = int_vec[12:0];
     end
 
     // CSR 输出
