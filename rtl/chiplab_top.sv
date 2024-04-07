@@ -44,7 +44,7 @@ module core_top
     input           wready,
     //write back
     input    [ 3:0] bid,
-    input logic[ 1:0] bresp,
+    input    [ 1:0] bresp,
     input           bvalid,
     output          bready,
 
@@ -93,10 +93,10 @@ module core_top
 
   assign mem_r.id = rid;
   assign mem_r.data = rdata;
-  assign mem_r.resp = rresp;
+  assign mem_r.resp = axi_resp_t'(rresp);
   assign mem_r.last = rlast;
   assign mem_b.id = bid;
-  assign mem_b.resp = bresp;
+  assign mem_b.resp = axi_resp_t'(bresp);
   assign arvalid = mem_ar_valid;
   assign mem_ar_ready = arready;
   assign mem_r_valid = rvalid;
