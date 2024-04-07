@@ -24,11 +24,11 @@ module wired_registers_file #(
     wire [DEPTH-1:0][DATA_WIDTH-1:0] regfiles;
     if(REGISTERS_FILE_TYPE == "ff") begin
         wired_registers_file_ff #(
-            .DATA_WIDTH,
-            .DEPTH,
-            .NEED_RESET,
-            .RESET_VAL
-        ) regcore (
+            .DATA_WIDTH(DATA_WIDTH),
+            .DEPTH(DEPTH),
+            .NEED_RESET(NEED_RESET),
+            .RESET_VAL(RESET_VAL)
+        ) regcore_ff (
             `_WIRED_GENERAL_CONN,
             .waddr_i,
             .we_i,
@@ -38,11 +38,11 @@ module wired_registers_file #(
         );
     end else if(REGISTERS_FILE_TYPE == "latch") begin
         wired_registers_file_latch #(
-            .DATA_WIDTH,
-            .DEPTH,
-            .NEED_RESET,
-            .RESET_VAL
-        ) regcore (
+            .DATA_WIDTH(DATA_WIDTH),
+            .DEPTH(DEPTH),
+            .NEED_RESET(NEED_RESET),
+            .RESET_VAL(RESET_VAL)
+        ) regcore_latch (
             `_WIRED_GENERAL_CONN,
             .waddr_i,
             .we_i,
