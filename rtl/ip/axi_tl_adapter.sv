@@ -2,7 +2,7 @@
 `include "axi_util.svh"
 
 // AXI to TL-UH bridge.
-module axi_tl_adapter import tl_pkg::*; import axi_pkg::*; #(
+module axi_tl_adapter import tl_pkg::*; import wired_axi_pkg::*; #(
     parameter  int unsigned DataWidth   = 64,
     parameter  int unsigned AddrWidth   = 56,
     parameter  int unsigned SourceWidth = 1,

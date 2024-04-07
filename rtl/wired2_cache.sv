@@ -553,8 +553,8 @@ end else begin
 end
 
 `ifdef _VERILATOR
-  if(ENABLE_STORE) : store_difftest
-  begin
+  if(ENABLE_STORE)
+  begin : store_difftest
     // 对所有 Store 指令进行提交处理
     DifftestStoreEvent DifftestStoreEvent_p (
                          .clock     (clk),

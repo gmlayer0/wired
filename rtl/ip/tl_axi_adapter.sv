@@ -238,7 +238,7 @@ module tl_axi_adapter import tl_pkg::*; #(
     host_a_ready = 1'b1;
     device_aw_valid = 1'b0;
     device_aw = 'x;
-    device_aw.burst  = axi_pkg::BURST_INCR;
+    device_aw.burst  = wired_axi_pkg::BURST_INCR;
     device_aw.lock   = '0;
     device_aw.cache  = '0;
     device_aw.prot   = '0;
@@ -248,7 +248,7 @@ module tl_axi_adapter import tl_pkg::*; #(
     device_w = 'x;
     device_ar_valid = 1'b0;
     device_ar = 'x;
-    device_ar.burst  = axi_pkg::BURST_INCR;
+    device_ar.burst  = wired_axi_pkg::BURST_INCR;
     device_ar.lock   = '0;
     device_ar.cache  = '0;
     device_ar.prot   = '0;

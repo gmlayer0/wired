@@ -1,7 +1,7 @@
 `ifndef AXI_UTIL_SV
 `define AXI_UTIL_SV
 
-package axi_pkg;
+package wired_axi_pkg;
 
 typedef enum logic [1:0] {
   BURST_FIXED = 2'b00,
@@ -39,10 +39,10 @@ endpackage
     logic                [ADDR_WIDTH-1:0] addr  ; \
     logic                           [7:0] len   ; \
     logic                           [2:0] size  ; \
-    axi_pkg::axi_burst_t                  burst ; \
+    wired_axi_pkg::axi_burst_t                  burst ; \
     logic                                 lock  ; \
-    axi_pkg::axi_cache_t                  cache ; \
-    axi_pkg::axi_prot_t                   prot  ; \
+    wired_axi_pkg::axi_cache_t                  cache ; \
+    wired_axi_pkg::axi_prot_t                   prot  ; \
     logic                           [3:0] qos   ; \
     logic                           [3:0] region; \
   }
@@ -57,7 +57,7 @@ endpackage
 `define AXI_B_STRUCT(DATA_WIDTH, ADDR_WIDTH, ID_WIDTH) \
   struct packed { \
     logic                  [ID_WIDTH-1:0] id    ; \
-    axi_pkg::axi_resp_t                   resp  ; \
+    wired_axi_pkg::axi_resp_t                   resp  ; \
   }
 
 `define AXI_AR_STRUCT(DATA_WIDTH, ADDR_WIDTH, ID_WIDTH) \
@@ -66,10 +66,10 @@ endpackage
     logic                [ADDR_WIDTH-1:0] addr  ; \
     logic                           [7:0] len   ; \
     logic                           [2:0] size  ; \
-    axi_pkg::axi_burst_t                  burst ; \
+    wired_axi_pkg::axi_burst_t                  burst ; \
     logic                                 lock  ; \
-    axi_pkg::axi_cache_t                  cache ; \
-    axi_pkg::axi_prot_t                   prot  ; \
+    wired_axi_pkg::axi_cache_t                  cache ; \
+    wired_axi_pkg::axi_prot_t                   prot  ; \
     logic                           [3:0] qos   ; \
     logic                           [3:0] region; \
   }
@@ -78,7 +78,7 @@ endpackage
   struct packed { \
     logic                  [ID_WIDTH-1:0] id    ; \
     logic                [DATA_WIDTH-1:0] data  ; \
-    axi_pkg::axi_resp_t                   resp  ; \
+    wired_axi_pkg::axi_resp_t                   resp  ; \
     logic                                 last  ; \
   }
 
