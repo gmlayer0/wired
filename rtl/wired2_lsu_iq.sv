@@ -256,7 +256,7 @@ module wired_lsu_iq #(
     );
     always_comb begin
         cdb_o = cdb_raw;
-        assign cdb_o.valid = cdb_raw_valid;
+        cdb_o.valid = cdb_raw_valid;
     end
 
 endmodule
