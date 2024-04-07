@@ -802,7 +802,7 @@ module wired_commit (
             h_tid = ~h_tid_q;
             f_upd.tid = ~h_tid_q;
         end
-        if(h_ready) csr.estat[12:0] = int_vec[12:0];
+        if(h_ready) csr.estat[12:0] = int_vec_q[12:0];
     end
 
     // CSR 输出
@@ -903,8 +903,8 @@ module wired_commit (
                         .wen           (l_warid_o[p] == '0 ? '0 : l_commit_o[p]),
                         .wdest         (l_warid_o[p]),
                         .wdata         (l_warid_o[p] == '0 ? '0 : l_data_o[p]),
-                        .csr_rstat     (df_entry_q[p].di.csr_op_en && l_commit_o[p]),
-                        .csr_data      (csr_q.estat)
+                        .csr_rstat     (df_entry_q[p].di.csr_op_en && df_entry_q[p].csr_id[8:0] == `_CSR_ESTAT && l_commit_o[p]),
+                        .csr_data      (l_data_o[p])
                       );
                       DifftestLoadEvent DifftestLoadEvent_p (
                         .clock (clk),
