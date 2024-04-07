@@ -3,7 +3,7 @@ import os
 import re
 import json
 try_chiplab_home = os.getenv('CHIPLAB_HOME')
-try_fpga_home = os.getenv('FPGA_DIST')
+try_fpga_home = os.getenv('SMP_FPGA_DIST')
 target_path = '../dist'
 if try_fpga_home != '' and try_fpga_home is not None:
     target_path = try_fpga_home
