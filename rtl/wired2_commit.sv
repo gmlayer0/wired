@@ -338,7 +338,7 @@ module wired_commit (
     end
 
     // CSR 写辅助指令
-    logic [31:0] csr_wmask, csr_wdata;
+    logic [31:0] csr_wmask, csr_wdata, csr_rwdata;
 
     // 主状态机组合逻辑
     excp_t excp;
@@ -424,7 +424,8 @@ module wired_commit (
         csr_wmask = h_entry_q[0].target_addr;
         if(h_entry_q[0].op_code == '0) csr_wmask = '0;
         if(h_entry_q[0].op_code == 5'd1) csr_wmask = '1;
-        csr_wdata = (csr_wmask & h_entry_q[0].wdata) | ((~csr_wmask) & h_csr_rdata_q);
+        csr_rwdata =  csr_wmask & h_entry_q[0].wdata;
+        csr_wdata  = (csr_wmask & h_entry_q[0].wdata) | ((~csr_wmask) & h_csr_rdata_q);
         // 时钟处理
         if(/*csr_q.tcfg[`_TCFG_EN]*/ timer_en_q) begin
             if(csr_q.tval != '0) begin
@@ -632,7 +633,7 @@ module wired_commit (
                         `_CSR_TID:       begin `_MW(tid, 31:0); end
                         `_CSR_TCFG:      begin `_MW(tcfg,31:0);csr.tval[1:0] = '0;`_MW(tval,`_TCFG_INITVAL); if(csr_wmask & 32'd1) timer_en = h_entry_q[0].wdata[0]; end
                         // `_CSR_TVAL:      begin `_MW(); end // 只读
-                        `_CSR_TICLR:     begin if(csr_wdata[0]) timer_interrupt = '0; end
+                        `_CSR_TICLR:     begin if(csr_rwdata[0]) timer_interrupt = '0; end
                         `_CSR_LLBCTL:    begin `_MW(llbctl, `_LLBCT_KLO); if(csr_wdata[`_LLBCT_WCLLB]) csr.llbit = 1'b0; end
                         `_CSR_TLBRENTRY: begin `_MW(tlbrentry, `_TLBRENTRY_PA); end
                         `_CSR_DMW0:      begin `_MW(dmw0,`_DMW_PLV0);`_MW(dmw0,`_DMW_PLV3);`_MW(dmw0,`_DMW_MAT);`_MW(dmw0,`_DMW_PSEG);`_MW(dmw0,`_DMW_VSEG); end

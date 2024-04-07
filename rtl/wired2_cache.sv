@@ -417,7 +417,7 @@ always_comb begin
           resp_valid = '1;
           if(!m2_q.found_excp) begin
             if(!m2_q.uncache && m2_q.cacop == RD_ALLOC && (!m2_q.any_rhit || (!m2_q.any_whit && m2_q.llsc)) && !(m2_q.any_sbhit && sb_fwd_mask == '1)) begin // 未命中（rhit for all || whit for ll.w）的 cached 读请求
-              if(!m2_q.any_sbhit) fsm = S_MREFILL; // 如果命中 store buffer，等着就好了。
+              if((m2_q.sb_hit & sb_valid) == '0) fsm = S_MREFILL; // 如果命中 store buffer，等着就好了。
               m2_stall = '1;
               resp_valid = '0;
             end else if(!ENABLE_SC_UNCACHE && m2_q.uncache && m2_q.cacop == RD_ALLOC) begin // Uncached 读请求，且弱序
@@ -509,7 +509,7 @@ always_comb begin
       bus_req_o.valid = '1;
       bus_req_o.inv_req = WR_ALLOC;
       bus_req_o.target_paddr = {sb_top.paddr[31:4], m2_q.paddr[3:0]};
-      if(m2_valid_q && m2_q.cacop == RD_ALLOC && m2_q.sb_hit[sb_top_ptr]) begin
+      if(m2_valid_q && m2_q.cacop == RD_ALLOC && sb_top.paddr[31:4] == m2_q.paddr[31:4]) begin
         mod = M_HANDLED;
         m2_var.fsm_rdata = bus_resp_i.rdata[SRAM_WIDTH-1:0];
       end
@@ -567,10 +567,29 @@ end
 `endif
 
   // debug 用
+  // always_ff @(posedge clk) begin
+  //   if(32'h37f01e0 == m2_q.paddr && m2_valid_q && !m2_stall) begin
+  //     $display("Hit 0x37f01e0-%x: %x %x", m1_q.vaddr, m2_q.strb, m2_q.wdata);
+  //   end
+  // end
   always_ff @(posedge clk) begin
-    if(32'h37f01e0 == m2_q.paddr && m2_valid_q && !m2_stall) begin
-      $display("Hit 0x37f01e0-%x: %x %x", m1_q.vaddr, m2_q.strb, m2_q.wdata);
-    end
+    // if(c_lsu_req_i.storebuf_commit && !sb_top.uncached && !(|sb_top.hit)) begin
+    //   $display("[%t]Storebuf commit when not hit %x %x %x!!!\n",$time , sb_top.hit, sb_top.vaddr, sb_top.paddr);
+    // end
+    // if(m2_valid_q && m2_q.paddr == 32'h3fff80 && !m2_stall && resp.rdata == 32'h06) begin
+    //   $display("* [%t] DCache catch the read hit:%x strb:%x wdata:%x sb_hit:%x!!!",$time , m2_q.hit, m2_q.strb, m2_q.wdata, m2_q.sb_hit);
+    // end
+    // if(m2_valid_q && !m2_stall && (m2_q.hit[0] + m2_q.hit[1] + m2_q.hit[2] + m2_q.hit[3] > 1)) begin
+    //   $display("!!![%t] Cache multihit @ vaddr:%x paddr:%x!!!", m2_q.vaddr, m2_q.paddr);
+    //   // $finish;
+    // end
+    // if($time > 10000000 && bus_req_o.target_paddr[31:4] == 32'h3fff8 && fsm_q == S_MREFILL && bus_req_o.valid && bus_resp_i.ready) begin
+    //   $display("##[%t] M Refill @%x: %x. M2 wid:%x.", $time, bus_req_o.target_paddr, bus_resp_i.rdata, m2_q.wid);
+    // end
+    // if($time > 10000000 && bus_req_o.target_paddr[31:4] == 32'h3fff8 && fsm_q == S_CREFILL && bus_req_o.valid && bus_resp_i.ready) begin
+    //   $display("##[%t] C Refill @%x: %x. M2 valid:%d sbhit:%x wid:%x sbtop:%d.",
+    //   $time, bus_req_o.target_paddr, bus_resp_i.rdata, m2_valid_q, m2_q.sb_hit, m2_q.wid, sb_top_ptr);
+    // end
   end
 
 endmodule

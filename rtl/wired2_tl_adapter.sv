@@ -943,4 +943,30 @@ module wired_tl_adapter import tl_pkg::*; #(
     assign dbg_d = tl_d_i;
     assign dbg_e = tl_e_o;
 
+    // debug 用
+    always_ff @(posedge clk) begin
+    //   if($time > 10000000 && bus_req_i.sram_addr[31:0] == 32'h3fff80 && bus_req_i.sram_wb_req &&
+    //   bus_req_i.wstrobe[0] && (m_wdata_o[0][7:0] == 8'h06 || m_wdata_o[0][7:0] == 8'h00)) begin
+    //     $display("[%t] TL Adapter catch the theif %x %x %x %x %x!!!", $time, sram_data_valid_mult, sram_data_ready_mult, m_wstrb_o, m_wdata_o[0], m_way_o);
+    //   end
+        // 重填监视器
+        // if($time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && acq_d_ready && acq_d_valid && acq_d.opcode == tl_pkg::GrantData) begin
+        //     $display("<<[%t] TL Adapter refill@%x in way%d with data %x.", $time, {acq_fsm.q.addr[31:4],4'd0}, acq_fsm.q.way, acq_d.data);
+        //     if(acq_fsm.q.wp) $display("<<[--------------------] With Write Permission.");
+        // end
+        // // 无效化监视器
+        // if($time > 10000000 && inv_fsm.q.taddr[31:4] == 32'h3fff8 && inv_c_ready && inv_c_valid) begin
+        //     $display(">>[%t] TL Adapter %s inv@%x in way%d, %s.", $time, inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ProbeAck} ? "probed" : "volunteer",
+        //     {inv_fsm.q.taddr[31:4],4'd0}, inv_fsm.q.taddr[1:0],
+        //      inv_c.param == tl_pkg::TtoB ? "TtoB" : 
+        //     (inv_c.param == tl_pkg::TtoN ? "TtoN" : 
+        //     (inv_c.param == tl_pkg::BtoB ? "BtoB" : 
+        //     (inv_c.param == tl_pkg::BtoN ? "BtoN" : "NtoN"))));
+        //     if(inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ReleaseData}) begin
+        //         $display(">>[--------------------] With data: %x", inv_c.data);
+        //     end
+        // end
+    end
+  
+
 endmodule
