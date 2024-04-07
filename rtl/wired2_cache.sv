@@ -553,19 +553,19 @@ end else begin
 end
 
 `ifdef _VERILATOR
-  if(ENABLE_STORE)
-  begin : store_difftest
-    // 对所有 Store 指令进行提交处理
-    DifftestStoreEvent DifftestStoreEvent_p (
-                         .clock     (clk),
-                         .coreid    ('0 ),
-                         .index     ('0 ),
-                         .valid     (c_lsu_req_i.storebuf_commit),
-                         .storePAddr(sb_top.paddr),
-                         .storeVAddr(sb_top.vaddr),
-                         .storeData (sb_top.wdata >> {sb_top.vaddr[1:0],3'd0}) // 恢复已经偏移的写数据
-                       );
-  end
+  // if(ENABLE_STORE)
+  // begin : store_difftest
+  //   // 对所有 Store 指令进行提交处理
+  //   DifftestStoreEvent DifftestStoreEvent_p (
+  //                        .clock     (clk),
+  //                        .coreid    ('0 ),
+  //                        .index     ('0 ),
+  //                        .valid     (c_lsu_req_i.storebuf_commit),
+  //                        .storePAddr(sb_top.paddr),
+  //                        .storeVAddr(sb_top.vaddr),
+  //                        .storeData (sb_top.wdata >> {sb_top.vaddr[1:0],3'd0}) // 恢复已经偏移的写数据
+  //                      );
+  // end
 `endif
 
   // debug 用
