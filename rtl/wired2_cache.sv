@@ -474,7 +474,7 @@ always_comb begin
   end
   S_MCACOP: begin
       bus_req_o.valid = '1;
-      bus_req_o.inv_req = m2_q.cacop; // 对于 ll 指令，需要申请写权限
+      bus_req_o.inv_req = inv_parm_e'(m2_q.cacop); // 对于 ll 指令，需要申请写权限
       if(bus_resp_i.ready) begin
           fsm = S_NORMAL;
           mod = M_HANDLED;
