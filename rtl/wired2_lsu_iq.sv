@@ -199,7 +199,8 @@ module wired_lsu_iq #(
             endcase
         end
         
-        s_lsu_req.cacop = s_iq_q.di.mem_write ? WR_ALLOC : RD_ALLOC;
+        s_lsu_req.cacop = s_iq_q.di.mem_write ? WR_ALLOC :
+                          s_iq_q.di.dbarrier ? '0 : RD_ALLOC;
         if(s_iq_q.di.mem_cacop) begin
             if(s_iq_q.op_code[2:0] == 3'd1) begin// dcacheop
                 case(s_iq_q.op_code[4:3])

@@ -547,7 +547,7 @@ module wired_tl_adapter import tl_pkg::*; #(
                 end
                 S_SEL: begin
                     for(integer i = 3 ; i >= 0 ; i -= 1) begin
-                        if(d.mask[i]) begin
+                        if(q.mask[i]) begin
                             d.perm  = {q.tags[i].wp, q.tags[i].rp};
                             d.taddr = {q.tags[i].p, q.addr[11:4],2'd0,i[1:0]};
                         end

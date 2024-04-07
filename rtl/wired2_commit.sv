@@ -65,7 +65,7 @@ module wired_commit (
     assign slot1_ctrl_conflict = c_rob_entry_i[1].di.slot0 ||
                                  c_rob_entry_i[1].excp_found ||
                                  c_rob_entry_i[1].bpu_predict.taken || // 错误预测的跳转，也强制送到第一条管线检查
-                                 c_rob_entry_i[1].di.mem_write || c_rob_entry_i[1].uncached; // 写指令 / uncached 指令需要特殊处理
+                                 c_rob_entry_i[1].uncached; // 写指令 / uncached 指令需要特殊处理
     assign c_retire_o = f_valid & {f_skid_ready_q, f_skid_ready_q};
 
     always_ff @(posedge clk) begin
@@ -598,20 +598,6 @@ module wired_commit (
                             end
                         end
                     end
-                    // 跳转指令处理，注意刷新管线
-                    // if(h_entry_q[0].di.jump_inst) begin // 对非访存指令，也可能会误预测。
-                    // 特殊处理未命中情况，刷新流水线，重定向控制流
-                    // 注意：到达这里的指令，可能下一拍不一定正常执行，检查 l_commit[0]
-                    if(  l_commit[0] &&
-                      ((h_entry_q[0].need_jump && (!h_entry_q[0].bpu_predict.taken || h_entry_q[0].bpu_predict.predict_pc != h_entry_q[0].target_addr)) ||
-                      (!h_entry_q[0].need_jump &&   h_entry_q[0].bpu_predict.taken))) begin
-                        l_commit = 2'b01;
-                        f_upd.miss = '1;
-                        f_upd.need_update = '1;
-                        f_upd.redirect = '1;
-                        if(h_entry_q[0].need_jump) f_upd.true_target = h_entry_q[0].target_addr;
-                        fsm = S_WAIT_FLUSH;
-                    end
                     // end
                     
                     // CSR 读写指令处理，注意刷新管线
@@ -798,6 +784,20 @@ module wired_commit (
                 end
             end
         endcase
+        // 跳转指令处理，注意刷新管线
+        // if(h_entry_q[0].di.jump_inst) begin // 对非访存指令，也可能会误预测。
+        // 特殊处理未命中情况，刷新流水线，重定向控制流
+        // 注意：到达这里的指令，可能下一拍不一定正常执行，检查 l_commit[0]
+        if(  l_commit[0] &&
+          ((h_entry_q[0].need_jump && (!h_entry_q[0].bpu_predict.taken || h_entry_q[0].bpu_predict.predict_pc != h_entry_q[0].target_addr)) ||
+          (!h_entry_q[0].need_jump &&   h_entry_q[0].bpu_predict.taken))) begin
+            l_commit = 2'b01;
+            f_upd.miss = '1;
+            f_upd.need_update = '1;
+            f_upd.redirect = '1;
+            if(h_entry_q[0].need_jump) f_upd.true_target = h_entry_q[0].target_addr;
+            fsm = S_WAIT_FLUSH;
+        end
         if(h_ready && f_upd.redirect) begin
             h_tid = ~h_tid_q;
             f_upd.tid = ~h_tid_q;

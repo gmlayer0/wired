@@ -106,7 +106,8 @@
             "addr_imm_type": "`_ADDR_IMM_S14",
             "reg_type_w": "`_REG_W_RD",
             "lsu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)"
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)",
+            "slot0": 1
         },
         "st.w": {
             "opcode": "0010100110",
@@ -117,7 +118,8 @@
             "addr_imm_type": "`_ADDR_IMM_S12",
             "reg_type_w": "`_REG_W_NONE",
             "lsu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)",
+            "slot0": 1
         },
         "st.h": {
             "opcode": "0010100101",
@@ -128,7 +130,8 @@
             "addr_imm_type": "`_ADDR_IMM_S12",
             "reg_type_w": "`_REG_W_NONE",
             "lsu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)",
+            "slot0": 1
         },
         "st.b": {
             "opcode": "0010100100",
@@ -139,7 +142,8 @@
             "addr_imm_type": "`_ADDR_IMM_S12",
             "reg_type_w": "`_REG_W_NONE",
             "lsu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)",
+            "slot0": 1
         },
         "sc.w": {
             "opcode": "00100001",
@@ -151,7 +155,8 @@
             "addr_imm_type": "`_ADDR_IMM_S14",
             "reg_type_w": "`_REG_W_RD",
             "lsu_inst": 1,
-            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)"
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)",
+            "slot0": 1
         },
         "cacop": {
             "opcode": "0000011000",
@@ -163,7 +168,8 @@
             "addr_imm_type": "`_ADDR_IMM_S12",
             "reg_type_w": "`_REG_W_NONE",
             "lsu_inst": 1,
-            "das": "\"0x%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)"
+            "das": "\"0x%02x, $r%02x, %03x=%d\", rd, rj, I14<<2, $signed(I14<<2)",
+            "slot0": 1
         },
         "dbar": {
             "opcode": "00111000011100100",
@@ -171,13 +177,15 @@
             "refetch": 1,
             "need_csr": 1,
             "lsu_inst": 1,
-            "das": "\"0\""
+            "das": "\"0\"",
+            "slot0": 1
         },
         "ibar": {
             "opcode": "00111000011100101",
             "refetch": 1,
             "alu_inst": 1,
-            "das": "\"0\""
+            "das": "\"0\"",
+            "slot0": 1
         },
         "preld_nop": {
             "opcode": "0010101011",

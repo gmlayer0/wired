@@ -115,7 +115,7 @@ m1_pack_t m1_q;
 always_ff @(posedge clk) m1_q <= m1;
 // m1_raw 生成
 logic m1_tlb_no_excp; // TODO:对于 (sc && llbit == '0) || (cacheop && no_addr_trans)不触发异常
-assign m1_tlb_no_excp = m1_req_q.cacop inside {IDX_INIT, IDX_INV};
+assign m1_tlb_no_excp = m1_req_q.cacop inside {IDX_INIT, IDX_INV} || m1_req_q.dbar; // barrier 不触发异常
 always_comb begin
   m1_raw.vaddr = m1_req_q.vaddr; m1_raw.paddr = {m1_tlb_resp.value.ppn, m1_req_q.vaddr[11:0]};
   m1_raw.msize = m1_req_q.msize; m1_raw.msigned = m1_req_q.msigned;
@@ -186,7 +186,7 @@ end
 // SRAM Hit 生成
 logic [3:0] m1_hit, m1_rhit, m1_whit;
 for(genvar i = 0 ; i < 4 ; i += 1) begin
-  assign m1_hit[i] = m1.tag[i].p == m1.paddr[31:12]; // 只处理读命中。
+  assign m1_hit[i]  = m1.tag[i].p == m1.paddr[31:12]; // 只处理读命中。
   assign m1_rhit[i] = m1_hit[i] & m1.tag[i].rp;
   assign m1_whit[i] = m1_hit[i] & m1.tag[i].wp;
 end
@@ -209,8 +209,9 @@ assign m1_sb_rdata = ({32{m1_sb_hit[0]}} & sb_entry[0].wdata) |
 // sb_w 项目生成
 always_comb begin
   sb_w.paddr = m1.paddr;
-  sb_w.hit = m1_whit;
+  sb_w.hit  = m1_whit;
   sb_w.strb = m1.strb;
+  sb_w.uncached = m1.uncache;
   sb_w.wdata = m1.wdata;
 `ifdef _VERILATOR
   sb_w.vaddr = m1.vaddr;
@@ -331,12 +332,15 @@ always_comb begin
   resp.uncached = m2_q.uncache;
   resp.vaddr = m2_q.vaddr;
   for(integer i = 0 ; i < 4 ; i += 1) begin
-    resp.rdata[SRAM_WIDTH-1:0]       |= m2_q.hit[i] ? m2_q.data[i] : '0;
+    resp.rdata[SRAM_WIDTH-1:0] |= m2_q.hit[i] ? m2_q.data[i] : '0;
   end
   resp.wid = m2_q.wid;
   resp_pkg = m2_q.pkg;
   sb_fwd_mask = '0;
   sb_fwd_data = '0;
+  if(mod_q == M_HANDLED) begin
+    resp.rdata[SRAM_WIDTH-1:0] = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
+  end
   if(ENABLE_STORE) begin
     for(integer i = 0 ; i < 4 ; i += 1) begin
       sb_fwd_mask |= m2_q.sb_hit[i] ? sb_entry[i].strb : '0;
@@ -381,7 +385,7 @@ always_comb begin
       bus_req_o.way |= sb_top.hit[i] ? i[1:0] : '0;
     end
     if(c_lsu_req_i.storebuf_commit) begin
-      bus_req_o.sram_wb_req = '1;
+      bus_req_o.sram_wb_req = !sb_top.uncached;
       sb_inv = '1;
     end
     bus_req_o.wdata = sb_top.wdata; // 巧合的是，unc也存在这里
@@ -413,7 +417,7 @@ always_comb begin
           resp_valid = '1;
           if(!m2_q.found_excp) begin
             if(!m2_q.uncache && m2_q.cacop == RD_ALLOC && (!m2_q.any_rhit || (!m2_q.any_whit && m2_q.llsc)) && !(m2_q.any_sbhit && sb_fwd_mask == '1)) begin // 未命中（rhit for all || whit for ll.w）的 cached 读请求
-              fsm = S_MREFILL;
+              if(!m2_q.any_sbhit) fsm = S_MREFILL; // 如果命中 store buffer，等着就好了。
               m2_stall = '1;
               resp_valid = '0;
             end else if(!ENABLE_SC_UNCACHE && m2_q.uncache && m2_q.cacop == RD_ALLOC) begin // Uncached 读请求，且弱序
@@ -445,8 +449,6 @@ always_comb begin
       end
       else if(mod_q == M_HANDLED) begin
         resp_valid = m2_valid_q;
-        if(!ENABLE_64) resp.rdata[SRAM_WIDTH-1:0] = mkrsft(m2_var_q.fsm_rdata, m2_q.vaddr, m2_q.msize, m2_q.msigned);
-        else resp.rdata = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
         if(resp_ready || !m2_valid_q) begin
           m2_stall = '0;
           mod = m2_q.dbar ? M_DBAR : M_NORMAL;
@@ -506,7 +508,11 @@ always_comb begin
   S_CREFILL: begin
       bus_req_o.valid = '1;
       bus_req_o.inv_req = WR_ALLOC;
-      bus_req_o.target_paddr = sb_top.paddr;
+      bus_req_o.target_paddr = {sb_top.paddr[31:4], m2_q.paddr[3:0]};
+      if(m2_valid_q && m2_q.cacop == RD_ALLOC && m2_q.sb_hit[sb_top_ptr]) begin
+        mod = M_HANDLED;
+        m2_var.fsm_rdata = bus_resp_i.rdata[SRAM_WIDTH-1:0];
+      end
       c_lsu_resp_o.ready = bus_resp_i.ready;
       if(bus_resp_i.ready) begin
           fsm = S_NORMAL;
@@ -559,5 +565,12 @@ end
                        );
   end
 `endif
+
+  // debug 用
+  always_ff @(posedge clk) begin
+    if(32'h37f01e0 == m2_q.paddr && m2_valid_q && !m2_stall) begin
+      $display("Hit 0x37f01e0-%x: %x %x", m1_q.vaddr, m2_q.strb, m2_q.wdata);
+    end
+  end
 
 endmodule

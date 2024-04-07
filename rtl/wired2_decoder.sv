@@ -194,6 +194,7 @@ module wired_decoder(
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.addr_imm_type = `_ADDR_IMM_S14;
+                is_o.slot0 = 1'd1;
                 is_o.mem_type = `_MEM_TYPE_WORD;
                 is_o.mem_read = 1'd1;
                 is_o.llsc_inst = 1'd1;
@@ -205,6 +206,7 @@ module wired_decoder(
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.addr_imm_type = `_ADDR_IMM_S14;
+                is_o.slot0 = 1'd1;
                 is_o.mem_type = `_MEM_TYPE_WORD;
                 is_o.mem_write = 1'd1;
                 is_o.llsc_inst = 1'd1;
@@ -276,6 +278,7 @@ module wired_decoder(
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_NONE;
                 is_o.addr_imm_type = `_ADDR_IMM_S12;
+                is_o.slot0 = 1'd1;
                 is_o.refetch = 1'd1;
                 is_o.mem_type = `_MEM_TYPE_BYTE;
                 is_o.mem_cacop = 1'd1;
@@ -317,6 +320,7 @@ module wired_decoder(
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_NONE;
                 is_o.addr_imm_type = `_ADDR_IMM_S12;
+                is_o.slot0 = 1'd1;
                 is_o.mem_type = `_MEM_TYPE_BYTE;
                 is_o.mem_write = 1'd1;
             end
@@ -327,6 +331,7 @@ module wired_decoder(
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_NONE;
                 is_o.addr_imm_type = `_ADDR_IMM_S12;
+                is_o.slot0 = 1'd1;
                 is_o.mem_type = `_MEM_TYPE_HALF;
                 is_o.mem_write = 1'd1;
             end
@@ -337,6 +342,7 @@ module wired_decoder(
                 is_o.reg_type_r1 = `_REG_R1_RJ;
                 is_o.reg_type_w = `_REG_W_NONE;
                 is_o.addr_imm_type = `_ADDR_IMM_S12;
+                is_o.slot0 = 1'd1;
                 is_o.mem_type = `_MEM_TYPE_WORD;
                 is_o.mem_write = 1'd1;
             end
@@ -582,12 +588,14 @@ module wired_decoder(
             32'b00111000011100100???????????????: begin
                 decode_err_o = 1'b0;
                 is_o.lsu_inst = 1'd1;
+                is_o.slot0 = 1'd1;
                 is_o.refetch = 1'd1;
                 is_o.dbarrier = 1'd1;
             end
             32'b00111000011100101???????????????: begin
                 decode_err_o = 1'b0;
                 is_o.alu_inst = 1'd1;
+                is_o.slot0 = 1'd1;
                 is_o.refetch = 1'd1;
             end
             32'b0000000000000000011000??????????: begin
