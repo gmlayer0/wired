@@ -931,4 +931,16 @@ module wired_tl_adapter import tl_pkg::*; #(
     assign tl_e_valid_o = acq_e_valid;
     assign acq_e_ready = tl_e_ready_i;
 
+    // dbg observe points
+    tl_a_t dbg_a;
+    tl_b_t dbg_b;
+    tl_c_t dbg_c;
+    tl_d_t dbg_d;
+    tl_e_t dbg_e;
+    assign dbg_a = tl_a_o;
+    assign dbg_b = tl_b_i;
+    assign dbg_c = tl_c_o;
+    assign dbg_d = tl_d_i;
+    assign dbg_e = tl_e_o;
+
 endmodule
