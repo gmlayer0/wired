@@ -51,13 +51,13 @@ module wired_registers_file_banked #(
             end
         end
         wired_registers_file #(
-            .DATA_WIDTH,
+            .DATA_WIDTH(DATA_WIDTH),
             .DEPTH(DEPTH/W_PORT_COUNT),
-            .R_PORT_COUNT,
-            .REGISTERS_FILE_TYPE,
-            .NEED_RESET,
-            .NEED_FORWARD,
-            .RESET_VAL
+            .R_PORT_COUNT(R_PORT_COUNT),
+            .REGISTERS_FILE_TYPE(REGISTERS_FILE_TYPE),
+            .NEED_RESET(NEED_RESET),
+            .NEED_FORWARD(NEED_FORWARD),
+            .RESET_VAL(RESET_VAL)
         ) slice_regfiles (
             `_WIRED_GENERAL_CONN,
             .raddr_i(raddr),
