@@ -343,15 +343,14 @@ always_comb begin
       sb_fwd_data |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
     end
     resp.rdata = gen_mask_word(resp.rdata[31:0], sb_fwd_data, sb_fwd_mask);
-    if(m2_q.llsc && m2_q.wreq) begin
-      resp.rdata = 32'd1;
-    end
   end
   if(!ENABLE_64) begin
     // 偏移处理
     resp.rdata = mkrsft(resp.rdata[31:0], m2_q.vaddr, m2_q.msize, m2_q.msigned);
   end
-
+  if(ENABLE_STORE && m2_q.llsc && m2_q.wreq) begin
+    resp.rdata = 32'd1;
+  end
   // M2 Var 处理
   m2_var = m2_var_q;
 
@@ -446,7 +445,8 @@ always_comb begin
       end
       else if(mod_q == M_HANDLED) begin
         resp_valid = m2_valid_q;
-        resp.rdata[SRAM_WIDTH-1:0] = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
+        if(!ENABLE_64) resp.rdata[SRAM_WIDTH-1:0] = mkrsft(m2_var_q.fsm_rdata, m2_q.vaddr, m2_q.msize, m2_q.msigned);
+        else resp.rdata = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
         if(resp_ready || !m2_valid_q) begin
           m2_stall = '0;
           mod = m2_q.dbar ? M_DBAR : M_NORMAL;

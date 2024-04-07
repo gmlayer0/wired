@@ -269,15 +269,12 @@ function automatic logic[31:0] mkrsft(input logic[31:0] raw, input logic[31:0] v
   // M1 RDATA 电路
   logic ext_sign;
   case(siz[0])
-    default : begin
-      ext_sign = raw[15] & sign;
-    end
     1'b1 : begin
       // HALF
       ext_sign = va[1] ? (raw[31] & sign) :
         (raw[15] & sign);
     end
-    1'b0 : begin
+    /*1'b0*/1'b0 : begin
       // BYTE
       ext_sign = va[1] ? (va[0] ? (raw[31] & sign) : (raw[23] & sign)) :
         (va[0] ? (raw[15] & sign) : (raw[7] & sign));
