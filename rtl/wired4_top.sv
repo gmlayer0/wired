@@ -4,7 +4,8 @@
 module wired_top #(
     parameter int unsigned SOURCE_WIDTH  = 2,
     parameter int unsigned SINK_WIDTH    = 1,
-    parameter int CPU_ID = 0
+    parameter int CPU_ID = 0,
+    parameter int ENABLE_DIFFTEST = 1
   )(
     `_WIRED_GENERAL_DEFINE,
     input [8:0] interrupt_i, // 输入中断，最高位为 IPI 中断
@@ -63,7 +64,8 @@ module wired_top #(
   wired_backend # (
                   .SOURCE_WIDTH(SOURCE_WIDTH),
                   .SINK_WIDTH(SINK_WIDTH),
-                  .CPU_ID(CPU_ID)
+                  .CPU_ID(CPU_ID),
+                  .ENABLE_DIFFTEST(ENABLE_DIFFTEST)
                 )
                 wired_backend_inst (
                   `_WIRED_GENERAL_CONN,

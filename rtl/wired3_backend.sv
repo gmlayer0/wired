@@ -4,7 +4,8 @@
 module wired_backend #(
     parameter int unsigned SOURCE_WIDTH  = 1,
     parameter int unsigned SINK_WIDTH    = 1,
-    parameter int CPU_ID = 0
+    parameter int CPU_ID = 0,
+    parameter int ENABLE_DIFFTEST = 1
   )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -431,7 +432,10 @@ module wired_backend #(
   );
 
   // COMMIT 流水线
-  wired_commit  wired_commit_inst (
+  wired_commit #(
+    .CPU_ID(CPU_ID),
+    .ENABLE_DIFFTEST(ENABLE_DIFFTEST)
+  ) wired_commit_inst (
     `_WIRED_GENERAL_CONN,
     .c_rrrid_o(c_rrrid),
     .c_rob_valid_i(c_rob_valid),

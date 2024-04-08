@@ -945,28 +945,44 @@ module wired_tl_adapter import tl_pkg::*; #(
     assign dbg_e = tl_e_o;
 
     // debug 用
+    parameter string CacheName = (SOURCE_BASE % 2) == 0 ? "DCache" : "ICache";
+    parameter integer CoreID = SOURCE_BASE / 2;
+    parameter string ColorTable[4] = {"\033[40;97m", "\033[41;97m", "\033[43;97m", "\033[44;97m"};
+    parameter string ColorID = ColorTable[SOURCE_BASE];
     always_ff @(posedge clk) begin
     //   if($time > 10000000 && bus_req_i.sram_addr[31:0] == 32'h3fff80 && bus_req_i.sram_wb_req &&
     //   bus_req_i.wstrobe[0] && (m_wdata_o[0][7:0] == 8'h06 || m_wdata_o[0][7:0] == 8'h00)) begin
     //     $display("[%t] TL Adapter catch the theif %x %x %x %x %x!!!", $time, sram_data_valid_mult, sram_data_ready_mult, m_wstrb_o, m_wdata_o[0], m_way_o);
     //   end
+        // 请求监视器
+        if(/*$time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && */tl_a_ready_i && tl_a_valid_o && dbg_a.opcode inside {tl_pkg::AcquireBlock, tl_pkg::Get, tl_pkg::PutFullData}) begin
+            $display("%s↓↓[%-8t] Core%1d-%s TL A \033[1;97m%s @%x with mask %x.\033[0m", ColorID, $time, CoreID, CacheName, 
+             dbg_a.opcode == tl_pkg::AcquireBlock       ? (dbg_a.param == tl_pkg::NtoB ? "Acq CRead " : "Acq CWrite") :
+            (dbg_a.opcode == tl_pkg::Get                ? "Acq URead " : "Acq UWrite"),
+            dbg_a.address, dbg_a.mask);
+            if(dbg_a.opcode == tl_pkg::PutFullData) $display("%s||[--------] With Write Data %x.\033[0m",ColorID, dbg_a.data);
+        end
+        // 无效化监视器
+        if(/*$time > 10000000 && inv_fsm.q.taddr[31:4] == 32'h3fff8 && */inv_c_ready && inv_c_valid) begin
+            $display("%s||[%-8t]--- Core%1d-%s TL C \033[1;33m%s inv@%x in way%d, %s.\033[0m", ColorID , $time, CoreID, CacheName, inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ProbeAck} ? "probed" : "volunt",
+            {inv_fsm.q.taddr[31:4],4'd0}, inv_fsm.q.taddr[1:0],
+             inv_c.param == tl_pkg::TtoB ? "TtoB" : 
+            (inv_c.param == tl_pkg::TtoN ? "TtoN" : 
+            (inv_c.param == tl_pkg::BtoB ? "BtoB" : 
+            (inv_c.param == tl_pkg::BtoN ? "BtoN" : "NtoN"))));
+            if(inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ReleaseData}) begin
+                $display("%s||[--------]--- With data: %x\033[0m",ColorID, inv_c.data);
+            end
+        end
         // 重填监视器
-        // if(/*$time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && */acq_d_ready && acq_d_valid && acq_d.opcode == tl_pkg::GrantData) begin
-        //     $display("\033[1;91m<<[%t] %d TL Adapter refill@%x in way%d with data %x.\033[0m", $time, SOURCE_BASE, {acq_fsm.q.addr[31:4],4'd0}, acq_fsm.q.way, acq_d.data);
-        //     if(acq_fsm.q.wp) $display("\033[1;91m<<[--------------------] With Write Permission.\033[0m");
-        // end
-        // // 无效化监视器
-        // if(/*$time > 10000000 && inv_fsm.q.taddr[31:4] == 32'h3fff8 && */inv_c_ready && inv_c_valid) begin
-        //     $display("\033[1;94m>>[%t] %d TL Adapter %s inv@%x in way%d, %s.\033[0m", $time, SOURCE_BASE, inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ProbeAck} ? "probed" : "volunteer",
-        //     {inv_fsm.q.taddr[31:4],4'd0}, inv_fsm.q.taddr[1:0],
-        //      inv_c.param == tl_pkg::TtoB ? "TtoB" : 
-        //     (inv_c.param == tl_pkg::TtoN ? "TtoN" : 
-        //     (inv_c.param == tl_pkg::BtoB ? "BtoB" : 
-        //     (inv_c.param == tl_pkg::BtoN ? "BtoN" : "NtoN"))));
-        //     if(inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ReleaseData}) begin
-        //         $display("\033[1;94m>>[--------------------] With data: %x\033[0m", inv_c.data);
-        //     end
-        // end
+        if(/*$time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && */tl_d_ready_o && tl_d_valid_i && dbg_d.opcode inside {tl_pkg::GrantData, tl_pkg::Grant}) begin
+            $display("%s↑↑[%-8t] Core%1d-%s TL D \033[1;32m%s @%x in way%d with data %x.\033[0m", ColorID, $time, CoreID, CacheName, 
+            "Refill", {acq_fsm.q.addr[31:4],4'd0}, acq_fsm.q.way, dbg_d.data);
+            if(acq_fsm.q.wp) $display("%s↑↑[--------] With Write Permission.\033[0m",ColorID);
+        end
+        if(/*$time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && */tl_d_ready_o && tl_d_valid_i && dbg_d.opcode inside {tl_pkg::AccessAck, tl_pkg::AccessAckData}) begin
+            $display("%s↑↑[%-8t] Core%1d-%s TL D \033[1;97mUncached Respond.\033[0m", ColorID, $time, CoreID, CacheName);
+        end
     end
   
 

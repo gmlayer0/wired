@@ -5,7 +5,10 @@
 // Futhermore, this module will change CSR / ARF / NPC status to commit instruction.
 // This module can commit(retire) at most two inst / cycle.
 // Because our CDB is 2-width, this is already enough.
-module wired_commit (
+module wired_commit #(
+    parameter int ENABLE_DIFFTEST = 1,
+    parameter int CPU_ID = 0
+)(
     `_WIRED_GENERAL_DEFINE,
 
     // Part 1: ROB 读端口
@@ -265,6 +268,8 @@ module wired_commit (
         csr_init = '0;
         csr_init.crmd[`_CRMD_DA] = 1'd1; // 初始化要求非0的 CSR 寄存器值
         csr_init.asid[31:10] = 22'h280;
+        csr_init.cpuid = CPU_ID;
+        csr_init.tid = CPU_ID;
     end
     csr_t csr_q;
     always_ff @(posedge clk) begin
@@ -809,7 +814,7 @@ module wired_commit (
     assign csr_o = csr_q;
 
     // 连接差分测试
-`ifdef _VERILATOR
+if(ENABLE_DIFFTEST) begin
   logic[31:0][31:0] ref_regs;
     for(genvar i = 0 ; i < 32 ; i ++) begin
       always_ff @(posedge clk) begin
@@ -971,6 +976,6 @@ module wired_commit (
                     .dmw1     (csr_q.dmw1                     ),
                     .llbctl   ({csr_q.llbctl,1'b0,csr_q.llbit})
                   );
-`endif
+end
 
 endmodule
