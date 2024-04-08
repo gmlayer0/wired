@@ -569,7 +569,6 @@ end
   //                        .storeData (sb_top.wdata >> {sb_top.vaddr[1:0],3'd0}) // 恢复已经偏移的写数据
   //                      );
   // end
-`endif
 
   // debug 用
   // always_ff @(posedge clk) begin
@@ -596,5 +595,6 @@ end
     //   $time, bus_req_o.target_paddr, bus_resp_i.rdata, m2_valid_q, m2_q.sb_hit, m2_q.wid, sb_top_ptr);
     // end
   end
+`endif
 
 endmodule

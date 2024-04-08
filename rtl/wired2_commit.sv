@@ -979,6 +979,7 @@ if(ENABLE_DIFFTEST) begin
                   );
 end
 
+`ifdef _VERILATOR
   // dbg 使用
   parameter string ColorTable[4] = {"\033[40;97m", "\033[41;97m", "\033[43;97m", "\033[44;97m"};
   parameter string ColorID = ColorTable[CPU_ID];
@@ -988,5 +989,6 @@ end
     //     "SUCC" : "FAIL", c_lsu_resp_i.wdata);
     // end
   end
+`endif
 
 endmodule

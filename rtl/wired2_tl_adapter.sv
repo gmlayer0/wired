@@ -966,6 +966,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     assign dbg_e = tl_e_o;
 
     // debug 用
+`ifdef _VERILATOR
     parameter string CacheName = (SOURCE_BASE % 2) == 0 ? "DCache" : "ICache";
     parameter integer CoreID = SOURCE_BASE / 2;
     parameter string ColorTable[4] = {"\033[40;97m", "\033[41;97m", "\033[43;97m", "\033[44;97m"};
@@ -1008,6 +1009,7 @@ module wired_tl_adapter import tl_pkg::*; #(
         // end
         // end
     end
+`endif
   
 
 endmodule
