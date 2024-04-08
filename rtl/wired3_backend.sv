@@ -140,8 +140,8 @@ module wired_backend #(
         r_p_pkg[p].addr_imm = addr_imm;
         // if(r_pkg[p].di.invtlb_en || r_pkg[p].di.mem_cacop) begin
         r_p_pkg[p].op_code[2:0] = raw_imm[2:0]; // invtlb / cacop
-        r_p_pkg[p].op_code[4] = r_waddr[p] == 5'd1;
-        r_p_pkg[p].op_code[3] = r_raddr[p][1] == 5'd1;
+        r_p_pkg[p].op_code[4] = r_waddr[p] == 5'd1;    // call
+        r_p_pkg[p].op_code[3] = r_raddr[p][1] == 5'd1; // return
         // end else 
         if(r_pkg[p].di.csr_op_en || (r_pkg[p].di.csr_rdcnt != '0)) begin
             r_p_pkg[p].op_code = raw_imm[9:5]; // rj

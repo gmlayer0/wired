@@ -3,7 +3,8 @@
 // Fuction module for Wired project
 // alu issue queue + alu
 module wired_alu_iq #(
-    parameter int IQ_SIZE = `_WIRED_PARAM_INT_IQ_DEPTH
+    parameter int IQ_SIZE = `_WIRED_PARAM_INT_IQ_DEPTH,
+    parameter int B2B_STACK_SIZE = `_WIRED_PARAM_INT_IQ_B2B_STACK_SIZE
 )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -105,12 +106,12 @@ module wired_alu_iq #(
     // IQ 中存储的信息
     word_t      [IQ_SIZE-1:0][1:0] iq_data;
     iq_static_t [IQ_SIZE-1:0] iq_static;
-    logic [IQ_SIZE-1:0][1:0][1:0] b2b_src; // IQ_INDEX REG_INDEX SRC_INDEX
-
+    logic [IQ_SIZE-1:0][1:0][B2B_STACK_SIZE-1:0][1:0] b2b_src; // IQ_INDEX REG_INDEX STACK_IDX SRC_INDEX
     logic       excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令，齐步走信号
-    logic [1:0] b2b_valid;
-    rob_rid_t [1:0] b2b_rid;
-    logic [1:0] b2b_valid_d, b2b_valid_q;
+    logic     [B2B_STACK_SIZE-1:0][1:0] b2b_valid;                // OK
+    rob_rid_t [B2B_STACK_SIZE-1:0][1:0] b2b_rid;                  // OK
+    rob_rid_t [B2B_STACK_SIZE-1:0][1:0] b2b_rid_d, b2b_rid_q;     // OK
+    logic     [B2B_STACK_SIZE-1:0][1:0] b2b_valid_d, b2b_valid_q; // OK
     assign b2b_valid = excute_ready ? b2b_valid_d : b2b_valid_q;
     always_ff @(posedge clk) begin
         if(!rst_n || flush_i) begin
@@ -119,7 +120,6 @@ module wired_alu_iq #(
             if(excute_ready) b2b_valid_q <= b2b_valid_d;
         end
     end
-    rob_rid_t [1:0] b2b_rid_d, b2b_rid_q;
     assign b2b_rid = excute_ready ? b2b_rid_d : b2b_rid_q;
     always_ff @(posedge clk) begin
         if(excute_ready) b2b_rid_q <= b2b_rid_d;
@@ -145,7 +145,7 @@ module wired_alu_iq #(
         wired_iq_entry # (
             .CDB_COUNT(2),
             .PAYLOAD_SIZE($bits(iq_static_t)),
-            .FORWARD_COUNT(2)
+            .FORWARD_COUNT(2 * B2B_STACK_SIZE)
         )
         wired_iq_entry_inst (
             `_WIRED_GENERAL_CONN,
@@ -164,25 +164,29 @@ module wired_alu_iq #(
         );
     end
     iq_static_t [1:0] sel_static_q,  sel_static;
-    logic [1:0][1:0][1:0] sel_forward_q, sel_forward;
     word_t [1:0][1:0] sel_data_q,    sel_data;
-    word_t [1:0]      fwd_data_q,    fwd_data; // TODO: FINISHME
+    logic [1:0][1:0][B2B_STACK_SIZE-1:0][1:0] sel_forward_q, sel_forward; // ok
+    word_t [B2B_STACK_SIZE-1:0][1:0] fwd_data_q, fwd_data; // TODO: FINISHME
     // 选择两个用于 ALU 输入的 data 和 static
     for(genvar s = 0 ; s < 2 ; s += 1) begin
         always_comb begin
             sel_static[s] = '0;
             sel_forward[s] = '0;
             sel_data[s] = '0;
-            b2b_valid_d = '0;
-            b2b_rid_d[s] = '0;
+            b2b_valid_d[0][s] = '0;
+            b2b_rid_d[0][s] = '0;
             for(integer i = 0 ; i < IQ_SIZE ; i += 1) begin
                 if(fire_sel_oh[s][i]) begin
                     sel_static[s]  |= iq_static[i];
                     sel_forward[s] |= b2b_src[i];
                     sel_data[s]    |= iq_data[i];
-                    b2b_valid_d[s] |= '1;
-                    b2b_rid_d[s]   |= iq_static[i].wreg;
+                    b2b_valid_d[0][s] |= '1;
+                    b2b_rid_d[0][s]   |= iq_static[i].wreg;
                 end
+            end
+            for(integer i = 1 ; i < B2B_STACK_SIZE ; i += 1) begin
+                b2b_valid_d[i][s] = b2b_valid_q[i-1][s];
+                b2b_rid_d[i][s]   = b2b_rid_q[i-1][s];
             end
         end
         assign excute_valid[0] = |fire_rdy_q[5:0];
@@ -224,7 +228,8 @@ module wired_alu_iq #(
     logic[1:0][31:0] ex_jump_target_ext; // 为 csr 及其它特殊指令准备
     logic[1:0][31:0] ex_wdata;
     logic[1:0][31:0] ex_wdata_ext; // 为 csr 指令准备
-    assign fwd_data = ex_wdata;
+    assign fwd_data[0] = ex_wdata;
+    if(B2B_STACK_SIZE > 1) assign fwd_data[B2B_STACK_SIZE-1:1] = fwd_data_q[B2B_STACK_SIZE-2:0];
     word_t [1:0][1:0] real_data; // 转发后的数据
     for(genvar p = 0 ; p < 2 ; p += 1) begin
         wire [4:0] attach_rd = sel_static_q[p].addr_imm[22:18];
@@ -232,8 +237,10 @@ module wired_alu_iq #(
         always_comb begin
             for(integer i = 0 ; i < 2 ; i += 1) begin
                 real_data[p][i] = (|sel_forward_q[p][i]) ? '0 : sel_data_q[p][i];
-                for(integer f = 0 ; f < 2 ; f += 1) begin
-                    real_data[p][i] |= sel_forward_q[p][i][f] ? fwd_data_q[f] : '0;
+                for(integer s = 0 ; s < B2B_STACK_SIZE ; s += 1) begin 
+                    for(integer f = 0 ; f < 2 ; f += 1) begin
+                        real_data[p][i] |= sel_forward_q[p][i][s][f] ? fwd_data_q[s][f] : '0;
+                    end
                 end
             end
         end
