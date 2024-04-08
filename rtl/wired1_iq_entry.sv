@@ -78,19 +78,27 @@ module wired_iq_entry #(
 
         // 前递逻辑
         logic [CDB_COUNT-1:0] cdb_hit;
-        for(genvar j = 0 ; j < CDB_COUNT ; j++) begin
+        for(genvar j = 0 ; j < 2 ; j++) begin
             assign cdb_hit[j] = !data_rdy_q &&
                                 j[0] == rid_q[0] &&
                                 cdb_i[j].valid &&
                                 cdb_i[j].wid[`_WIRED_PARAM_ROB_LEN-1:1] == rid_q[`_WIRED_PARAM_ROB_LEN-1:1]; // 6-6 比较，需要两个 lut6 + lut2，与valid合并为 lut6 + lut3，两级
         end
+        for(genvar j = 2 ; j < CDB_COUNT ; j++) begin
+            assign cdb_hit[j] = !data_rdy_q &&
+                                cdb_i[j].valid &&
+                                cdb_i[j].wid == rid_q; // 6-6 比较，需要两个 lut6 + lut2，与valid合并为 lut6 + lut3，两级
+        end
         wire cdb_forward = |cdb_hit; // 当 cdb 仅有两个时，两个 lut3 合为一个 lut5，恰好两级
         word_t cdb_result;
         always_comb begin
-            cdb_result = cdb_i[rid_q[0]].wdata;
-            // for(integer j = 0 ; j < CDB_COUNT ; j+=1) begin
-            //     cdb_result |= cdb_hit[j] ? cdb_i[j].wdata : '0;
-            // end
+            if(CDB_COUNT == 2) cdb_result = cdb_i[rid_q[0]].wdata;
+            else begin 
+                cdb_result = '0;
+                for(integer j = 0 ; j < CDB_COUNT ; j+=1) begin
+                    cdb_result |= cdb_hit[j] ? cdb_i[j].wdata : '0;
+                end
+            end
         end
 
         // 更新逻辑

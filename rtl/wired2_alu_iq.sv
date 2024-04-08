@@ -23,6 +23,9 @@ module wired_alu_iq #(
     // CDB 嗅探端口
     input pipeline_cdb_t [1:0] cdb_i,
 
+    // CDB 加速端口
+    // input pipeline_cdb_t cdb_acc_i,
+
     // FLUSH 端口
     input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
 );
