@@ -166,8 +166,8 @@ module wired_commit #(
     // TLB HIT LOGIC HERE
     for(genvar i = 0 ; i < `_WIRED_PARAM_TLB_CNT ; i+=1) begin
         wire h_tlb_hit_asid = (tlb_entrys_q[i].key.asid == h_entry[0].target_addr[9:0]);
-        wire h_tlb_hit_vppn = (tlb_entrys_q[i].key.vppn[18:10] == h_entry[0].target_addr[31:23]) && // HIGH HIT
-                              (tlb_entrys_q[i].key.vppn[9:0] == h_entry[0].target_addr[22:13] || tlb_entrys_q[i].key.huge_page);   // LOW  HIT
+        wire h_tlb_hit_vppn = (tlb_entrys_q[i].key.vppn[18:9] == h_entry[0].target_addr[31:22]) && // HIGH HIT
+                              (tlb_entrys_q[i].key.vppn[8:0] == h_entry[0].target_addr[21:13] || tlb_entrys_q[i].key.huge_page);   // LOW  HIT
 
         always_comb begin
             h_tlb_hit_invtlb[i] = '0;
@@ -196,8 +196,8 @@ module wired_commit #(
         // 注意，这个路径可以配置为 multicycle 以优化性能。
         assign h_tlb_hit_srch[i] = (tlb_entrys_q[i].key.e) && // E
                                    (tlb_entrys_q[i].key.g || tlb_entrys_q[i].key.asid == csr_q.asid[9:0]) && // ASID MATHC
-                                   (tlb_entrys_q[i].key.vppn[18:10] == csr_q.tlbehi[31:23]) && // HI-VPN MATCH
-                                   (tlb_entrys_q[i].key.vppn[9:0] == csr_q.tlbehi[22:13] || tlb_entrys_q[i].key.huge_page) // LO-VPN MATCH
+                                   (tlb_entrys_q[i].key.vppn[18:9] == csr_q.tlbehi[31:22]) && // HI-VPN MATCH
+                                   (tlb_entrys_q[i].key.vppn[8:0] == csr_q.tlbehi[21:13] || tlb_entrys_q[i].key.huge_page) // LO-VPN MATCH
                                    ;
     end
     // tlbrd
@@ -558,8 +558,9 @@ module wired_commit #(
                         c_lsu_req_o.dbarrier_unlock = '1;
                     end
                     // 访存部分处理
-                    if(h_entry_q[0].di.lsu_inst) begin
+                    if(h_entry_q[0].di.lsu_inst && !h_entry_q[0].di.mem_cacop) begin
                         if(h_entry_q[0].uncached) begin
+                            // What if a cacheop is here,huh?
                             // 1. Uncached 请求（向 LSU 发出请求，等待 Uncached 读数据 / 写完成）
                             // （注意， Uncached Load 及 Uncached Store 均需要立即发出请求，且 Uncached Load 需要刷新流水线）
                             l_commit = '0;
@@ -688,7 +689,7 @@ module wired_commit #(
                             csr.tlbelo1[`_TLBELO_TLB_MAT] = h_tlb_rd_q.value[1].mat;
                             csr.tlbelo1[`_TLBELO_TLB_G]   = h_tlb_rd_q.key.g;
                             csr.tlbelo1[`_TLBELO_TLB_PPN] = h_tlb_rd_q.value[1].ppn;
-                            csr.asid[`_ASID]              =  h_tlb_rd_q.key.asid;
+                            csr.asid[`_ASID]              = h_tlb_rd_q.key.asid;
                         end else begin
                             csr.tlbidx[`_TLBIDX_PS] = '0;
                             csr.tlbehi[`_TLBEHI_VPPN] = '0;

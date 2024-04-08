@@ -58,8 +58,8 @@ module wired_tlb_match_single #(
   //     .hit_o          (match_asid                        )
   //   );
   // end else begin
-    assign match_high10 = key_q.vppn[18:10] == vppn_i[18:10];
-    assign match_low10  = key_q.vppn[9:0] == vppn_i[9:0];
+    assign match_high10 = key_q.vppn[18:9] == vppn_i[18:9];
+    assign match_low10  = key_q.vppn[8:0] == vppn_i[8:0];
     assign match_asid   = key_q.asid == asid_i;
   // end
   always_comb begin

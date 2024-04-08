@@ -124,6 +124,7 @@ typedef struct packed {
 typedef struct packed {
     dbarrier_t dbarrier;
     llsc_inst_t llsc_inst;
+    mem_cacop_t mem_cacop;
     mem_read_t mem_read;
     mem_write_t mem_write;
 } decode_info_c_lsu_common_t;
@@ -137,6 +138,7 @@ typedef struct packed {
     jump_inst_t jump_inst;
     llsc_inst_t llsc_inst;
     lsu_inst_t lsu_inst;
+    mem_cacop_t mem_cacop;
     mem_read_t mem_read;
     mem_write_t mem_write;
     refetch_t refetch;
@@ -177,6 +179,7 @@ typedef struct packed {
     jump_inst_t jump_inst;
     llsc_inst_t llsc_inst;
     lsu_inst_t lsu_inst;
+    mem_cacop_t mem_cacop;
     mem_read_t mem_read;
     mem_write_t mem_write;
     priv_inst_t priv_inst;
@@ -294,6 +297,7 @@ function automatic decode_info_c_lsu_common_t get_c_lsu_common_from_lsu(input de
     decode_info_c_lsu_common_t ret;
     ret.dbarrier = lsu.dbarrier;
     ret.llsc_inst = lsu.llsc_inst;
+    ret.mem_cacop = lsu.mem_cacop;
     ret.mem_read = lsu.mem_read;
     ret.mem_write = lsu.mem_write;
     return ret;
@@ -303,6 +307,7 @@ function automatic decode_info_c_lsu_common_t get_c_lsu_common_from_c(input deco
     decode_info_c_lsu_common_t ret;
     ret.dbarrier = c.dbarrier;
     ret.llsc_inst = c.llsc_inst;
+    ret.mem_cacop = c.mem_cacop;
     ret.mem_read = c.mem_read;
     ret.mem_write = c.mem_write;
     return ret;
@@ -318,6 +323,7 @@ function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
     ret.jump_inst = rob.jump_inst;
     ret.llsc_inst = rob.llsc_inst;
     ret.lsu_inst = rob.lsu_inst;
+    ret.mem_cacop = rob.mem_cacop;
     ret.mem_read = rob.mem_read;
     ret.mem_write = rob.mem_write;
     ret.refetch = rob.refetch;
@@ -366,6 +372,7 @@ function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
     ret.jump_inst = p.jump_inst;
     ret.llsc_inst = p.llsc_inst;
     ret.lsu_inst = p.lsu_inst;
+    ret.mem_cacop = p.mem_cacop;
     ret.mem_read = p.mem_read;
     ret.mem_write = p.mem_write;
     ret.priv_inst = p.priv_inst;

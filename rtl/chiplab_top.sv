@@ -62,7 +62,7 @@ module core_top import wired_axi_pkg::*;
 
   `AXI_DECLARE(32, 32, 4, mem);
 
-  wired_mp cpu(
+  wired_sp cpu(
              .clk(aclk),
              .rst_n(resetn),
              .interrupt_i(intrpt),
