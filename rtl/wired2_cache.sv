@@ -369,6 +369,9 @@ always_comb begin
 
   // 与提交级交互接口
   c_lsu_resp_o = '0; // 产生所有到提交级的响应
+`ifdef _VERILATOR
+  c_lsu_resp_o.wdata = sb_top.wdata;
+`endif
   if(!ICACHE) begin
     c_lsu_resp_o.storebuf_hit = |sb_top.hit;
     c_lsu_resp_o.uncached_load_resp =

@@ -402,6 +402,9 @@ typedef struct packed {
   logic storebuf_hit;       // storebuf 顶元素命中
 
   logic [31:0] uncached_load_resp;
+`ifdef _VERILATOR
+  logic [31:0] wdata;
+`endif
 } commit_lsu_resp_t;
 
 typedef struct packed {

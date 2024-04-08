@@ -978,4 +978,14 @@ if(ENABLE_DIFFTEST) begin
                   );
 end
 
+  // dbg 使用
+  parameter string ColorTable[4] = {"\033[40;97m", "\033[41;97m", "\033[43;97m", "\033[44;97m"};
+  parameter string ColorID = ColorTable[CPU_ID];
+  always_ff @(posedge clk) begin
+    // if(l_commit[0] && h_entry_q[0].di.llsc_inst && h_entry_q[0].di.mem_write) begin
+    //     $display("%s[Core%d] %s with data %d\033[0m",ColorID, CPU_ID, l_data[0] ?
+    //     "SUCC" : "FAIL", c_lsu_resp_i.wdata);
+    // end
+  end
+
 endmodule

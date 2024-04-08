@@ -176,9 +176,22 @@ module wired_tl_adapter import tl_pkg::*; #(
     */
     // Probe       状态机 - prb - B - read SRAM-TAG
     if(1) begin : prb_fsm
+        /* 资源监视器，监视 acq 状态 */
+        logic [31:4] last_fetch_addr_q;
+        logic [5:0] last_fetch_cnt_q;
+        always_ff @(posedge clk) begin
+            if(crq_acq_ret) begin
+                last_fetch_cnt_q  <= 6'd32; // 保护 32 个周期
+                last_fetch_addr_q <= crq_acq_addr;
+            end
+            else if(last_fetch_cnt_q) begin
+                last_fetch_cnt_q <= last_fetch_cnt_q - 1;
+            end
+        end
         /* PROBE 状态机，状态定义 */
         typedef enum logic[1:0] {
             S_FREE,
+            S_PROT,
             S_INV // Call inv
         } fsm_e;
         fsm_e fsm;
@@ -212,9 +225,17 @@ module wired_tl_adapter import tl_pkg::*; #(
                     prb_b_ready = '1;
                     if(prb_b_valid) begin
                         // TODO: ADD RESOURCE PROTECTION, BUT NOT TODAY
-                        fsm = S_INV;
+                        // 4.8: I encounter live lock problem, so I add a resource protection here
+                        // fsm = S_INV;
+                        fsm = S_PROT;
                         d.addr = prb_b.address;
                         d.parm = prb_b.param;
+                    end
+                end
+                S_PROT: begin
+                    // 检查需要 Probe 的 Block 是否是最近 64 个周期内 Acquire 过来的，若是，则等它 64 个周期再继续 prb
+                    if(last_fetch_addr_q != q.addr[31:4] || last_fetch_cnt_q == '0) begin
+                        fsm = S_INV;
                     end
                 end
                 S_INV: begin
@@ -949,40 +970,43 @@ module wired_tl_adapter import tl_pkg::*; #(
     parameter integer CoreID = SOURCE_BASE / 2;
     parameter string ColorTable[4] = {"\033[40;97m", "\033[41;97m", "\033[43;97m", "\033[44;97m"};
     parameter string ColorID = ColorTable[SOURCE_BASE];
+    parameter logic[31:4] WATCH_ADDR = 28'h40000;
     always_ff @(posedge clk) begin
     //   if($time > 10000000 && bus_req_i.sram_addr[31:0] == 32'h3fff80 && bus_req_i.sram_wb_req &&
     //   bus_req_i.wstrobe[0] && (m_wdata_o[0][7:0] == 8'h06 || m_wdata_o[0][7:0] == 8'h00)) begin
     //     $display("[%t] TL Adapter catch the theif %x %x %x %x %x!!!", $time, sram_data_valid_mult, sram_data_ready_mult, m_wstrb_o, m_wdata_o[0], m_way_o);
     //   end
-        // 请求监视器
-        if(/*$time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && */tl_a_ready_i && tl_a_valid_o && dbg_a.opcode inside {tl_pkg::AcquireBlock, tl_pkg::Get, tl_pkg::PutFullData}) begin
-            $display("%s↓↓[%-8t] Core%1d-%s TL A \033[1;97m%s @%x with mask %x.\033[0m", ColorID, $time, CoreID, CacheName, 
-             dbg_a.opcode == tl_pkg::AcquireBlock       ? (dbg_a.param == tl_pkg::NtoB ? "Acq CRead " : "Acq CWrite") :
-            (dbg_a.opcode == tl_pkg::Get                ? "Acq URead " : "Acq UWrite"),
-            dbg_a.address, dbg_a.mask);
-            if(dbg_a.opcode == tl_pkg::PutFullData) $display("%s||[--------] With Write Data %x.\033[0m",ColorID, dbg_a.data);
-        end
-        // 无效化监视器
-        if(/*$time > 10000000 && inv_fsm.q.taddr[31:4] == 32'h3fff8 && */inv_c_ready && inv_c_valid) begin
-            $display("%s||[%-8t]--- Core%1d-%s TL C \033[1;33m%s inv@%x in way%d, %s.\033[0m", ColorID , $time, CoreID, CacheName, inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ProbeAck} ? "probed" : "volunt",
-            {inv_fsm.q.taddr[31:4],4'd0}, inv_fsm.q.taddr[1:0],
-             inv_c.param == tl_pkg::TtoB ? "TtoB" : 
-            (inv_c.param == tl_pkg::TtoN ? "TtoN" : 
-            (inv_c.param == tl_pkg::BtoB ? "BtoB" : 
-            (inv_c.param == tl_pkg::BtoN ? "BtoN" : "NtoN"))));
-            if(inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ReleaseData}) begin
-                $display("%s||[--------]--- With data: %x\033[0m",ColorID, inv_c.data);
-            end
-        end
-        // 重填监视器
-        if(/*$time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && */tl_d_ready_o && tl_d_valid_i && dbg_d.opcode inside {tl_pkg::GrantData, tl_pkg::Grant}) begin
-            $display("%s↑↑[%-8t] Core%1d-%s TL D \033[1;32m%s @%x in way%d with data %x.\033[0m", ColorID, $time, CoreID, CacheName, 
-            "Refill", {acq_fsm.q.addr[31:4],4'd0}, acq_fsm.q.way, dbg_d.data);
-            if(acq_fsm.q.wp) $display("%s↑↑[--------] With Write Permission.\033[0m",ColorID);
-        end
-        if(/*$time > 10000000 && acq_fsm.q.addr[31:4] == 32'h3fff8 && */tl_d_ready_o && tl_d_valid_i && dbg_d.opcode inside {tl_pkg::AccessAck, tl_pkg::AccessAckData}) begin
-            $display("%s↑↑[%-8t] Core%1d-%s TL D \033[1;97mUncached Respond.\033[0m", ColorID, $time, CoreID, CacheName);
-        end
+        // // 请求监视器
+        // if((SOURCE_BASE % 2) == 0) begin
+        // if(dbg_a.address[31:4] == WATCH_ADDR && tl_a_ready_i && tl_a_valid_o && dbg_a.opcode inside {tl_pkg::AcquireBlock, tl_pkg::Get, tl_pkg::PutFullData}) begin
+        //     $display("%s↓↓[%-8t] Core%1d-%s TL A \033[1;97m%s @%x with mask %x.\033[0m", ColorID, $time, CoreID, CacheName, 
+        //      dbg_a.opcode == tl_pkg::AcquireBlock       ? (dbg_a.param == tl_pkg::NtoB ? "Acq CRead " : "Acq CWrite") :
+        //     (dbg_a.opcode == tl_pkg::Get                ? "Acq URead " : "Acq UWrite"),
+        //     dbg_a.address, dbg_a.mask);
+        //     if(dbg_a.opcode == tl_pkg::PutFullData) $display("%s||[--------] With Write Data %x.\033[0m",ColorID, dbg_a.data);
+        // end
+        // // 无效化监视器
+        // if(inv_fsm.q.taddr[31:4] == WATCH_ADDR && inv_c_ready && inv_c_valid) begin
+        //     $display("%s||[%-8t]--- Core%1d-%s TL C \033[1;33m%s inv@%x in way%d, %s.\033[0m", ColorID , $time, CoreID, CacheName, inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ProbeAck} ? "probed" : "volunt",
+        //     {inv_fsm.q.taddr[31:4],4'd0}, inv_fsm.q.taddr[1:0],
+        //      inv_c.param == tl_pkg::TtoB ? "TtoB" : 
+        //     (inv_c.param == tl_pkg::TtoN ? "TtoN" : 
+        //     (inv_c.param == tl_pkg::BtoB ? "BtoB" : 
+        //     (inv_c.param == tl_pkg::BtoN ? "BtoN" : "NtoN"))));
+        //     if(inv_c.opcode inside {tl_pkg::ProbeAckData,tl_pkg::ReleaseData}) begin
+        //         $display("%s||[--------]--- With data: %x\033[0m",ColorID, inv_c.data);
+        //     end
+        // end
+        // // 重填监视器
+        // if(acq_fsm.q.addr[31:4] == WATCH_ADDR && tl_d_ready_o && tl_d_valid_i && dbg_d.opcode inside {tl_pkg::GrantData, tl_pkg::Grant}) begin
+        //     $display("%s↑↑[%-8t] Core%1d-%s TL D \033[1;32m%s @%x in way%d with data %x.\033[0m", ColorID, $time, CoreID, CacheName, 
+        //     "Refill", {acq_fsm.q.addr[31:4],4'd0}, acq_fsm.q.way, dbg_d.data);
+        //     if(acq_fsm.q.wp) $display("%s↑↑[--------] With Write Permission.\033[0m",ColorID);
+        // end
+        // if(unc_fsm.q.addr[31:4] == WATCH_ADDR && tl_d_ready_o && tl_d_valid_i && dbg_d.opcode inside {tl_pkg::AccessAck, tl_pkg::AccessAckData}) begin
+        //     $display("%s↑↑[%-8t] Core%1d-%s TL D \033[1;97mUncached Respond.\033[0m", ColorID, $time, CoreID, CacheName);
+        // end
+        // end
     end
   
 
