@@ -149,7 +149,7 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
   always_comb begin
     branch_need_jmp[p] = '0;
     if(info_rdata[p].target_type != BPU_TARGET_NPC && tag_match) begin
-      if(info_rdata[p].target_type != BPU_TARGET_IMM || info_rdata[p].conditional_jmp)
+      if(info_rdata[p].target_type != BPU_TARGET_IMM || !info_rdata[p].conditional_jmp)
         branch_need_jmp[p] = '1;
       else
         branch_need_jmp[p] = l2_cnt[p][1];

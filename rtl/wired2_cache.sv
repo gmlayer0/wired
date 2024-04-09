@@ -583,10 +583,10 @@ end
     // if(m2_valid_q && m2_q.paddr == 32'h3fff80 && !m2_stall && resp.rdata == 32'h06) begin
     //   $display("* [%t] DCache catch the read hit:%x strb:%x wdata:%x sb_hit:%x!!!",$time , m2_q.hit, m2_q.strb, m2_q.wdata, m2_q.sb_hit);
     // end
-    if(m2_valid_q && !m2_stall && (m2_q.hit[0] + m2_q.hit[1] + m2_q.hit[2] + m2_q.hit[3] > 1)) begin
-      $display("!!![%t] Cache multihit @ vaddr:%x paddr:%x wid:%x hit:%x!!!", $time, m2_q.vaddr, m2_q.paddr, m2_q.wid, m2_q.hit);
-      // $finish;
-    end
+    // if(m2_valid_q && !m2_stall && (m2_q.hit[0] + m2_q.hit[1] + m2_q.hit[2] + m2_q.hit[3] > 1)) begin
+    //   $display("!!![%t] Cache multihit @ vaddr:%x paddr:%x wid:%x hit:%x!!!", $time, m2_q.vaddr, m2_q.paddr, m2_q.wid, m2_q.hit);
+    //   // $finish;
+    // end
     // if($time > 10000000 && bus_req_o.target_paddr[31:4] == 32'h3fff8 && fsm_q == S_MREFILL && bus_req_o.valid && bus_resp_i.ready) begin
     //   $display("##[%t] M Refill @%x: %x. M2 wid:%x.", $time, bus_req_o.target_paddr, bus_resp_i.rdata, m2_q.wid);
     // end

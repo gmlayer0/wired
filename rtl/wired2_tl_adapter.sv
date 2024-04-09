@@ -224,16 +224,13 @@ module wired_tl_adapter import tl_pkg::*; #(
                 /*S_FREE*/default: begin
                     prb_b_ready = '1;
                     if(prb_b_valid) begin
-                        // TODO: ADD RESOURCE PROTECTION, BUT NOT TODAY
-                        // 4.8: I encounter live lock problem, so I add a resource protection here
-                        // fsm = S_INV;
                         fsm = S_PROT;
                         d.addr = prb_b.address;
                         d.parm = prb_b.param;
                     end
                 end
                 S_PROT: begin
-                    // 检查需要 Probe 的 Block 是否是最近 64 个周期内 Acquire 过来的，若是，则等它 64 个周期再继续 prb
+                    // 检查需要 Probe 的 Block 是否是最近 32 个周期内 Acquire 过来的，若是，则等待
                     if(last_fetch_addr_q != q.addr[31:4] || last_fetch_cnt_q == '0) begin
                         fsm = S_INV;
                     end
@@ -971,7 +968,7 @@ module wired_tl_adapter import tl_pkg::*; #(
     parameter integer CoreID = SOURCE_BASE / 2;
     parameter string ColorTable[4] = {"\033[40;97m", "\033[41;97m", "\033[43;97m", "\033[44;97m"};
     parameter string ColorID = ColorTable[SOURCE_BASE];
-    parameter logic[31:4] WATCH_ADDR = 28'h40000;
+    parameter logic[31:4] WATCH_ADDR = 28'h100000;
     always_ff @(posedge clk) begin
     //   if($time > 10000000 && bus_req_i.sram_addr[31:0] == 32'h3fff80 && bus_req_i.sram_wb_req &&
     //   bus_req_i.wstrobe[0] && (m_wdata_o[0][7:0] == 8'h06 || m_wdata_o[0][7:0] == 8'h00)) begin
