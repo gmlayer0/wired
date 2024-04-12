@@ -16,15 +16,15 @@ module wired_top #(
   `TL_DECLARE(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl);
   // FULL REGSLICE
   tl_regslice #(
-    .DataWidth (HostDataWidth),
-    .AddrWidth (AddrWidth),
-    .SourceWidth (SourceWidth),
-    .SinkWidth (SinkWidth),
-    .RequestMode (2),
-    .ReleaseMode (2)
+    .DataWidth (128),
+    .AddrWidth (32),
+    .SourceWidth (SOURCE_WIDTH),
+    .SinkWidth (SINK_WIDTH),
+    .RequestMode (7),
+    .ReleaseMode (7)
   ) host_reg (
-    .clk_i,
-    .rst_ni,
+    .clk_i(clk),
+    .rst_ni(rst_n),
     `TL_CONNECT_DEVICE_PORT(host, tl),
     `TL_FORWARD_HOST_PORT(device, tl)
   );
