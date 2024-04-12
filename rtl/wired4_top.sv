@@ -13,6 +13,22 @@ module wired_top #(
     `TL_DECLARE_HOST_PORT(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl) // tl_a_o
 
   );
+  `TL_DECLARE(128, 32, SOURCE_WIDTH, SINK_WIDTH, tl);
+  // FULL REGSLICE
+  tl_regslice #(
+    .DataWidth (HostDataWidth),
+    .AddrWidth (AddrWidth),
+    .SourceWidth (SourceWidth),
+    .SinkWidth (SinkWidth),
+    .RequestMode (2),
+    .ReleaseMode (2)
+  ) host_reg (
+    .clk_i,
+    .rst_ni,
+    `TL_CONNECT_DEVICE_PORT(host, tl),
+    `TL_FORWARD_HOST_PORT(device, tl)
+  );
+
   // Tilelink 2-1 转换
   `TL_DECLARE_ARR(128, 32, SOURCE_WIDTH, SINK_WIDTH, ch, [1:0]);
   tl_socket_m1 #(
@@ -30,7 +46,7 @@ module wired_top #(
                  .clk_i(clk),
                  .rst_ni(rst_n),
                  `TL_CONNECT_DEVICE_PORT(host, ch),
-                 `TL_FORWARD_HOST_PORT(device, tl)
+                 `TL_CONNECT_HOST_PORT(device, tl)
                );
 
   // 前后端握手信号包
