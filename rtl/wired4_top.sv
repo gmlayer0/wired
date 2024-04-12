@@ -21,7 +21,10 @@ module wired_top #(
     .SourceWidth (SOURCE_WIDTH),
     .SinkWidth (SINK_WIDTH),
     .RequestMode (7),
-    .ReleaseMode (7)
+    .ProbeMode   (7),
+    .ReleaseMode (7),
+    .GrantMode   (7),
+    .AckMode     (7)
   ) host_reg (
     .clk_i(clk),
     .rst_ni(rst_n),
