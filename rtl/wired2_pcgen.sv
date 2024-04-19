@@ -16,8 +16,13 @@ function automatic logic[1:0] gen_next_lphr(input logic[1:0] old, input logic di
     end
   endcase
 endfunction
-function automatic logic[5:0] get_tag(input logic[31:0] addr);
-  return addr[16:10];
+
+function automatic logic[6:0] get_tag(input logic[31:0] addr);
+  return addr[18:12];
+endfunction
+
+function automatic logic[8:0] get_hash(input logic[31:0] addr);
+  return {{addr[12],addr[13],addr[14]} ^ addr[11:9], addr[8:6], addr[5:3]};
 endfunction
 
 // 这是 Wired 项目的 PC GEN，实际上是一个两级分支预测器。
@@ -118,11 +123,11 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
     .wdata1_i(p_correct_i.btb_target[31:2]),
     .rdata1_o(/* NOCONNECT */)
   );
-  wire [6:0] info_raddr = npc[9:3];
-  wire [6:0] info_waddr = info_p_we[p] ? p_correct_i.pc[9:3] : pc[9:3];
+  wire [8:0] info_raddr = get_hash(npc);
+  wire [8:0] info_waddr = get_hash(info_p_we[p] ? p_correct_i.pc : pc);
   branch_info_t info_raw;
   branch_info_t info_raw_q;
-  (* ram_style = "distributed" *) branch_info_t info_ram [127:0];
+  (* ram_style = "distributed" *) branch_info_t info_ram [511:0];
   always_ff @(posedge clk) begin
     if(info_p_we[p] | info_n_we[p]) begin
       info_ram[info_waddr] <= info_wdata[p];
@@ -148,7 +153,7 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
     info_wdata[p].history = {info_rdata[p].history[3:0], 1'b0};
     branch_need_jmp[p] = '0;
     if(info_rdata[p].target_type != BPU_TARGET_NPC && tag_match) begin
-      info_n_we[p] = '1;
+      info_n_we[p] = p_valid_o & p_mask_o[p];
       if(info_rdata[p].target_type != BPU_TARGET_IMM || !info_rdata[p].conditional_jmp) begin
         branch_need_jmp[p] = '1;
         info_wdata[p].history = {info_rdata[p].history[3:0], 1'b1};
@@ -165,12 +170,6 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
       info_wdata[p].tag = get_tag(p_correct_i.pc);
       info_p_we[p] = '1;
     end
-  end
-end
-// 立即更新逻辑处理
-always_comb begin
-  for(integer p = 0 ; p < 2 ; p += 1) begin
-    
   end
 end
 
@@ -256,6 +255,13 @@ always_comb begin
     p_predict_o[i].dir_type = info_rdata[i].conditional_jmp;
     p_predict_o[i].ras_ptr = ras_ptr_q;
   end
+end
+
+// 调试观察端口
+always_ff @(posedge clk) begin
+  // if((info_p_we[0] | info_n_we[0]) && (info_p_we[0] ? p_correct_i.pc : pc) == 32'h1c001d08) begin
+  //   $display("Get update %b", info_wdata[0].history);
+  // end
 end
 
 endmodule

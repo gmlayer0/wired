@@ -1023,7 +1023,7 @@ end
             end
         end
         // 分支预测监视器
-        if(l_commit[i] && h_entry_q[i].pc == 32'h1c005dc0) begin
+        if(l_commit[i] && h_entry_q[i].pc == 32'h1c001d08) begin
             // 只监视失败情况
             if(h_entry_q[i].need_jump != h_entry_q[i].bpu_predict.taken) begin
                 $display("[%d] fail direction! pred:%x actual:%x history:%b", excute_cnt[h_entry_q[i].pc], h_entry_q[i].bpu_predict.taken, h_entry_q[i].need_jump, h_entry_q[i].bpu_predict.history);
