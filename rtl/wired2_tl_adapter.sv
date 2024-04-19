@@ -332,6 +332,7 @@ module wired_tl_adapter import tl_pkg::*; #(
                     end
                     if(bus_req_i.uncached_store_req) begin
                             fsm = S_UST;
+                            bus_resp_o.ready = '1; // 立即返回
                             d.size = bus_req_i.size;
                             d.addr = bus_req_i.target_paddr;
                             d.data[31:0] = bus_req_i.wdata;
@@ -355,7 +356,6 @@ module wired_tl_adapter import tl_pkg::*; #(
                 crq_unc_cal = '1;
                 crq_unc_wreq = '1;
                 if(crq_unc_ret) begin
-                    bus_resp_o.ready = '1;
                     fsm = S_FREE;
                 end
             end
