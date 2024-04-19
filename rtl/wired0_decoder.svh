@@ -114,6 +114,7 @@ typedef struct packed {
     cmp_type_t cmp_type;
     csr_op_en_t csr_op_en;
     invtlb_en_t invtlb_en;
+    target_type_t target_type;
 } decode_info_c_alu_common_t;
 
 typedef struct packed {
@@ -142,6 +143,7 @@ typedef struct packed {
     mem_read_t mem_read;
     mem_write_t mem_write;
     refetch_t refetch;
+    target_type_t target_type;
     wait_inst_t wait_inst;
 } decode_info_c_t;
 
@@ -185,6 +187,7 @@ typedef struct packed {
     priv_inst_t priv_inst;
     refetch_t refetch;
     slot0_t slot0;
+    target_type_t target_type;
     tlbfill_en_t tlbfill_en;
     tlbrd_en_t tlbrd_en;
     tlbsrch_en_t tlbsrch_en;
@@ -268,6 +271,7 @@ function automatic decode_info_c_alu_common_t get_c_alu_common_from_alu(input de
     ret.cmp_type = alu.cmp_type;
     ret.csr_op_en = alu.csr_op_en;
     ret.invtlb_en = alu.invtlb_en;
+    ret.target_type = alu.target_type;
     return ret;
 endfunction
 
@@ -276,6 +280,7 @@ function automatic decode_info_c_alu_common_t get_c_alu_common_from_c(input deco
     ret.cmp_type = c.cmp_type;
     ret.csr_op_en = c.csr_op_en;
     ret.invtlb_en = c.invtlb_en;
+    ret.target_type = c.target_type;
     return ret;
 endfunction
 
@@ -327,6 +332,7 @@ function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
     ret.mem_read = rob.mem_read;
     ret.mem_write = rob.mem_write;
     ret.refetch = rob.refetch;
+    ret.target_type = rob.target_type;
     ret.wait_inst = rob.wait_inst;
     return ret;
 endfunction
@@ -378,6 +384,7 @@ function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
     ret.priv_inst = p.priv_inst;
     ret.refetch = p.refetch;
     ret.slot0 = p.slot0;
+    ret.target_type = p.target_type;
     ret.tlbfill_en = p.tlbfill_en;
     ret.tlbrd_en = p.tlbrd_en;
     ret.tlbsrch_en = p.tlbsrch_en;

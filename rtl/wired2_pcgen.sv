@@ -76,7 +76,9 @@ NPC -|SRAM|-> {btb, info.history -> l2_cnt}
 // BTB, INFORAM 逻辑
 logic [1:0][31:0]    btb_rdata;
 branch_info_t [1:0] info_rdata;
-branch_info_t       info_wdata;
+logic [1:0]          info_p_we;
+logic [1:0]          info_n_we;
+branch_info_t [1:0] info_wdata;
 logic [1:0][1:0]        l2_cnt;
 wire l2_we = p_correct_i.true_conditional_jmp && p_correct_i.need_update;
 wire [4:0] l2_waddr = p_correct_i.history;
@@ -89,12 +91,6 @@ always_ff @(posedge clk) begin
 end
 assign l2_cnt[0] = l2_ram[info_rdata[0].history];
 assign l2_cnt[1] = l2_ram[info_rdata[1].history];
-always_comb begin
-  info_wdata.target_type = p_correct_i.true_target_type;
-  info_wdata.conditional_jmp = p_correct_i.true_conditional_jmp;
-  info_wdata.history = {p_correct_i.history[3:0], p_correct_i.true_taken};
-  info_wdata.tag = get_tag(p_correct_i.pc);
-end
 for(genvar p = 0 ; p < 2 ; p += 1) begin
   assign btb_rdata[p][1:0] = '0;
   wired_dpsram # (
@@ -122,15 +118,14 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
     .wdata1_i(p_correct_i.btb_target[31:2]),
     .rdata1_o(/* NOCONNECT */)
   );
-  wire       info_we    = (p_correct_i.pc[2] == p[0]) && p_correct_i.need_update;
   wire [6:0] info_raddr = npc[9:3];
-  wire [6:0] info_waddr = p_correct_i.pc[10:3];
+  wire [6:0] info_waddr = info_p_we[p] ? p_correct_i.pc[9:3] : pc[9:3];
   branch_info_t info_raw;
   branch_info_t info_raw_q;
   (* ram_style = "distributed" *) branch_info_t info_ram [127:0];
   always_ff @(posedge clk) begin
-    if(info_we) begin
-      info_ram[info_waddr] <= info_wdata;
+    if(info_p_we[p] | info_n_we[p]) begin
+      info_ram[info_waddr] <= info_wdata[p];
     end
   end
   assign info_raw = info_ram[info_raddr];
@@ -147,13 +142,35 @@ logic [1:0] branch_need_jmp;
 for(genvar p = 0 ; p < 2 ; p += 1) begin
   wire tag_match = info_rdata[p].tag == get_tag(pc);
   always_comb begin
+    info_p_we[p] = '0;
+    info_n_we[p] = '0;
+    info_wdata[p] = info_rdata[p];
+    info_wdata[p].history = {info_rdata[p].history[3:0], 1'b0};
     branch_need_jmp[p] = '0;
     if(info_rdata[p].target_type != BPU_TARGET_NPC && tag_match) begin
-      if(info_rdata[p].target_type != BPU_TARGET_IMM || !info_rdata[p].conditional_jmp)
+      info_n_we[p] = '1;
+      if(info_rdata[p].target_type != BPU_TARGET_IMM || !info_rdata[p].conditional_jmp) begin
         branch_need_jmp[p] = '1;
-      else
+        info_wdata[p].history = {info_rdata[p].history[3:0], 1'b1};
+      end
+      else begin
         branch_need_jmp[p] = l2_cnt[p][1];
+        info_wdata[p].history = {info_rdata[p].history[3:0], l2_cnt[p][1]};
+      end
     end
+    if(p_correct_i.need_update && p_correct_i.pc[2] == p[0]) begin
+      info_wdata[p].target_type = p_correct_i.true_target_type;
+      info_wdata[p].conditional_jmp = p_correct_i.true_conditional_jmp;
+      info_wdata[p].history = {p_correct_i.history[3:0], p_correct_i.true_taken};
+      info_wdata[p].tag = get_tag(p_correct_i.pc);
+      info_p_we[p] = '1;
+    end
+  end
+end
+// 立即更新逻辑处理
+always_comb begin
+  for(integer p = 0 ; p < 2 ; p += 1) begin
+    
   end
 end
 

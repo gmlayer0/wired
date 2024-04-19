@@ -335,7 +335,7 @@ module wired_commit #(
         slot0_target_type = '0;
         if(h_entry_q[0].di.jump_inst && h_entry_q[0].op_code[4]) begin // 1 -> CALL JIRL BL
             slot0_target_type = 2'd1;
-        end else if(h_entry_q[0].di.jump_inst && h_entry_q[0].op_code[3]) begin // 2 -> RETURN
+        end else if((h_entry_q[0].di.target_type == `_TARGET_ABS) && h_entry_q[0].op_code[3]) begin // 2 -> RETURN
             slot0_target_type = 2'd2;
         end else if(h_entry_q[0].di.jump_inst) begin  // 3 -> IMM
             slot0_target_type = 2'd3;
@@ -992,7 +992,10 @@ end
     handle = $fopen("./perf.json");
     $display("handle is %d", handle);
   end
+  integer    fail_cnt;
+  integer    succ_cnt;
   always_ff @(posedge clk) begin
+    // LL-SC 监视器
     // if(l_commit[0] && h_entry_q[0].di.llsc_inst && h_entry_q[0].di.mem_write) begin
     //     $display("%s[Core%d] %s with data %d\033[0m",ColorID, CPU_ID, l_data[0] ?
     //     "SUCC" : "FAIL", c_lsu_resp_i.wdata);
@@ -1016,11 +1019,27 @@ end
                 end
                 $fdisplay(handle,"}}");
                 // $display("%p", excute_cycle);
+                $display("succ: %d fail: %d, frac: %f", succ_cnt, fail_cnt, 100.0 * succ_cnt / (succ_cnt + fail_cnt));
             end
         end
+        // 分支预测监视器
+        if(l_commit[i] && h_entry_q[i].pc == 32'h1c005dc0) begin
+            // 只监视失败情况
+            if(h_entry_q[i].need_jump != h_entry_q[i].bpu_predict.taken) begin
+                $display("[%d] fail direction! pred:%x actual:%x history:%b", excute_cnt[h_entry_q[i].pc], h_entry_q[i].bpu_predict.taken, h_entry_q[i].need_jump, h_entry_q[i].bpu_predict.history);
+                fail_cnt = fail_cnt + 1;
+            end else begin
+                $display("[%d] true direction! pred:%x actual:%x history:%b", excute_cnt[h_entry_q[i].pc], h_entry_q[i].bpu_predict.taken, h_entry_q[i].need_jump, h_entry_q[i].bpu_predict.history);
+                if(h_entry_q[i].target_addr == h_entry_q[i].bpu_predict.predict_pc || !h_entry_q[i].need_jump) succ_cnt = succ_cnt + 1;
+                else fail_cnt = fail_cnt + 1;
+            end
+            if(h_entry_q[i].need_jump && (h_entry_q[i].need_jump == h_entry_q[i].bpu_predict.taken) && h_entry_q[i].target_addr != h_entry_q[i].bpu_predict.predict_pc) begin
+                $display("[%d] fail target! pred:%x actual:%x", excute_cnt[h_entry_q[i].pc], h_entry_q[i].bpu_predict.predict_pc, h_entry_q[i].target_addr);
+            end
+        end
+      end
+      cyc_counter = cyc_counter + 1;
     end
-    cyc_counter = cyc_counter + 1;
-  end
 `endif
 
 endmodule

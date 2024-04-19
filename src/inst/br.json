@@ -15,7 +15,7 @@
     "signal": {
         "target_type": {
             "length": 1,
-            "stage": "alu",
+            "stage": "c_alu_common",
             "default_value": 0
         },
         "cmp_type": {
