@@ -983,11 +983,43 @@ end
   // dbg 使用
   parameter string ColorTable[4] = {"\033[40;97m", "\033[41;97m", "\033[43;97m", "\033[44;97m"};
   parameter string ColorID = ColorTable[CPU_ID];
+  int excute_cnt[int];
+  int excute_cycle[int];
+  reg [31:0] reset_counter = 0;
+  reg [31:0] cyc_counter = 0;
+  integer    handle;
+  initial begin
+    handle = $fopen("./perf.json");
+    $display("handle is %d", handle);
+  end
   always_ff @(posedge clk) begin
     // if(l_commit[0] && h_entry_q[0].di.llsc_inst && h_entry_q[0].di.mem_write) begin
     //     $display("%s[Core%d] %s with data %d\033[0m",ColorID, CPU_ID, l_data[0] ?
     //     "SUCC" : "FAIL", c_lsu_resp_i.wdata);
     // end
+    reset_counter <= reset_counter + 1;
+    for(integer i = 0 ; i < 2 ; i += 1) begin
+        if((reset_counter >= 1000) && l_commit[i]) begin
+                // Performance Counter
+                excute_cnt[h_entry_q[i].pc]   = excute_cnt[h_entry_q[i].pc] + 1;
+                excute_cycle[h_entry_q[i].pc] = excute_cycle[h_entry_q[i].pc] + cyc_counter;
+                cyc_counter = 0;
+            if(h_entry_q[i].pc == 32'h1c000100) begin
+                $fdisplay(handle,"{\"freq\": {");
+                foreach(excute_cnt[i]) begin
+                    $fdisplay(handle,"\"%x\": %d,", i, excute_cnt[i]);
+                end
+                // $display("%p", excute_cnt);
+                $fdisplay(handle,"},\"cyc\": {");
+                foreach(excute_cnt[i]) begin
+                    $fdisplay(handle,"\"%x\": %d,", i, excute_cycle[i]);
+                end
+                $fdisplay(handle,"}}");
+                // $display("%p", excute_cycle);
+            end
+        end
+    end
+    cyc_counter = cyc_counter + 1;
   end
 `endif
 
