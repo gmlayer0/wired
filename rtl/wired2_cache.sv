@@ -321,6 +321,7 @@ typedef struct packed {
 } m2_var_t;
 m2_var_t m2_var;
 m2_var_t m2_var_q;
+logic [3:0]  sb_mhit_mask;
 logic [3:0]  sb_fwd_mask;
 logic [31:0] sb_fwd_data;
 always_ff @(posedge clk) m2_var_q <= m2_var;
@@ -338,6 +339,7 @@ always_comb begin
   end
   resp.wid = m2_q.wid;
   resp_pkg = m2_q.pkg;
+  sb_mhit_mask = '0; // 检查 multihit 使用
   sb_fwd_mask = '0;
   sb_fwd_data = '0;
   if(mod_q == M_HANDLED) begin
@@ -345,8 +347,9 @@ always_comb begin
   end
   if(ENABLE_STORE) begin
     for(integer i = 0 ; i < 4 ; i += 1) begin
-      sb_fwd_mask |= m2_q.sb_hit[i] ? sb_entry[i].strb : '0;
-      sb_fwd_data |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
+      sb_mhit_mask |= (m2_q.sb_hit[i] & sb_valid[i]) ? sb_entry[i].strb : '0;
+      sb_fwd_mask  |= m2_q.sb_hit[i] ? sb_entry[i].strb : '0;
+      sb_fwd_data  |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
     end
     resp.rdata = gen_mask_word(resp.rdata[31:0], sb_fwd_data, sb_fwd_mask);
   end
@@ -429,7 +432,7 @@ always_comb begin
               fsm = S_MUCLOAD;
               m2_stall = '1;
               resp_valid = '0;
-            end else if(m2_q.wreq && (m2_q.sb_hit & sb_valid) != '0) begin // 重叠的写请求
+            end else if(m2_q.wreq && (sb_mhit_mask & m2_q.strb) != '0) begin // 重叠的写请求
               // 由于这条指令在 M2 级别，也就是写入过 SB 的最新指令，后续指令在这条指令前进之前，不会写 SB。
               // mod = M_WAITSB;
               m2_stall = '1;
