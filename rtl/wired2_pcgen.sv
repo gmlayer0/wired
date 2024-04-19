@@ -135,7 +135,7 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
   end
   assign info_raw = info_ram[info_raddr];
   always_ff @(posedge clk) begin
-    if(p_ready_i) begin
+    if(p_ready_i || p_correct_i.redirect) begin
       info_raw_q <= info_raw;
     end
   end
@@ -163,7 +163,7 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
         info_wdata[p].history = {info_rdata[p].history[3:0], l2_cnt[p][1]};
       end
     end
-    if(p_correct_i.need_update && p_correct_i.pc[2] == p[0]) begin
+    if(p_correct_i.need_update && p_correct_i.miss && p_correct_i.pc[2] == p[0]) begin
       info_wdata[p].target_type = p_correct_i.true_target_type;
       info_wdata[p].conditional_jmp = p_correct_i.true_conditional_jmp;
       info_wdata[p].history = {p_correct_i.history[3:0], p_correct_i.true_taken};
