@@ -1002,7 +1002,7 @@ end
     // end
     reset_counter <= reset_counter + 1;
     for(integer i = 0 ; i < 2 ; i += 1) begin
-        if((reset_counter >= 1000) && l_commit[i]) begin
+        if((reset_counter >= 100) && l_commit[i]) begin
                 // Performance Counter
                 excute_cnt[h_entry_q[i].pc]   = excute_cnt[h_entry_q[i].pc] + 1;
                 excute_cycle[h_entry_q[i].pc] = excute_cycle[h_entry_q[i].pc] + cyc_counter;
