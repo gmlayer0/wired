@@ -4,7 +4,7 @@
 // alu issue queue + alu
 module wired_alu_iq #(
     parameter int IQ_SIZE = `_WIRED_PARAM_INT_IQ_DEPTH,
-    parameter int B2B_STACK_SIZE = `_WIRED_PARAM_INT_IQ_B2B_STACK_SIZE
+    parameter int WAKEUP_SRC_CNT = 2
 )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -28,7 +28,19 @@ module wired_alu_iq #(
 
     // FLUSH 端口
     input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
+
+    // 唤醒端口，必选
+    // 唤醒输入
+    ,input  logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i,
+    ,input  rob_rid_t [WAKEUP_SRC_CNT-1:0] wkup_rid_i,
+    ,input  logic     [WAKEUP_SRC_CNT-1:0][31:0] wkup_data_i,
+    // 注意，这几个端口存在要求！
+    // 一旦 valid-rid 发出，就不能再撤回，也就是 excute 的 alu 计算拿到结果后，需要立即被打拍到 data 上。如果哪怕慢了一拍，数据传递就会错误。
+    ,output logic     [1:0] wkup_valid_o
+    ,output rob_rid_t [1:0] wkup_rid_o
+    ,output logic     [1:0][31:0] wkup_data_o
 );
+
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
     // Todo: AGE-MAP BASED OPTIMIZATION
@@ -109,24 +121,8 @@ module wired_alu_iq #(
     // IQ 中存储的信息
     word_t      [IQ_SIZE-1:0][1:0] iq_data;
     iq_static_t [IQ_SIZE-1:0] iq_static;
-    logic [IQ_SIZE-1:0][1:0][B2B_STACK_SIZE-1:0][1:0] b2b_src; // IQ_INDEX REG_INDEX STACK_IDX SRC_INDEX
+    logic [IQ_SIZE-1:0][1:0][WAKEUP_SRC_CNT-1:0] wkup_src; // IQ_INDEX REG_INDEX STACK_IDX SRC_INDEX
     logic       excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令，齐步走信号
-    logic     [B2B_STACK_SIZE-1:0][1:0] b2b_valid;                // OK
-    rob_rid_t [B2B_STACK_SIZE-1:0][1:0] b2b_rid;                  // OK
-    rob_rid_t [B2B_STACK_SIZE-1:0][1:0] b2b_rid_d, b2b_rid_q;     // OK
-    logic     [B2B_STACK_SIZE-1:0][1:0] b2b_valid_d, b2b_valid_q; // OK
-    assign b2b_valid = excute_ready ? b2b_valid_d : b2b_valid_q;
-    always_ff @(posedge clk) begin
-        if(!rst_n || flush_i) begin
-            b2b_valid_q <= '0;
-        end else begin
-            if(excute_ready) b2b_valid_q <= b2b_valid_d;
-        end
-    end
-    assign b2b_rid = excute_ready ? b2b_rid_d : b2b_rid_q;
-    always_ff @(posedge clk) begin
-        if(excute_ready) b2b_rid_q <= b2b_rid_d;
-    end
 
     // 解包信息
     for(genvar i = 0 ; i < 2 ; i += 1) begin
@@ -148,7 +144,8 @@ module wired_alu_iq #(
         wired_iq_entry # (
             .CDB_COUNT(2),
             .PAYLOAD_SIZE($bits(iq_static_t)),
-            .FORWARD_COUNT(2 * B2B_STACK_SIZE)
+            .WAKEUP_SRC_CNT(WAKEUP_SRC_CNT),
+            .RREG_CNT(2)
         )
         wired_iq_entry_inst (
             `_WIRED_GENERAL_CONN,
@@ -156,40 +153,37 @@ module wired_alu_iq #(
             .updata_i(|update_by),
             .data_i(update_by[1] ? p_data_i[1] : p_data_i[0]),
             .payload_i(update_by[0] ? p_static[0] : p_static[1]),
-            .b2b_valid_i(b2b_valid),
-            .b2b_rid_i(b2b_rid),
+            .wkup_valid_i({wkup_valid_i,wkup_valid_i}),
+            .wkup_rid_i({wkup_rid_i,wkup_rid_i}), // 完全转发
             .cdb_i(cdb_i),
             .empty_o(empty_q[i]),
+            .ready_mask_i('0),
             .ready_o(fire_rdy_q[i]),
-            .b2b_sel_o(b2b_src[i]),
+            .wkup_sel_o(wkup_src[i]),
             .data_o(iq_data[i]),
             .payload_o(iq_static[i])
         );
     end
     iq_static_t [1:0] sel_static_q,  sel_static;
-    word_t [1:0][1:0] sel_data_q,    sel_data;
-    logic [1:0][1:0][B2B_STACK_SIZE-1:0][1:0] sel_forward_q, sel_forward; // ok
-    word_t [B2B_STACK_SIZE-1:0][1:0] fwd_data_q, fwd_data; // TODO: FINISHME
+    word_t [1:0][1:0] sel_data;
+    logic [1:0][1:0][WAKEUP_SRC_CNT-1:0] sel_wkup_src; // ok
+    // word_t [WAKEUP_STACK_SIZE-1:0][1:0] fwd_data_q, fwd_data; // TODO: FINISHME
     // 选择两个用于 ALU 输入的 data 和 static
     for(genvar s = 0 ; s < 2 ; s += 1) begin
         always_comb begin
             sel_static[s] = '0;
-            sel_forward[s] = '0;
+            sel_wkup_src[s] = '0;
             sel_data[s] = '0;
-            b2b_valid_d[0][s] = '0;
-            b2b_rid_d[0][s] = '0;
+            wkup_valid_o[s] = '0;
+            wkup_rid_o[s] = '0;
             for(integer i = 0 ; i < IQ_SIZE ; i += 1) begin
                 if(fire_sel_oh[s][i]) begin
                     sel_static[s]  |= iq_static[i];
-                    sel_forward[s] |= b2b_src[i];
+                    sel_wkup_src[s] |= wkup_src[i];
                     sel_data[s]    |= iq_data[i];
-                    b2b_valid_d[0][s] |= '1;
-                    b2b_rid_d[0][s]   |= iq_static[i].wreg;
+                    wkup_valid_o[s]  |= excute_ready;
+                    wkup_rid_o[s]    |= iq_static[i].wreg;
                 end
-            end
-            for(integer i = 1 ; i < B2B_STACK_SIZE ; i += 1) begin
-                b2b_valid_d[i][s] = b2b_valid_q[i-1][s];
-                b2b_rid_d[i][s]   = b2b_rid_q[i-1][s];
             end
         end
         assign excute_valid[0] = |fire_rdy_q[5:0];
@@ -198,9 +192,7 @@ module wired_alu_iq #(
     always_ff @(posedge clk) begin
         if(excute_ready) begin
             sel_static_q  <= sel_static;
-            sel_forward_q <= sel_forward;
-            sel_data_q    <= sel_data;
-            fwd_data_q    <= fwd_data;
+            sel_wkup_src_q <= sel_wkup_src;
         end
     end
     rob_rid_t[1:0]   ex_rid;
@@ -231,22 +223,35 @@ module wired_alu_iq #(
     logic[1:0][31:0] ex_jump_target_ext; // 为 csr 及其它特殊指令准备
     logic[1:0][31:0] ex_wdata;
     logic[1:0][31:0] ex_wdata_ext; // 为 csr 指令准备
-    assign fwd_data[0] = ex_wdata;
-    if(B2B_STACK_SIZE > 1) assign fwd_data[B2B_STACK_SIZE-1:1] = fwd_data_q[B2B_STACK_SIZE-2:0];
     word_t [1:0][1:0] real_data; // 转发后的数据
+    always_ff @(posedge clk) wkup_data_o <= ex_wdata;
     for(genvar p = 0 ; p < 2 ; p += 1) begin
         wire [4:0] attach_rd = sel_static_q[p].addr_imm[22:18];
         wire [4:0] attach_rj = sel_static_q[p].addr_imm[27:23];
-        always_comb begin
-            for(integer i = 0 ; i < 2 ; i += 1) begin
-                real_data[p][i] = (|sel_forward_q[p][i]) ? '0 : sel_data_q[p][i];
-                for(integer s = 0 ; s < B2B_STACK_SIZE ; s += 1) begin 
-                    for(integer f = 0 ; f < 2 ; f += 1) begin
-                        real_data[p][i] |= sel_forward_q[p][i][s][f] ? fwd_data_q[s][f] : '0;
-                    end
-                end
-            end
+        // always_comb begin
+        //     for(integer i = 0 ; i < 2 ; i += 1) begin
+        //         real_data[p][i] = (|sel_wkup_src_q[p][i]) ? '0 : sel_data_q[p][i];
+        //         for(integer s = 0 ; s < WAKEUP_STACK_SIZE ; s += 1) begin 
+        //             for(integer f = 0 ; f < 2 ; f += 1) begin
+        //                 real_data[p][i] |= sel_wkup_src_q[p][i][s][f] ? fwd_data_q[s][f] : '0;
+        //             end
+        //         end
+        //     end
+        // end
+        for(genvar i = 0 ; i < 2 ; i == 1) begin
+            wired_wkupdreg # (
+                .WAKEUP_SRC_CNT(WAKEUP_SRC_CNT)
+                )
+                wired_wkupdreg_inst (
+                    `_WIRED_GENERAL_CONN,
+                    .ready_i(excute_ready),
+                    .wkup_src_i(sel_wkup_src[p][i]),
+                    .data_i(sel_data),
+                    .wkup_data_i(wkup_data_i),
+                    .data_o(real_data[p][i])
+                );
         end
+        
         wired_alu  wired_alu_inst (
             .r0_i(real_data[p][0]),
             .r1_i(real_data[p][1]),

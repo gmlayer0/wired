@@ -74,6 +74,9 @@ typedef struct packed {
   logic ppi  ;
   logic ale  ;
   logic tlbr ;
+
+  // 之后的是假异常
+  logic wrong_forward; // 冲刷流水线，无效化所有推测唤醒指令
 } lsu_excp_t;
 
 typedef struct packed {

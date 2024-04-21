@@ -3,7 +3,8 @@
 // Fuction module for Wired project
 // lsu issue queue + lsu
 module wired_lsu_iq #(
-    parameter int IQ_SIZE = `_WIRED_PARAM_LSU_IQ_DEPTH
+    parameter int IQ_SIZE = `_WIRED_PARAM_LSU_IQ_DEPTH,
+    parameter int WAKEUP_SRC_CNT = 1
 )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -32,6 +33,11 @@ module wired_lsu_iq #(
     input  logic         lsu_resp_valid_i,
     output logic         lsu_resp_ready_o,
     input  iq_lsu_resp_t lsu_resp_i
+
+    // 以下为可选端口
+    ,input  logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i,
+    ,input  rob_rid_t [WAKEUP_SRC_CNT-1:0] wkup_rid_i,
+    ,input  logic     [WAKEUP_SRC_CNT-1:0][31:0] wkup_data_i,
 );
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
@@ -99,6 +105,11 @@ module wired_lsu_iq #(
     iq_static_t [IQ_SIZE-1:0] iq_static;
     word_t [1:0] s_data;
     iq_static_t  s_static;
+    `ifdef _WIRED_WAKEUP_DST_CACHE_ENABLE
+        logic [IQ_SIZE-1:0][1:0][WAKEUP_SRC_CNT-1:0] wkup_src; // IQ_INDEX REG_INDEX STACK_IDX SRC_INDEX
+        logic [1:0][WAKEUP_SRC_CNT-1:0] s_wkup_src;
+        assign s_wkup_src = wkup_src[iq_tail_q];
+    `endif
     assign s_data = iq_data[iq_tail_q];
     assign s_static = iq_static[iq_tail_q];
     // 解包信息
@@ -112,7 +123,6 @@ module wired_lsu_iq #(
         end
     end
 
-
     // 例化 Reserve station entry
     for(genvar i = 0 ; i < IQ_SIZE ; i += 1) begin
         wire [1:0] update_by;
@@ -124,8 +134,10 @@ module wired_lsu_iq #(
                                 ((is_top[0] && !p_valid_i[0]) || (is_top[1] && p_valid_i[0]));
         wired_iq_entry # (
             .CDB_COUNT(2),
-            .PAYLOAD_SIZE($bits(iq_static_t)),
-            .FORWARD_COUNT(2)
+            .PAYLOAD_SIZE($bits(iq_static_t))
+`ifdef _WIRED_WAKEUP_DST_CACHE_ENABLE
+            ,.WAKEUP_SRC_CNT(WAKEUP_SRC_CNT)
+`endif
         )
         wired_iq_entry_inst (
             `_WIRED_GENERAL_CONN,
@@ -133,19 +145,26 @@ module wired_lsu_iq #(
             .updata_i(|update_by),
             .data_i(update_by[1] ? p_data_i[1] : p_data_i[0]),
             .payload_i(update_by[0] ? p_static[0] : p_static[1]),
-            .b2b_valid_i(),
-            .b2b_rid_i(),
+`ifdef _WIRED_WAKEUP_DST_CACHE_ENABLE
+            .wkup_valid_i(wkup_valid_i),
+            .wkup_rid_i(wkup_rid_i),
+            .wkup_sel_o(wkup_src[i]),
+`else
+            .wkup_valid_i('0),
+            .wkup_rid_i('0),
+            .wkup_sel_o(),
+`endif
             .cdb_i(cdb_i),
             .empty_o(empty_q[i]),
+            .ready_mask_i('0),
             .ready_o(fire_rdy_q[i]),
-            .b2b_sel_o(),
             .data_o(iq_data[i]),
             .payload_o(iq_static[i])
         );
     end
 
     // 连接 lsu
-    word_t [1:0] s_data_q;
+    word_t [1:0] real_data;
     iq_static_t s_iq_q;
     logic s_top_valid_q;
     logic s_top_ready;
@@ -173,16 +192,29 @@ module wired_lsu_iq #(
     // );
     always_ff @(posedge clk) begin
         if(top_ready) begin
-            s_data_q <= s_data;
+            // real_data <= s_data;
             s_iq_q <= s_static;
         end
+    end
+    for(genvar i = 0 ; i < 2 ; i += 1) begin
+        wired_wkupdreg # (
+            .WAKEUP_SRC_CNT(WAKEUP_SRC_CNT)
+            )
+            wired_wkupdreg_inst (
+                `_WIRED_GENERAL_CONN,
+                .ready_i(top_ready),
+                .wkup_src_i(s_wkup_src[i]),
+                .data_i(s_data[i]),
+                .wkup_data_i(wkup_data_i),
+                .data_o(real_data[i])
+            );
     end
     iq_lsu_req_t s_lsu_req;
     always_comb begin
         s_lsu_req = '0;
         s_lsu_req.wid = s_iq_q.wreg;
         s_lsu_req.vaddr = {{4{s_iq_q.addr_imm[27]}},
-                              s_iq_q.addr_imm} + s_data_q[1];
+                              s_iq_q.addr_imm} + real_data[1];
         s_lsu_req.msize = '0;
         case (s_iq_q.di.mem_type[1:0])
         2'd1: s_lsu_req.msize = 2'd2; // Word
@@ -221,9 +253,9 @@ module wired_lsu_iq #(
         s_lsu_req.dbar  = s_iq_q.di.dbarrier;
         s_lsu_req.llsc  = s_iq_q.di.llsc_inst;
         case (s_iq_q.di.mem_type[1:0])
-        default/*2'd1*/: s_lsu_req.wdata = s_data_q[0];
-        2'd2: s_lsu_req.wdata = (s_data_q[0]) << {s_lsu_req.vaddr[1], 4'd0};   // Half
-        2'd3: s_lsu_req.wdata = (s_data_q[0]) << {s_lsu_req.vaddr[1:0], 3'd0}; // Byte
+        default/*2'd1*/: s_lsu_req.wdata = real_data[0];
+        2'd2: s_lsu_req.wdata = (real_data[0]) << {s_lsu_req.vaddr[1], 4'd0};   // Half
+        2'd3: s_lsu_req.wdata = (real_data[0]) << {s_lsu_req.vaddr[1:0], 3'd0}; // Byte
         endcase
     end
     assign lsu_req_valid_o = s_top_valid_q;

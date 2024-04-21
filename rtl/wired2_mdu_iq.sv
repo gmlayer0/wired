@@ -128,7 +128,7 @@ module wired_mdu_iq #(
         wired_iq_entry # (
             .CDB_COUNT(2),
             .PAYLOAD_SIZE($bits(iq_static_t)),
-            .FORWARD_COUNT(1)
+            .WAKEUP_SRC_CNT(1)
         )
         wired_iq_entry_inst (
             `_WIRED_GENERAL_CONN,
@@ -136,12 +136,12 @@ module wired_mdu_iq #(
             .updata_i(|update_by),
             .data_i(update_by[1] ? p_data_i[1] : p_data_i[0]),
             .payload_i(update_by[0] ? p_static[0] : p_static[1]),
-            .b2b_valid_i('0),
-            .b2b_rid_i('0),
+            .wkup_valid_i('0),
+            .wkup_rid_i('0),
             .cdb_i(cdb_i),
             .empty_o(empty_q[i]),
             .ready_o(fire_rdy_q[i]),
-            .b2b_sel_o(),
+            .wkup_sel_o(),
             .data_o(iq_data[i]),
             .payload_o(iq_static[i])
         );

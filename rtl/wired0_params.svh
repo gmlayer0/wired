@@ -22,9 +22,15 @@
 `define _WIRED_PARAM_MDU_IQ_DEPTH 4
 `define _WIRED_PARAM_LSU_IQ_DEPTH 8
 
-`define _WIRED_PARAM_INT_IQ_B2B_STACK_SIZE 2
+`define _WIRED_PARAM_INT_IQ_WAKEUP_STACK_SIZE 2
 
 `define _WIRED_PARAM_LSU_STOREBUFFER 4
+
+// Performance Related
+
+`define _WIRED_WAKEUP_DST_CACHE_ENABLE // 使能 CACHE 的背靠背唤醒机制
+
+`define _WIRED_STORE_EARLY_ISSUE // 写指令写数据未就绪时，可提前发射
 
 // TLB RELATED
 `define _WIRED_PARAM_TLB_CNT 32

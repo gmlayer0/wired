@@ -46,10 +46,12 @@ module wired_cache #(
     input  logic              flush_i
 
     // 以下为可配置项
-    // 推测唤醒端口，在 M1 级做唤醒
-    ,output rob_rid_t         wakeup_rid_o
-    ,output logic[31:0]       wakeup_data_o
-
+  // `ifdef _WIRED_WAKEUP_SRC_CACHE_ENABLE
+    // 推测唤醒端口，在 M1 级做指令唤醒用
+    ,output logic             wkup_valid_o
+    ,output rob_rid_t         wkup_rid_o
+    ,output logic[31:0]       wkup_data_o
+  // `endif
     // CDB 嗅探端口， store 指令数据未就绪时即可发送到 storebuffer，在 storebuffer 中监听 cdb。
     ,input pipeline_cdb_t [1:0] cdb_i
   );
@@ -100,15 +102,17 @@ always_ff @(posedge clk) begin
 end
 
 // 用于追踪 M1 级别唤醒是否有效
-logic m1_wakeup_valid_q;
+logic m1_wkup_valid_q;
 always_ff @(posedge clk) begin
   if(!g_stall) begin
     // 仅请求的第一个周期有效，如果请求遇到任何流水线暂停，转发都会错误。
-    m1_wakeup_valid_q <= lsu_req_valid_i;
+    m1_wkup_valid_q <= lsu_req_valid_i;
   end else begin
-    m1_wakeup_valid_q <= '0;
+    m1_wkup_valid_q <= '0;
   end
-end
+assign wkup_valid_o = m1_wkup_valid_q;
+assign wkup_rid_o = m1_req_q.wid;
+`endif
 
 iq_lsu_req_t m1_req_q;
 
@@ -277,13 +281,13 @@ always_ff @(posedge clk) begin
 end
 
 // 用于追踪 M2 级别唤醒是否有效
-logic m2_wakeup_valid_q;
+logic m2_wkup_valid_q;
 always_ff @(posedge clk) begin
   if(!m2_stall) begin
     // 仅请求的第一个周期有效，如果请求遇到任何流水线暂停，转发都会错误。
-    m2_wakeup_valid_q <= m1_wakeup_valid_q && sb_ready;
+    m2_wkup_valid_q <= m1_wkup_valid_q && sb_ready;
   end else begin
-    m2_wakeup_valid_q <= '0;
+    m2_wkup_valid_q <= '0;
   end
 end
 
@@ -589,6 +593,11 @@ end else begin
   assign lsu_resp_o = resp;
   assign lsu_pkg_o = resp_pkg;
 end
+
+  // Forward source
+  logic[31:0] fwd_src_q;
+  always_ff @(posedge clk) fwd_src_q <= resp.rdata[31:0];
+  assign wkup_data_o = fwd_src_q;
 
 `ifdef _VERILATOR
   // if(ENABLE_STORE)

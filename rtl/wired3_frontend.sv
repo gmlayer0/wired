@@ -181,7 +181,7 @@ module wired_frontend #(
   end
   wired_cache #(
                 .ICACHE(1),     // 配置是否为 ICache
-                .OUTPUT_BUF(0), // 状态机输出到 lsu_resp 再打一拍
+                .OUTPUT_BUF(0), // 状态机输出到 lsu_resp 不用再打一拍
                 .SRAM_WIDTH(64),
                 .PKG_SIZE(2 * $bits(bpu_predict_t) + 2)
               )
