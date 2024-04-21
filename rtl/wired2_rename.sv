@@ -5,6 +5,7 @@
 // And generate all register id after rename.
 module wired_rename #(
     parameter int unsigned DEPTH = 32,
+    parameter int unsigned RREG_COUNT   = 4,
 
     // DO NOT MODIFY
     parameter int unsigned ADDR_DEPTH   = (DEPTH > 1) ? $clog2(DEPTH) : 1
@@ -12,9 +13,9 @@ module wired_rename #(
     `_WIRED_GENERAL_DEFINE,
 
     // 连接到 RENAME 级别的端口
-    input arch_rid_t[3:0] r_rarid_i,
-    output rob_rid_t[3:0] r_rrrid_o,
-    output    logic [3:0] r_prf_valid_o, // PRF 中存储的值是有效的
+    input arch_rid_t[RREG_COUNT-1:0] r_rarid_i,
+    output rob_rid_t[RREG_COUNT-1:0] r_rrrid_o,
+    output    logic [RREG_COUNT-1:0] r_prf_valid_o, // PRF 中存储的值是有效的
 
     input     logic [1:0] r_mask_i,
     output    logic       r_ready_o,     // 发射就绪，注意，发射条件为 指令到达 P 级时，保证依然有两个 ROB 表项可用
@@ -92,14 +93,14 @@ module wired_rename #(
         logic[`_WIRED_PARAM_ROB_LEN-1:0] rob_id;
     } rename_entry_t;
     // Rename 级别表
-    rename_entry_t [3:0] r_rename_result;
+    rename_entry_t [RREG_COUNT-1:0] r_rename_result;
     rename_entry_t [1:0] r_rename_new;
     // Commit 级别表
-    rename_entry_t [3:0] cr_rename_result;
+    rename_entry_t [RREG_COUNT-1:0] cr_rename_result;
     rename_entry_t [1:0] cw_rename_result;
     rename_entry_t [1:0] c_rename_new;
     // 读端口处理
-    for(genvar p = 0 ; p < 4 ; p += 1) begin
+    for(genvar p = 0 ; p < RREG_COUNT ; p += 1) begin
         assign r_rrrid_o[p] = r_rename_result[p].rob_id;
         assign r_prf_valid_o[p] = r_rename_result[p] == cr_rename_result[p];
     end
@@ -132,7 +133,7 @@ module wired_rename #(
     wired_registers_file_banked # (
         .DATA_WIDTH(`_WIRED_PARAM_ROB_LEN + 1),
         .DEPTH(1 << `_WIRED_PARAM_PRF_LEN),
-        .R_PORT_COUNT(4),
+        .R_PORT_COUNT(RREG_COUNT),
         .W_PORT_COUNT(2),
         .NEED_RESET(1),
         .NEED_FORWARD(0)
@@ -149,7 +150,7 @@ module wired_rename #(
     wired_registers_file_banked # (
         .DATA_WIDTH(`_WIRED_PARAM_ROB_LEN + 1),
         .DEPTH(1 << `_WIRED_PARAM_PRF_LEN),
-        .R_PORT_COUNT(6),
+        .R_PORT_COUNT(RREG_COUNT+2),
         .W_PORT_COUNT(2),
         .REGISTERS_FILE_TYPE("ff"),
         .NEED_RESET(1),
@@ -157,7 +158,7 @@ module wired_rename #(
     )
     c_rename_table (
         `_WIRED_GENERAL_CONN,
-        .raddr_i({r_rarid_i,r_warid_i}),
+        .raddr_i({r_rarid_i, r_warid_i}),
         .rdata_o({cr_rename_result, cw_rename_result}),
         .waddr_i(c_warid_i),
         .we_i(c_retire_i & {{(|c_warid_i[1])}, {(|c_warid_i[0])}}),

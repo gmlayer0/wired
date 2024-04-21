@@ -27,6 +27,9 @@ module wired_lsu_sb(
     // SRAM Snoop 端口，实时更新所有 sb 表项
     input  dsram_snoop_t  snoop_i
 
+    // CDB 嗅探端口， store 指令数据未就绪时即可发送到 storebuffer，在 storebuffer中检查。
+    ,input pipeline_cdb_t [1:0] cdb_i
+
   );
   // 内部 FIFO 逻辑
   logic [2:0] cnt_q;

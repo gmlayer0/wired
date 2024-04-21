@@ -50,10 +50,17 @@ module wired_backend #(
   wire r_ready;
   // --- ARF ---
   // 连接到 r_pkg 中的寄存器号
+`ifdef _WIRED_PARAM_ENABLE_FPU
+  arch_rid_t [1:0][2:0] r_raddr;
+  rob_rid_t  [1:0][2:0] r_rrrid; // Rename_read_rob_register_id
+  logic      [1:0][2:0] r_arf_valid;
+  logic[1:0][2:0][31:0] r_rdata;
+`else
   arch_rid_t [1:0][1:0] r_raddr;
   rob_rid_t  [1:0][1:0] r_rrrid; // Rename_read_rob_register_id
   logic      [1:0][1:0] r_arf_valid;
   logic[1:0][1:0][31:0] r_rdata;
+`endif
   arch_rid_t [1:0]      r_waddr;
   rob_rid_t  [1:0]      r_wrrid;
   logic      [1:0]      r_tier_id;

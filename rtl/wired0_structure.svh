@@ -195,18 +195,19 @@ typedef struct packed {
 //   word_t    wdata;
 // } pipeline_cdb_data_t;
 
+`ifdef _WIRED_PARAM_ENABLE_FPU
 typedef struct packed{
-  logic [1:0] valid;
-  reg_ctrl_t [1:0] rreg;
-  word_t [1:0] rdata;
-} pipeline_p_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
-
+  logic [2:0] valid;
+  rob_rid_t [2:0] rreg;
+  word_t [2:0] rdata;
+} pipeline_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
+`else
 typedef struct packed{
   logic [1:0] valid;
   rob_rid_t [1:0] rreg;
   word_t [1:0] rdata;
 } pipeline_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
-
+`endif
 // 提交级流水
 // 提交级控制实际 ARF 写回，控制 Rename 表项回收，保证 ROB 永远不会出现 Overflow 的情况
 

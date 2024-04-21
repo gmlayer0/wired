@@ -44,6 +44,14 @@ module wired_cache #(
 
     // 无效化端口
     input  logic              flush_i
+
+    // 以下为可配置项
+    // 推测唤醒端口，在 M1 级做唤醒
+    ,output rob_rid_t         wakeup_rid_o
+    ,output logic[31:0]       wakeup_data_o
+
+    // CDB 嗅探端口， store 指令数据未就绪时即可发送到 storebuffer，在 storebuffer 中监听 cdb。
+    ,input pipeline_cdb_t [1:0] cdb_i
   );
   // 参数解析
   localparam bit ENABLE_STORE = !ICACHE;
@@ -90,6 +98,18 @@ always_ff @(posedge clk) begin
     m1_valid_q <= lsu_req_valid_i;
   end
 end
+
+// 用于追踪 M1 级别唤醒是否有效
+logic m1_wakeup_valid_q;
+always_ff @(posedge clk) begin
+  if(!g_stall) begin
+    // 仅请求的第一个周期有效，如果请求遇到任何流水线暂停，转发都会错误。
+    m1_wakeup_valid_q <= lsu_req_valid_i;
+  end else begin
+    m1_wakeup_valid_q <= '0;
+  end
+end
+
 iq_lsu_req_t m1_req_q;
 
 logic [PKG_SIZE-1:0] req_pkg_q;
@@ -255,6 +275,18 @@ always_ff @(posedge clk) begin
     m2_valid_q <= m1_valid_q && sb_ready;
   end
 end
+
+// 用于追踪 M2 级别唤醒是否有效
+logic m2_wakeup_valid_q;
+always_ff @(posedge clk) begin
+  if(!m2_stall) begin
+    // 仅请求的第一个周期有效，如果请求遇到任何流水线暂停，转发都会错误。
+    m2_wakeup_valid_q <= m1_wakeup_valid_q && sb_ready;
+  end else begin
+    m2_wakeup_valid_q <= '0;
+  end
+end
+
 m2_pack_t m1_gat; // 收集(gather) M1 侧的数据，生成 m2 数据
 m2_pack_t m2_q;
 always_ff @(posedge clk) if(!m2_stall) m2_q <= m1_gat;
