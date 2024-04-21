@@ -245,7 +245,7 @@ module wired_alu_iq #(
                     `_WIRED_GENERAL_CONN,
                     .ready_i(excute_ready),
                     .wkup_src_i(sel_wkup_src[p][i]),
-                    .data_i(sel_data),
+                    .data_i(sel_data[p][i]),
                     .wkup_data_i(wkup_data_i),
                     .data_o(real_data[p][i])
                 );

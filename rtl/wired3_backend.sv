@@ -287,7 +287,9 @@ module wired_backend #(
   logic lsu_iq_valid, lsu_iq_ready, iq_lsu_valid, iq_lsu_ready;
   iq_lsu_req_t  iq_lsu_req;
   iq_lsu_resp_t lsu_iq_resp;
-  wired_lsu_iq wired_lsu_iq_inst (
+  wired_lsu_iq #(
+    .WAKEUP_SRC_CNT(3)
+  ) wired_lsu_iq_inst (
     `_WIRED_GENERAL_CONN,
     .p_ctrl_i(p_pkg_q),
     .p_data_i(p_data),
@@ -369,9 +371,9 @@ module wired_backend #(
           .p_tag_i(p_rtag),
           .flush_i(c_flush)
 
-          ,.wkup_valid_o({wkup_bus[2].valid})
-          ,.wkup_rid_o(  {wkup_bus[2].rid})
-          ,.wkup_data_o( {wkup_bus[2].data})
+          ,.wkup_valid_o(/*{wkup_bus[2].valid}*/)
+          ,.wkup_rid_o(  /*{wkup_bus[2].rid}  */)
+          ,.wkup_data_o( /*{wkup_bus[2].data} */)
       );
   wired_tl_adapter # (
         .SOURCE_WIDTH(SOURCE_WIDTH),
