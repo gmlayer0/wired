@@ -35,6 +35,7 @@ module wired_iq_entry #(
 );
 
   // 生成静态部分
+  wire valid_inst;
   wired_iq_entry_static # (
     .PAYLOAD_SIZE(PAYLOAD_SIZE)
   )
@@ -44,6 +45,7 @@ module wired_iq_entry #(
     .updata_i(updata_i),
     .payload_i(payload_i),
     .payload_o(payload_o),
+    .valid_inst_o(valid_inst),
     .empty_o(empty_o)
   );
 
@@ -58,6 +60,7 @@ module wired_iq_entry #(
       `_WIRED_GENERAL_CONN,
       .sel_i(sel_i),
       .updata_i(updata_i),
+      .valid_inst_i(valid_inst),
       .data_valid_i(data_i.valid[i]),
       .data_rid_i(data_i.rreg[i]),
       .data_i(data_i.rdata[i]),

@@ -146,9 +146,9 @@ module wired_lsu_iq #(
             .data_i(update_by[1] ? p_data_i[1] : p_data_i[0]),
             .payload_i(update_by[0] ? p_static[0] : p_static[1]),
 `ifdef _WIRED_WAKEUP_DST_CACHE_ENABLE
-            .wkup_valid_i(wkup_valid_i),
-            .wkup_rid_i(wkup_rid_i),
-            .wkup_sel_o(wkup_src[i]),
+            .wkup_valid_i({wkup_valid_i,wkup_valid_i}), // TODO: 减少不必要的背靠背转发
+            .wkup_rid_i({wkup_rid_i,wkup_rid_i}),       // TODO: 减少不必要的背靠背转发
+            .wkup_sel_o(wkup_src[i]),                   // TODO: 减少不必要的背靠背转发
 `else
             .wkup_valid_i('0),
             .wkup_rid_i('0),

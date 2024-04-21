@@ -110,9 +110,9 @@ always_ff @(posedge clk) begin
   end else begin
     m1_wkup_valid_q <= '0;
   end
+end
 assign wkup_valid_o = m1_wkup_valid_q;
 assign wkup_rid_o = m1_req_q.wid;
-`endif
 
 iq_lsu_req_t m1_req_q;
 

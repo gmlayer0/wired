@@ -14,7 +14,8 @@ module wired_iq_entry_static #(
 
 
     output logic [PAYLOAD_SIZE-1:0] payload_o,
-    output logic  empty_o  // IQ 项目有效
+    output logic valid_inst_o,
+    output logic empty_o  // IQ 项目有效
 );
 
     // 标记 IQ Entry 中存储的是一条有效的指令
@@ -40,6 +41,7 @@ module wired_iq_entry_static #(
         end
     end
     assign empty_o = empty_inst_q; // OK
+    assign valid_inst_o = valid_inst_q;
     assign payload_o = payload_q;  // OK
 
 endmodule

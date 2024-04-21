@@ -34,7 +34,7 @@ module wired_alu_iq #(
     ,input  logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i,
     ,input  rob_rid_t [WAKEUP_SRC_CNT-1:0] wkup_rid_i,
     ,input  logic     [WAKEUP_SRC_CNT-1:0][31:0] wkup_data_i,
-    // 注意，这几个端口存在要求！
+    // 注意，这几个端口存在较为严格的要求！
     // 一旦 valid-rid 发出，就不能再撤回，也就是 excute 的 alu 计算拿到结果后，需要立即被打拍到 data 上。如果哪怕慢了一拍，数据传递就会错误。
     ,output logic     [1:0] wkup_valid_o
     ,output rob_rid_t [1:0] wkup_rid_o
@@ -192,7 +192,6 @@ module wired_alu_iq #(
     always_ff @(posedge clk) begin
         if(excute_ready) begin
             sel_static_q  <= sel_static;
-            sel_wkup_src_q <= sel_wkup_src;
         end
     end
     rob_rid_t[1:0]   ex_rid;
@@ -238,7 +237,7 @@ module wired_alu_iq #(
         //         end
         //     end
         // end
-        for(genvar i = 0 ; i < 2 ; i == 1) begin
+        for(genvar i = 0 ; i < 2 ; i += 1) begin
             wired_wkupdreg # (
                 .WAKEUP_SRC_CNT(WAKEUP_SRC_CNT)
                 )

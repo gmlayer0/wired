@@ -11,10 +11,11 @@ module wired_iq_entry_data #(
 
     input logic sel_i,     // 指令被发射标记
     input logic updata_i,  // 新的指令加入标记
+    input logic valid_inst_i,
     // input pipeline_data_t data_i,            // 新指令的输入数据
-    input logic           data_valid_i,
-    input logic rob_rid_t data_rid_i,
-    input logic [31:0]    data_i,
+    input logic        data_valid_i,
+    input rob_rid_t    data_rid_i,
+    input logic [31:0] data_i,
 
     // 背靠背唤醒
     input logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i,
@@ -79,7 +80,7 @@ module wired_iq_entry_data #(
 
   // 背靠背唤醒机制
   for(genvar j = 0 ; j < WAKEUP_SRC_CNT ; j++) begin
-    assign wkup_hit[j] = valid_inst_q && (!data_rdy_q) && wkup_valid_i[j] && wkup_rid_i[j] == rid_q;
+    assign wkup_hit[j] = valid_inst_i && (!data_rdy_q) && wkup_valid_i[j] && wkup_rid_i[j] == rid_q;
   end
   always_ff @(posedge clk) begin
     wkup_sel_o <= wkup_hit;
@@ -91,10 +92,10 @@ module wired_iq_entry_data #(
   // 考虑 wkup_rid_i 来自本周期，还有额外两级逻辑，此信号最长 5 级。
   always_comb begin
     value_ready_o = '0;
-    if(valid_inst_q) begin
+    if(valid_inst_i) begin
       value_ready_o = data_rdy_q;
       if(updata_i) begin
-        value_ready_o = data_i.valid[i];
+        value_ready_o = data_valid_i;
       end else if(sel_i) begin
         value_ready_o = '0;
       end else begin
@@ -106,7 +107,7 @@ module wired_iq_entry_data #(
       end
     end else begin
       if(updata_i) begin
-        value_ready_o = data_i.valid[i];
+        value_ready_o = data_valid_i;
       end
     end
   end
