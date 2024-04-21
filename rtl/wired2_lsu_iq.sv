@@ -268,6 +268,7 @@ module wired_lsu_iq #(
     assign fifo_cdb.need_jump         = '0;
     assign fifo_cdb.target_addr       = lsu_resp_i.vaddr;
     assign fifo_cdb.uncached          = lsu_resp_i.uncached;
+    assign fifo_cdb.wrong_forward     = lsu_resp_i.wrong_forward;
     assign fifo_cdb.wdata             = lsu_resp_i.rdata;
     assign fifo_cdb.wid               = lsu_resp_i.wid;
     assign fifo_cdb.valid             = '0;

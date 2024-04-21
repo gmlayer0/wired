@@ -74,9 +74,6 @@ typedef struct packed {
   logic ppi  ;
   logic ale  ;
   logic tlbr ;
-
-  // 之后的是假异常
-  logic wrong_forward; // 冲刷流水线，无效化所有推测唤醒指令
 } lsu_excp_t;
 
 typedef struct packed {
@@ -184,6 +181,7 @@ typedef struct packed {
   logic[31:0] target_addr;       // FOR LSU: VADDR, FOR ALU: TARGET_ADDR
                                  // FOR INVTLB: VPN-[31:12] ASID-[9:0]
   // 访存流相关
+  logic       wrong_forward;
   logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
   word_t      wdata;
   
@@ -233,6 +231,7 @@ typedef struct packed {
   logic[31:0] target_addr; // 这里做了复用，对于跳转指令为跳转目标，对于访存指令为访存虚地址，对于 CSR 指令，为待写入的数据 gpr[rd]。
 
   // 访存流相关
+  logic wrong_forward;
   logic uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
                            // Uncached 指令占用 Request_buffer (仅有一个表项，占用时不再进行后续指令执行)
 
@@ -339,6 +338,7 @@ typedef struct packed {
   lsu_excp_t   excp;
   fetch_excp_t f_excp;
   logic       uncached;
+  logic       wrong_forward;
   rob_rid_t   wid;     // 写回地址
   logic[31:0] vaddr;
   logic[63:0] rdata;   // 高位是 ICACHE 专用

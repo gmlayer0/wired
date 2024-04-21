@@ -17,6 +17,7 @@ typedef struct packed {
           logic[31:0] target_addr;
 
           // 访存流相关
+          logic  wrong_forward;
           logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
         } rob_entry_dynamic_t;
 // ROB 存储表项定义
@@ -56,6 +57,7 @@ function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry
   ret.need_jump = dynamic_i.need_jump;
   ret.target_addr = dynamic_i.target_addr;
   // 访存流相关
+  ret.wrong_forward = dynamic_i.wrong_forward;
   ret.uncached = dynamic_i.uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
   // ret.store_buffer = dynamic_i.store_buffer;      // 提交一条 Store_buffer 中的写请求
   // ret.store_conditional = dynamic_i.store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
@@ -166,6 +168,7 @@ module wired_rob (
     assign cdb_entry_dynamic[i].excp = cdb_i[i].excp;
     assign cdb_entry_dynamic[i].need_jump = cdb_i[i].need_jump;
     assign cdb_entry_dynamic[i].target_addr = cdb_i[i].target_addr;
+    assign cdb_entry_dynamic[i].wrong_forward = cdb_i[i].wrong_forward;
     assign cdb_entry_dynamic[i].uncached = cdb_i[i].uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
     // assign cdb_entry_dynamic[i].store_buffer = cdb_i[i].store_buffer;      // 提交一条 Store_buffer 中的写请求
     // assign cdb_entry_dynamic[i].store_conditional = cdb_i[i].store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线

@@ -371,9 +371,9 @@ module wired_backend #(
           .p_tag_i(p_rtag),
           .flush_i(c_flush)
 
-          ,.wkup_valid_o(/*{wkup_bus[2].valid}*/)
-          ,.wkup_rid_o(  /*{wkup_bus[2].rid}  */)
-          ,.wkup_data_o( /*{wkup_bus[2].data} */)
+          ,.wkup_valid_o({wkup_bus[2].valid})
+          ,.wkup_rid_o(  {wkup_bus[2].rid}  )
+          ,.wkup_data_o( {wkup_bus[2].data} )
       );
   wired_tl_adapter # (
         .SOURCE_WIDTH(SOURCE_WIDTH),

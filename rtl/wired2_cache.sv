@@ -295,6 +295,7 @@ m2_pack_t m1_gat; // 收集(gather) M1 侧的数据，生成 m2 数据
 m2_pack_t m2_q;
 always_ff @(posedge clk) if(!m2_stall) m2_q <= m1_gat;
 always_comb begin
+  m1_gat = '0;
   m1_gat.vaddr     = m1.vaddr;   m1_gat.paddr     = m1.paddr;
   m1_gat.msize     = m1.msize;   m1_gat.msigned   = m1.msigned;
   m1_gat.wid       = m1.wid;     m1_gat.wreq      = m1.wreq;
@@ -367,6 +368,7 @@ always_comb begin
   resp_valid = '0; // 主要输出握手
   resp = '0;       // 主要输出数据
   resp.excp = m2_q.d_excp;
+  resp.wrong_forward = !m2_wkup_valid_q && (m2_q.cacop == RD_ALLOC || m2_q.llsc);
   resp.f_excp = m2_q.f_excp;
   resp.uncached = m2_q.uncache;
   resp.vaddr = m2_q.vaddr;

@@ -68,7 +68,8 @@ module wired_commit #(
     assign slot1_ctrl_conflict = c_rob_entry_i[1].di.slot0 ||
                                  c_rob_entry_i[1].excp_found ||
                                  c_rob_entry_i[1].bpu_predict.taken || // 错误预测的跳转，也强制送到第一条管线检查
-                                 c_rob_entry_i[1].uncached; // 写指令 / uncached 指令需要特殊处理
+                                 c_rob_entry_i[1].uncached ||    // 写指令 / uncached 指令需要特殊处理
+                                 c_rob_entry_i[1].wrong_forward; // 错误的推测唤醒送入第一条管线检查
     assign c_retire_o = f_valid & {f_skid_ready_q, f_skid_ready_q};
 
     always_ff @(posedge clk) begin
@@ -710,7 +711,7 @@ module wired_commit #(
                         end
                     end
                     // flush / ertn 逻辑 及 idle 逻辑
-                    if(l_commit[0] && (h_entry_q[0].di.refetch)) begin
+                    if(l_commit[0] && (h_entry_q[0].di.refetch || h_entry_q[0].wrong_forward /*推测唤醒修正*/)) begin
                         if(h_entry_q[0].di.ertn_inst) begin
                             // 执行异常返回操作，更新寄存器
                             csr.crmd[`_CRMD_PLV] = csr_q.prmd[`_PRMD_PPLV];
