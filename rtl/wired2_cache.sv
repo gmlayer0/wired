@@ -8,7 +8,7 @@ module wired_cache #(
     parameter bit OUTPUT_BUF = 1, // 状态机输出到 lsu_resp 再打一拍
     parameter int SRAM_WIDTH = 32,
     parameter int PKG_SIZE = 1,
-    parameter int SB_SIZE = 4 
+    parameter int SB_SIZE = 8
   )(
     `_WIRED_GENERAL_DEFINE,
 

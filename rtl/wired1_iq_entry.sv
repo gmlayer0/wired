@@ -19,6 +19,7 @@ module wired_iq_entry #(
     // 背靠背唤醒
     input logic     [RREG_CNT-1:0][WAKEUP_SRC_CNT-1:0] wkup_valid_i,
     input rob_rid_t [RREG_CNT-1:0][WAKEUP_SRC_CNT-1:0] wkup_rid_i,
+    input logic     [RREG_CNT-1:0][WAKEUP_SRC_CNT-1:0][31:0] wkup_data_i,
     
     // CDB 数据前递
     input pipeline_cdb_t [CDB_COUNT-1:0] cdb_i,
@@ -66,6 +67,7 @@ module wired_iq_entry #(
       .data_i(data_i.rdata[i]),
       .wkup_valid_i(wkup_valid_i[i]),
       .wkup_rid_i(wkup_rid_i[i]),
+      .wkup_data_i(wkup_data_i[i]),
       .cdb_i(cdb_i),
       .value_ready_o(value_ready[i]),
       .wkup_sel_o(wkup_sel_o[i]),

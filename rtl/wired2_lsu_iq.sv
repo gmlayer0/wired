@@ -148,6 +148,7 @@ module wired_lsu_iq #(
 `ifdef _WIRED_WAKEUP_DST_CACHE_ENABLE
             .wkup_valid_i({wkup_valid_i,wkup_valid_i}), // TODO: 减少不必要的背靠背转发
             .wkup_rid_i({wkup_rid_i,wkup_rid_i}),       // TODO: 减少不必要的背靠背转发
+            .wkup_data_i({wkup_data_i,wkup_data_i}),
             .wkup_sel_o(wkup_src[i]),                   // TODO: 减少不必要的背靠背转发
 `else
             .wkup_valid_i('0),

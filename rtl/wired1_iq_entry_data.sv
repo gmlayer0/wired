@@ -20,6 +20,7 @@ module wired_iq_entry_data #(
     // 背靠背唤醒
     input logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i,
     input rob_rid_t [WAKEUP_SRC_CNT-1:0] wkup_rid_i,
+    input logic     [WAKEUP_SRC_CNT-1:0][31:0] wkup_data_i,
 
     // CDB 数据前递
     input pipeline_cdb_t [CDB_COUNT-1:0] cdb_i,
@@ -34,7 +35,7 @@ module wired_iq_entry_data #(
   word_t data_q;
   logic data_rdy_q;
   rob_rid_t rid_q;
-  assign data_o = data_q; // OK
+  logic[WAKEUP_SRC_CNT-1:0] wkup_sel_q;
 
   // 组合逻辑信号
   logic [CDB_COUNT-1:0] cdb_hit;
@@ -42,6 +43,15 @@ module wired_iq_entry_data #(
   word_t cdb_result;
   logic [WAKEUP_SRC_CNT-1:0] wkup_hit;
   logic wkup_forward;
+  logic [31:0] wkup_sel_result;
+  assign data_o = (|wkup_sel_q) ? wkup_sel_result : data_q; // OK
+  always_comb begin
+    wkup_sel_result = '0;
+    for(integer i = 0 ; i < WAKEUP_SRC_CNT ; i += 1) begin
+      wkup_sel_result |= wkup_sel_q[i] ? wkup_data_i[i] : '0;
+    end
+  end
+
 
   for(genvar j = 0 ; j < 2 ; j++) begin
     assign cdb_hit[j] = !data_rdy_q &&
@@ -68,13 +78,24 @@ module wired_iq_entry_data #(
 
   // 更新逻辑
   always_ff @(posedge clk) begin
+    if(sel_i) wkup_sel_q <= '0;
+    else wkup_sel_q <= wkup_sel_o;
+  end
+  always_ff @(posedge clk) begin
     if(updata_i) begin
-      data_q <= data_i;
       data_rdy_q <= data_valid_i;
       rid_q <= data_rid_i;
+    end else if(cdb_forward | wkup_forward) begin
+      data_rdy_q <= '1;
+    end
+  end
+  always_ff @(posedge clk) begin
+    if(updata_i) begin
+      data_q <= data_i;
     end else if(cdb_forward) begin
       data_q <= cdb_result;
-      data_rdy_q <= '1;
+    end else if(|wkup_sel_q) begin
+      data_q <= wkup_sel_result;
     end
   end
 
@@ -83,7 +104,8 @@ module wired_iq_entry_data #(
     assign wkup_hit[j] = valid_inst_i && (!data_rdy_q) && wkup_valid_i[j] && wkup_rid_i[j] == rid_q;
   end
   always_ff @(posedge clk) begin
-    wkup_sel_o <= wkup_hit;
+    if(sel_i) wkup_sel_o <= '0;
+    else wkup_sel_o <= wkup_hit;
   end
   assign wkup_forward = |wkup_hit; // 同 CDB 分析，从 wkup_rid_i 到此处为 2 级。
 
@@ -99,9 +121,7 @@ module wired_iq_entry_data #(
       end else if(sel_i) begin
         value_ready_o = '0;
       end else begin
-        if(cdb_forward) begin
-          value_ready_o = '1;
-        end else if(wkup_forward) begin
+        if(cdb_forward | wkup_forward) begin
           value_ready_o = '1;
         end
       end

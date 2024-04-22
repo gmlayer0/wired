@@ -24,8 +24,6 @@
 
 `define _WIRED_PARAM_INT_IQ_WAKEUP_STACK_SIZE 2
 
-`define _WIRED_PARAM_LSU_STOREBUFFER 4
-
 // Performance Related
 
 `define _WIRED_WAKEUP_DST_CACHE_ENABLE // 使能 CACHE 的背靠背唤醒机制

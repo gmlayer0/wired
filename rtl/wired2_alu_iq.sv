@@ -155,6 +155,7 @@ module wired_alu_iq #(
             .payload_i(update_by[0] ? p_static[0] : p_static[1]),
             .wkup_valid_i({wkup_valid_i,wkup_valid_i}),
             .wkup_rid_i({wkup_rid_i,wkup_rid_i}), // 完全转发
+            .wkup_data_i({wkup_data_i,wkup_data_i}),
             .cdb_i(cdb_i),
             .empty_o(empty_q[i]),
             .ready_mask_i('0),
