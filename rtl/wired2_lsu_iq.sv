@@ -35,9 +35,9 @@ module wired_lsu_iq #(
     input  iq_lsu_resp_t lsu_resp_i
 
     // 以下为可选端口
-    ,input  logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i,
-    ,input  rob_rid_t [WAKEUP_SRC_CNT-1:0] wkup_rid_i,
-    ,input  logic     [WAKEUP_SRC_CNT-1:0][31:0] wkup_data_i,
+    ,input  logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i
+    ,input  rob_rid_t [WAKEUP_SRC_CNT-1:0] wkup_rid_i
+    ,input  logic     [WAKEUP_SRC_CNT-1:0][31:0] wkup_data_i
 );
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
