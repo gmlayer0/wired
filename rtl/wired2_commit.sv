@@ -63,8 +63,12 @@ module wired_commit #(
     reg f_skid_ready_q;
     rob_entry_t [1:0] f_skid_entry_q;
     rob_rid_t [1:0] f_skid_wrrid_q;
+`ifdef _WIRED_TDP_ARF
+    assign slot1_bank_conflict = '0;
+`else
     assign slot1_bank_conflict = c_rob_entry_i[1].wreg[0] == c_rob_entry_i[0].wreg[0] &&
                                  c_rob_entry_i[0].wreg    != '0;
+`endif
     assign slot1_ctrl_conflict = c_rob_entry_i[1].di.slot0 ||
                                  c_rob_entry_i[1].excp_found ||
                                  c_rob_entry_i[1].bpu_predict.taken || // 错误预测的跳转，也强制送到第一条管线检查
@@ -823,11 +827,11 @@ if(ENABLE_DIFFTEST) begin
         if(!rst_n) begin
           ref_regs[i] <= '0;
         end
-        else if(l_commit[0] && l_warid[0] == i[4:0] && i != 0) begin
-          ref_regs[i] <= l_data[0];
-        end
         else if(l_commit[1] && l_warid[1] == i[4:0] && i != 0) begin
           ref_regs[i] <= l_data[1];
+        end
+        else if(l_commit[0] && l_warid[0] == i[4:0] && i != 0) begin
+          ref_regs[i] <= l_data[0];
         end
       end
     end
@@ -1008,7 +1012,7 @@ end
                 excute_cnt[h_entry_q[i].pc]   = excute_cnt[h_entry_q[i].pc] + 1;
                 excute_cycle[h_entry_q[i].pc] = excute_cycle[h_entry_q[i].pc] + cyc_counter;
                 cyc_counter = 0;
-            if(h_entry_q[i].pc == 32'h1c000100) begin
+            if(h_entry_q[i].pc == 32'h1c000384) begin
                 $fdisplay(handle,"{\"freq\": {");
                 foreach(excute_cnt[i]) begin
                     $fdisplay(handle,"\"%x\": %d,", i, excute_cnt[i]);
@@ -1021,6 +1025,7 @@ end
                 $fdisplay(handle,"}}");
                 // $display("%p", excute_cycle);
                 $display("succ: %d fail: %d, frac: %f", succ_cnt, fail_cnt, 100.0 * succ_cnt / (succ_cnt + fail_cnt));
+                $finish();
             end
         end
         // 分支预测监视器

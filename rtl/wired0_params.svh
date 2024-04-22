@@ -11,9 +11,9 @@
 // `define _WIRED_PARAM_ENABLE_FPU
 
 `ifdef _WIRED_PARAM_ENABLE_FPU
-`define _WIRED_PARAM_PRF_LEN 6
+`define _WIRED_PARAM_ARF_LEN 6
 `else
-`define _WIRED_PARAM_PRF_LEN 5
+`define _WIRED_PARAM_ARF_LEN 5
 `endif //_WIRED_PARAM_ENABLE_FPU
 
 `define _WIRED_PARAM_ROB_LEN 6
@@ -29,6 +29,8 @@
 `define _WIRED_WAKEUP_DST_CACHE_ENABLE // 使能 CACHE 的背靠背唤醒机制
 
 `define _WIRED_STORE_EARLY_ISSUE // 写指令写数据未就绪时，可提前发射
+
+`define _WIRED_TDP_ARF // 使用真双口寄存器堆实现 ARF/RENAME ，以实现更高效率的后端流水线
 
 // TLB RELATED
 `define _WIRED_PARAM_TLB_CNT 32

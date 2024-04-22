@@ -54,8 +54,12 @@ module wired_packer #(
   assign pkg_o = skid_busy_q ? sel_pkg[0] : sel_pkg[1];
 
   wire [1:0] c;
+`ifdef _WIRED_TDP_ARF
+  assign c = '0;
+`else
   assign c[0] = (skid_bank_q == bank_i[0]) && (skid_nz_q & nz_i[0]);
   assign c[1] = (bank_i[0] == bank_i[1]) && (nz_i[0] & nz_i[1]);
+`endif
 
   assign valid_o = skid_busy_q | (|mask);
 

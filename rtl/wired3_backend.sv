@@ -78,14 +78,24 @@ module wired_backend #(
   logic      [1:0]  l_tier_id;
   logic [1:0][31:0] l_wdata;
   logic             r_empty;
+`ifdef _WIRED_TDP_ARF
+  wired_registers_file_tp # (
+    .DATA_WIDTH(32),
+    .DEPTH(32),
+    .R_PORT_COUNT(4),
+    .NEED_RESET(1),
+    .NEED_FORWARD(1)
+  )
+`else
   wired_registers_file_banked # (
-                                .DATA_WIDTH(32),
-                                .DEPTH(32),
-                                .R_PORT_COUNT(4),
-                                .W_PORT_COUNT(2),
-                                .NEED_RESET(1),
-                                .NEED_FORWARD(1)
-                              )
+    .DATA_WIDTH(32),
+    .DEPTH(32),
+    .R_PORT_COUNT(4),
+    .W_PORT_COUNT(2),
+    .NEED_RESET(1),
+    .NEED_FORWARD(1)
+  )
+`endif
                               arf (
                                 `_WIRED_GENERAL_CONN,
                                 .raddr_i(r_raddr),

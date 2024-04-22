@@ -130,14 +130,24 @@ module wired_rename #(
     // 两张表构建一个 arch_rid -> {tier_id, rob_id}  的映射，当两张表映射结果一致时，说明此时 PRF 中的数据是最新的有效数据
 
     // Rename 级别表
+`ifdef _WIRED_TDP_ARF
+    wired_registers_file_tp # (
+        .DATA_WIDTH(`_WIRED_PARAM_ROB_LEN + 1),
+        .DEPTH(1 << `_WIRED_PARAM_ARF_LEN),
+        .R_PORT_COUNT(RREG_COUNT),
+        .NEED_RESET(1),
+        .NEED_FORWARD(0)
+    )
+`else
     wired_registers_file_banked # (
         .DATA_WIDTH(`_WIRED_PARAM_ROB_LEN + 1),
-        .DEPTH(1 << `_WIRED_PARAM_PRF_LEN),
+        .DEPTH(1 << `_WIRED_PARAM_ARF_LEN),
         .R_PORT_COUNT(RREG_COUNT),
         .W_PORT_COUNT(2),
         .NEED_RESET(1),
         .NEED_FORWARD(0)
     )
+`endif
     r_rename_table (
         `_WIRED_GENERAL_CONN,
         .raddr_i(r_rarid_i),
@@ -147,15 +157,24 @@ module wired_rename #(
         .wdata_i(r_rename_new)
     );
     // Commit 级别表
-    wired_registers_file_banked # (
+`ifdef _WIRED_TDP_ARF
+    wired_registers_file_tp # (
         .DATA_WIDTH(`_WIRED_PARAM_ROB_LEN + 1),
-        .DEPTH(1 << `_WIRED_PARAM_PRF_LEN),
+        .DEPTH(1 << `_WIRED_PARAM_ARF_LEN),
         .R_PORT_COUNT(RREG_COUNT+2),
-        .W_PORT_COUNT(2),
-        .REGISTERS_FILE_TYPE("ff"),
         .NEED_RESET(1),
         .NEED_FORWARD(1)
     )
+`else
+    wired_registers_file_banked # (
+        .DATA_WIDTH(`_WIRED_PARAM_ROB_LEN + 1),
+        .DEPTH(1 << `_WIRED_PARAM_ARF_LEN),
+        .R_PORT_COUNT(RREG_COUNT+2),
+        .W_PORT_COUNT(2),
+        .NEED_RESET(1),
+        .NEED_FORWARD(1)
+    )
+`endif
     c_rename_table (
         `_WIRED_GENERAL_CONN,
         .raddr_i({r_rarid_i, r_warid_i}),
