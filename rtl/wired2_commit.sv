@@ -42,16 +42,17 @@ module wired_commit #(
     output tlb_update_req_t        tlb_update_req_o
     // 注意，提交模块分为三级，分别是 Fetch ROB(F) | Handle(H) | Commit(C)
 );
+    logic            l_flush;  // 流水线需要冲刷
 
     // 第一级流水，F，需要判定是否可双提交。
     // 对于可能需要状态机处理或者修改 CSR 、产生跳转、刷新流水线效果的指令，仅允许在 SLOT0 提交。
     // 其它指令则无所谓
     wire slot1_ctrl_conflict, slot1_bank_conflict;
-    wire [1:0] f_valid = c_rob_valid_i & {((~slot1_ctrl_conflict) | l_flush_o) & ~slot1_bank_conflict & c_rob_valid_i[0], 1'd1};
+    wire [1:0] f_valid = c_rob_valid_i & {~slot1_ctrl_conflict & ~slot1_bank_conflict & c_rob_valid_i[0], 1'd1};
     rob_rid_t f_rob_ptr0_q;
     rob_rid_t f_rob_ptr1_q;
     always_ff @(posedge clk) begin
-        if(~rst_n) begin
+        if(~rst_n || l_flush_o || l_flush) begin
             f_rob_ptr0_q <= `_WIRED_PARAM_ROB_LEN'd0;
             f_rob_ptr1_q <= `_WIRED_PARAM_ROB_LEN'd1;
         end else if(f_skid_ready_q) begin
@@ -93,7 +94,7 @@ module wired_commit #(
     assign h_wrrid = f_skid_ready_q ? {f_rob_ptr1_q, f_rob_ptr0_q} : f_skid_wrrid_q;
     wire [1:0] h_valid = f_skid_ready_q ? f_valid : f_skid_valid_q;
     always_ff @(posedge clk) begin
-        if(~rst_n) begin
+        if(~rst_n || l_flush_o  || l_flush) begin
             f_skid_ready_q <= '1;
             f_skid_valid_q <= '0;
         end else if(f_skid_ready_q) begin
@@ -241,7 +242,7 @@ module wired_commit #(
         end
     end
     always_ff @(posedge clk) begin
-        if(~rst_n) begin
+        if(~rst_n || l_flush_o || l_flush) begin
             h_valid_inst_q <= '0;
         end else begin
             if(h_ready) begin
@@ -286,7 +287,6 @@ module wired_commit #(
     end
 
     // 注意从此开始不再需要握手，因为之后的流水线一路通畅。
-    logic            l_flush;  // 流水线需要冲刷
     logic      [1:0] l_retire; // 标识指令的信息需要进入 Rename，注意，所有进入 ROB 的指令无论实际是否执行一定需要 retire。
     logic      [1:0] l_commit; // 标识指令的结果需要写入 ARF
     word_t     [1:0] l_data;
@@ -311,7 +311,7 @@ module wired_commit #(
     S_WAIT_ULOAD,    // 这个要刷流水线，还要修改写入 ARF 的数据
     S_WAIT_USTORE,   // 这个不用刷流水线，但需要解除 dbar（uncached 会设置 barrier）
     S_WAIT_MSTORE,   // 这个不用刷流水线
-    S_WAIT_FLUSH,    // 这个是用来刷流水线的
+    // S_WAIT_FLUSH,    // 这个是用来刷流水线的
     S_WAIT_INTERRUPT // 这个是用来等待中断的
     } commit_fsm_e;
     commit_fsm_e fsm_q;
@@ -466,7 +466,8 @@ module wired_commit #(
                     csr.crmd[`_CRMD_PLV] = 2'b0;
                     csr.crmd[`_CRMD_IE] = 1'b0;
                     csr.prmd[2:0] = csr_q.crmd[2:0];
-                    fsm = S_WAIT_FLUSH;
+                    l_flush = '1;
+                    // fsm = S_WAIT_FLUSH;
                     // 先更新 ecode
                     case(1'b1)
                         int_pending_q: begin
@@ -584,7 +585,8 @@ module wired_commit #(
                                         l_commit = 2'b01;
                                         l_data[0] = 32'd0;
                                         f_upd.redirect = '1;
-                                        fsm = S_WAIT_FLUSH; // 对于失败的 SC ，需要 refresh 流水线
+                                        l_flush = '1;
+                                        // fsm = S_WAIT_FLUSH; // 对于失败的 SC ，需要 refresh 流水线
                                     end else begin
                                         // 成功的 SC，弹栈
                                         c_lsu_req_o.storebuf_commit = '1;
@@ -733,7 +735,9 @@ module wired_commit #(
                         l_commit = 2'b01;
                         f_upd.redirect = '1;
                         f_upd.true_target = h_flushtarget_q;
-                        fsm = h_entry_q[0].di.wait_inst ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
+                        // fsm = h_entry_q[0].di.wait_inst ? S_WAIT_INTERRUPT : S_WAIT_FLUSH;
+                        if(h_entry_q[0].di.wait_inst) fsm = S_WAIT_INTERRUPT;
+                        l_flush = '1;
                     end
                 end
             end
@@ -743,11 +747,13 @@ module wired_commit #(
                 c_lsu_req_o.uncached_load_req = '1;
                 if(c_lsu_resp_i.ready) begin
                     h_ready = '1;
-                    l_retire = h_valid_inst_q;
+                    l_retire = 2'b01;
                     l_commit = 2'b01;
                     l_data[0] = c_lsu_resp_i.uncached_load_resp;
                     f_upd.redirect = '1;
-                    fsm = S_WAIT_FLUSH; // 对于 Uncached load ，需要 refresh 流水线
+                    fsm = S_NORMAL;
+                    // fsm = S_WAIT_FLUSH; // 对于 Uncached load ，需要 refresh 流水线
+                    l_flush = '1;
                     // 由于流水线被刷新，对于 uncache load，不一定设置 dbar，更不需要解除 dbar
                 end
             end
@@ -776,19 +782,19 @@ module wired_commit #(
                     c_lsu_req_o.storebuf_commit = '1;
                 end
             end
-            S_WAIT_FLUSH: begin
-                h_ready = '1;
-                l_flush  = '1;
-                l_retire = h_valid_inst_q;
-                l_commit = '0;
-                if(rename_empty_i) begin
-                    fsm = S_NORMAL;
-                end
-            end
+            // S_WAIT_FLUSH: begin
+            //     h_ready = '1;
+            //     l_flush  = '1;
+            //     l_retire = '0;
+            //     l_commit = '0;
+            //     if(rename_empty_i) begin
+            //         fsm = S_NORMAL;
+            //     end
+            // end
             S_WAIT_INTERRUPT: begin
                 h_ready = '1;
                 l_flush  = '1;
-                l_retire = h_valid_inst_q;
+                l_retire = '0;
                 l_commit = '0;
                 if(rename_empty_i && int_pending_q) begin
                     fsm = S_NORMAL;
@@ -807,7 +813,8 @@ module wired_commit #(
             f_upd.need_update = '1;
             f_upd.redirect = '1;
             if(h_entry_q[0].need_jump) f_upd.true_target = h_entry_q[0].target_addr;
-            fsm = S_WAIT_FLUSH;
+            // fsm = S_WAIT_FLUSH;
+            l_flush = '1;
         end
         if(h_ready && f_upd.redirect) begin
             h_tid = ~h_tid_q;
@@ -1000,6 +1007,7 @@ end
   integer    fail_cnt;
   integer    succ_cnt;
   integer    first;
+  integer    flush_cnt; // 记录刷新流水线所用周期
   always_ff @(posedge clk) begin
     // LL-SC 监视器
     // if(l_commit[0] && h_entry_q[0].di.llsc_inst && h_entry_q[0].di.mem_write) begin
@@ -1030,6 +1038,7 @@ end
                 $fdisplay(handle,"}}");
                 // $display("%p", excute_cycle);
                 $display("succ: %d fail: %d, frac: %f", succ_cnt, fail_cnt, 100.0 * succ_cnt / (succ_cnt + fail_cnt));
+                $display("Flush count: %d", flush_cnt);
                 $finish();
             end
         end
@@ -1049,6 +1058,7 @@ end
             end
         end
       end
+    //   if(fsm_q == ) flush_cnt = flush_cnt + 1;
       cyc_counter = cyc_counter + 1;
     end
 `endif

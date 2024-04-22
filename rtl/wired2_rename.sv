@@ -53,7 +53,7 @@ module wired_rename #(
         rob_count = rob_diff + rob_count_q;
     end
     always_ff @(posedge clk) begin
-        if(~rst_n) begin
+        if(~rst_n || c_flush_i) begin
             rob_count_q <= '0;
         end else begin
             rob_count_q <= rob_count;
@@ -62,18 +62,18 @@ module wired_rename #(
 
     // r_ready_o 生成逻辑
     logic ready_q;
-    assign r_ready_o = ready_q && p_ready_i;
+    assign r_ready_o = ready_q && p_ready_i && !c_flush_i;
     always_ff @(posedge clk) begin
         if(!rst_n) begin
             ready_q <= '1;
         end else begin
-            ready_q <= (rob_count_q <= 7'd60) && (!c_flush_i);
+            ready_q <= rob_count_q <= ((1 << `_WIRED_PARAM_ROB_LEN) - 4);
         end
     end
 
     // empty_o 生成逻辑
     always_ff @(posedge clk) begin
-        if(~rst_n) begin
+        if(~rst_n || c_flush_i) begin
             empty_o <= '1;
         end else begin
             if(empty_o) begin
@@ -107,7 +107,7 @@ module wired_rename #(
     // 写端口处理（rob号分配）
     logic[`_WIRED_PARAM_ROB_LEN-1:0] free_rob_q, free_rob_p1_q;
     always_ff @(posedge clk) begin
-        if(~rst_n) begin
+        if(~rst_n || c_flush_i) begin
             free_rob_q <= '0;
             free_rob_p1_q <= `_WIRED_PARAM_ROB_LEN'd1;
         end else begin
@@ -149,7 +149,9 @@ module wired_rename #(
     )
 `endif
     r_rename_table (
-        `_WIRED_GENERAL_CONN,
+        // `_WIRED_GENERAL_CONN,
+        .clk(clk),
+        .rst_n(rst_n && !c_flush_i),
         .raddr_i(r_rarid_i),
         .rdata_o(r_rename_result),
         .waddr_i(r_warid_i),
@@ -176,7 +178,9 @@ module wired_rename #(
     )
 `endif
     c_rename_table (
-        `_WIRED_GENERAL_CONN,
+        // `_WIRED_GENERAL_CONN,
+        .clk(clk),
+        .rst_n(rst_n && !c_flush_i),
         .raddr_i({r_rarid_i, r_warid_i}),
         .rdata_o({cr_rename_result, cw_rename_result}),
         .waddr_i(c_warid_i),

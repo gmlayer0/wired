@@ -10,6 +10,7 @@ module wired_cdb_arb #(
 )(
     `_WIRED_GENERAL_DEFINE,
     // port 0 has the most significant pio than other.
+    input  logic                           flush_i,
     input  pipeline_cdb_t [CDB_PORT_CNT-1:0] cdb_i,
     output logic          [CDB_PORT_CNT-1:0] ready_o,
     output pipeline_cdb_t [1:0]              cdb_o
@@ -56,7 +57,7 @@ module wired_cdb_arb #(
             assign req_valid_pre[b] = cdb_i[i].valid && (cdb_i[i].wid[0] == b[0]);
         end
         always_ff @(posedge clk) begin
-            if(!rst_n) begin
+            if(!rst_n || flush_i) begin
                 req_valid_pre_q <= '0;
             end else if(!huge_skid_q) begin
                 req_valid_pre_q <= req_valid_pre;
@@ -71,7 +72,7 @@ module wired_cdb_arb #(
         assign req_valid[1][i] = huge_skid_q ? req_valid_pre_q[1] : req_valid_pre[1];
         assign req_cdb[i]      = huge_skid_q ? req_cdb_q          : cdb_i[i];
         always_ff @(posedge clk) begin
-            if(!rst_n) begin
+            if(!rst_n || flush_i) begin
                 huge_skid_q <= '0;
             end else begin
                 if(huge_skid_q) begin

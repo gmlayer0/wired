@@ -42,12 +42,12 @@ module wired_backend #(
   /* 重命名级 R */
   // wire clr_old = c_flush && pkg_i[0].bpu_predict.tid != r_tid_q; // 在刷新流水线时，阻止访问到的新指令被冲刷
   wire[1:0] r_mask = {r_valid, r_valid} & pkg_mask_i;
+  wire r_ready;
   wire[1:0] r_issue = {r_ready, r_ready} & r_mask;
   pipeline_ctrl_pack_t[1:0] r_pkg;
   assign r_pkg = pkg_i;
   assign pkg_ready_o = r_ready/* | clr_old*/;
   wire r_valid = pkg_valid_i;
-  wire r_ready;
   // --- ARF ---
   // 连接到 r_pkg 中的寄存器号
 `ifdef _WIRED_PARAM_ENABLE_FPU
@@ -186,10 +186,10 @@ module wired_backend #(
   pipeline_ctrl_p_t [1:0] p_pkg_q;
   pipeline_data_t [1:0] p_data, p_data_q;
   logic [1:0] p_valid_mask_q;
-  assign p_issue = p_valid_mask_q & {r_p_ready, r_p_ready};
+  assign p_issue = p_valid_mask_q & {r_p_ready, r_p_ready} & {~c_flush, ~c_flush};
   assign r_p_ready = alu_ready & lsu_ready & mul_ready & div_ready;
   always_ff @(posedge clk) begin
-    if(!rst_n) begin
+    if(!rst_n || c_flush) begin
       p_valid_mask_q <= '0;
     end else begin
       // 注意，这里标识为 valid 的指令，一定已经被重命名了
@@ -478,6 +478,7 @@ module wired_backend #(
   )
   wired_cdb_arb_inst (
     `_WIRED_GENERAL_CONN,
+    .flush_i(c_flush),
     .cdb_i(raw_cdb),
     .ready_o(raw_cdb_ready),
     .cdb_o(cdb)
