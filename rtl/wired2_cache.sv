@@ -7,7 +7,8 @@ module wired_cache #(
     parameter bit ICACHE = 0,     // 配置是否为 ICache
     parameter bit OUTPUT_BUF = 1, // 状态机输出到 lsu_resp 再打一拍
     parameter int SRAM_WIDTH = 32,
-    parameter int PKG_SIZE = 1
+    parameter int PKG_SIZE = 1,
+    parameter int SB_SIZE = 4 
   )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -182,14 +183,14 @@ always_comb begin
 end
 // M1 store buffer 例化
 sb_meta_t       sb_w;
-logic [3:0] sb_valid;     // M2 检查
-sb_meta_t [3:0] sb_entry; // 输出表项
-logic [1:0] sb_top_ptr;
+logic [SB_SIZE-1:0] sb_valid;     // M2 检查
+sb_meta_t [SB_SIZE-1:0] sb_entry; // 输出表项
+logic [$clog2(SB_SIZE)-1:0] sb_top_ptr;
 logic sb_inv;             // M2 控制， TODO:CONN
 sb_meta_t sb_top;
 assign sb_top = sb_entry[sb_top_ptr]; // M2 使用，顶层表项
 if(ENABLE_STORE) begin : StoreBuf
-  wired_lsu_sb  wired_lsu_sb_inst (
+  wired_lsu_sb #(.SB_SIZE(SB_SIZE)) wired_lsu_sb_inst (
     `_WIRED_GENERAL_CONN,
   .flush_i(flush_i),
   .ready_o(sb_ready),
@@ -217,25 +218,39 @@ for(genvar i = 0 ; i < 4 ; i += 1) begin
   assign m1_whit[i] = m1_hit[i] & m1.tag[i].wp;
 end
 // sb Hit 生成
-logic [3:0] m1_sb_hit;
-for(genvar i = 0 ; i < 4 ; i += 1) begin
+logic [SB_SIZE-1:0] m1_sb_hit;
+for(genvar i = 0 ; i < SB_SIZE ; i += 1) begin
     assign m1_sb_hit[i] = sb_entry[i].paddr[31:2] == m1.paddr[31:2] && sb_valid[i];
 end
 logic [31:0] m1_sb_rdata;
 logic [3:0] m1_sb_strb;
-assign m1_sb_strb = ({4{m1_sb_hit[0]}} & sb_entry[0].strb) |
-                    ({4{m1_sb_hit[1]}} & sb_entry[1].strb) |
-                    ({4{m1_sb_hit[2]}} & sb_entry[2].strb) |
-                    ({4{m1_sb_hit[3]}} & sb_entry[3].strb);
-assign m1_sb_rdata = ({32{m1_sb_hit[0]}} & sb_entry[0].wdata) |
-                     ({32{m1_sb_hit[1]}} & sb_entry[1].wdata) |
-                     ({32{m1_sb_hit[2]}} & sb_entry[2].wdata) |
-                     ({32{m1_sb_hit[3]}} & sb_entry[3].wdata);
+// assign m1_sb_strb = ({4{m1_sb_hit[0]}} & sb_entry[0].strb) |
+//                     ({4{m1_sb_hit[1]}} & sb_entry[1].strb) |
+//                     ({4{m1_sb_hit[2]}} & sb_entry[2].strb) |
+//                     ({4{m1_sb_hit[3]}} & sb_entry[3].strb);
+// assign m1_sb_rdata = ({32{m1_sb_hit[0]}} & sb_entry[0].wdata) |
+//                      ({32{m1_sb_hit[1]}} & sb_entry[1].wdata) |
+//                      ({32{m1_sb_hit[2]}} & sb_entry[2].wdata) |
+//                      ({32{m1_sb_hit[3]}} & sb_entry[3].wdata);
+
+always_comb begin
+  m1_sb_strb = '0;
+  m1_sb_rdata = '0;
+  for(integer i = 0 ; i < SB_SIZE ; i += 1) begin
+    m1_sb_strb       |= m1_sb_hit[i] ? sb_entry[i].fwd_strb  : '0;
+    m1_sb_rdata[7:0]   |= (m1_sb_hit[i] & sb_entry[i].fwd_strb[0]) ? sb_entry[i].wdata[7:0]   : '0;
+    m1_sb_rdata[15:8]  |= (m1_sb_hit[i] & sb_entry[i].fwd_strb[1]) ? sb_entry[i].wdata[15:8]  : '0;
+    m1_sb_rdata[23:16] |= (m1_sb_hit[i] & sb_entry[i].fwd_strb[2]) ? sb_entry[i].wdata[23:16] : '0;
+    m1_sb_rdata[31:24] |= (m1_sb_hit[i] & sb_entry[i].fwd_strb[3]) ? sb_entry[i].wdata[31:24] : '0;
+  end
+end
 
 // sb_w 项目生成
 always_comb begin
+  sb_w = '0;
   sb_w.paddr = m1.paddr;
   sb_w.hit  = m1_whit;
+  sb_w.fwd_strb = m1.strb; // 去除 multihit 影响后用于前递的 strb
   sb_w.strb = m1.strb;
   sb_w.uncached = m1.uncache;
   sb_w.wdata = m1.wdata;
@@ -260,8 +275,10 @@ typedef struct packed {
   logic       [3:0] hit;      // 这里不用更新，到达此处的命中指令被认为已经完成访存
   logic             any_rhit;
   logic             any_whit; // 专供 ll 指令使用
-  logic       [3:0] sb_hit;   // store buffer 在 m2 暂停的时候，不会被更新，因此 sb_hit 可以一直使用。
-  logic             any_sbhit;
+  logic [SB_SIZE-1:0] sb_hit;   // store buffer 在 m2 暂停的时候，不会被更新，因此 sb_hit 可以一直使用。
+  logic            any_sbhit;
+  logic       [3:0]  sb_strb;
+  logic      [31:0] sb_rdata;
   logic [3:0][SRAM_WIDTH-1:0] data;    // sram data
   logic found_excp;
   lsu_excp_t   d_excp;
@@ -286,8 +303,6 @@ always_ff @(posedge clk) begin
   if(!m2_stall) begin
     // 仅请求的第一个周期有效，如果请求遇到任何流水线暂停，转发都会错误。
     m2_wkup_valid_q <= m1_wkup_valid_q && sb_ready;
-  end else begin
-    m2_wkup_valid_q <= '0;
   end
 end
 
@@ -304,7 +319,8 @@ always_comb begin
   m1_gat.dbar      = m1.dbar || (m1.uncache && ENABLE_SC_UNCACHE);
   m1_gat.llsc      = m1.llsc;    m1_gat.hit       = m1_rhit;
   m1_gat.any_rhit  = |m1_rhit;   m1_gat.any_whit  = |m1_whit;
-  m1_gat.sb_hit    =  m1_sb_hit; m1_gat.any_sbhit = |m1_sb_hit;
+  m1_gat.sb_hit    = m1_sb_hit;  m1_gat.any_sbhit = |m1_sb_hit;
+  m1_gat.sb_strb   = m1_sb_strb; m1_gat.sb_rdata  = m1_sb_rdata;
   m1_gat.data = m1.data;
   m1_gat.d_excp.pil  = m1.inv && !m1.wreq; m1_gat.d_excp.pis  = m1.inv && m1.wreq;
   m1_gat.d_excp.pme  = m1.pme;             m1_gat.d_excp.ppi  = m1.ppi;
@@ -358,9 +374,9 @@ typedef struct packed {
 } m2_var_t;
 m2_var_t m2_var;
 m2_var_t m2_var_q;
-logic [3:0]  sb_mhit_mask;
-logic [3:0]  sb_fwd_mask;
-logic [31:0] sb_fwd_data;
+// logic [3:0]  sb_mhit_mask;
+// logic [3:0]  sb_fwd_mask;
+// logic [31:0] sb_fwd_data;
 always_ff @(posedge clk) m2_var_q <= m2_var;
 always_comb begin
   // 主要输出及 sb
@@ -368,6 +384,7 @@ always_comb begin
   resp_valid = '0; // 主要输出握手
   resp = '0;       // 主要输出数据
   resp.excp = m2_q.d_excp;
+  // 这里主要看 m1 是否暂停过，若为暂停过，则检查在 m2 是否重填过
   resp.wrong_forward = !m2_wkup_valid_q && (m2_q.cacop == RD_ALLOC || m2_q.llsc);
   resp.f_excp = m2_q.f_excp;
   resp.uncached = m2_q.uncache;
@@ -377,19 +394,23 @@ always_comb begin
   end
   resp.wid = m2_q.wid;
   resp_pkg = m2_q.pkg;
-  sb_mhit_mask = '0; // 检查 multihit 使用
-  sb_fwd_mask = '0;
-  sb_fwd_data = '0;
+  // sb_mhit_mask = '0; // 检查 multihit 使用
+  // sb_fwd_mask = '0;
+  // sb_fwd_data = '0;
   if(mod_q == M_HANDLED) begin
     resp.rdata[SRAM_WIDTH-1:0] = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
+    resp.wrong_forward = m2_q.cacop == RD_ALLOC || m2_q.llsc;
   end
   if(ENABLE_STORE) begin
-    for(integer i = 0 ; i < 4 ; i += 1) begin
-      sb_mhit_mask |= (m2_q.sb_hit[i] & sb_valid[i]) ? sb_entry[i].strb : '0;
-      sb_fwd_mask  |= m2_q.sb_hit[i] ? sb_entry[i].strb : '0;
-      sb_fwd_data  |= m2_q.sb_hit[i] ? sb_entry[i].wdata : '0;
-    end
-    resp.rdata = gen_mask_word(resp.rdata[31:0], sb_fwd_data, sb_fwd_mask);
+    // for(integer i = 0 ; i < SB_SIZE ; i += 1) begin
+    //   // sb_mhit_mask |= (m2_q.sb_hit[i] & sb_valid[i]) ? sb_entry[i].fwd_strb : '0;
+    //   sb_fwd_mask  |= m2_q.sb_hit[i] ? sb_entry[i].fwd_strb : '0;
+    //   sb_fwd_data[7:0]    |= (m2_q.sb_hit[i] & sb_entry[i].fwd_strb[0]) ? sb_entry[i].wdata[31:24] : '0;
+    //   sb_fwd_data[15:8]   |= (m2_q.sb_hit[i] & sb_entry[i].fwd_strb[0]) ? sb_entry[i].wdata[31:24] : '0;
+    //   sb_fwd_data[23:16]  |= (m2_q.sb_hit[i] & sb_entry[i].fwd_strb[0]) ? sb_entry[i].wdata[31:24] : '0;
+    //   sb_fwd_data[31:24]  |= (m2_q.sb_hit[i] & sb_entry[i].fwd_strb[0]) ? sb_entry[i].wdata[31:24] : '0;
+    // end
+    resp.rdata = gen_mask_word(resp.rdata[31:0], m2_q.sb_rdata, m2_q.sb_strb);
   end
   if(!ENABLE_64) begin
     // 偏移处理
@@ -462,7 +483,9 @@ always_comb begin
           m2_stall = !resp_ready; // resp 不 ready 的时候也得阻塞住
           resp_valid = '1;
           if(!m2_q.found_excp) begin
-            if(!m2_q.uncache && m2_q.cacop == RD_ALLOC && (!m2_q.any_rhit || (!m2_q.any_whit && m2_q.llsc)) && !(m2_q.any_sbhit && sb_fwd_mask == '1)) begin // 未命中（rhit for all || whit for ll.w）的 cached 读请求
+            if(!m2_q.uncache && m2_q.cacop == RD_ALLOC && 
+            (!m2_q.any_rhit || (!m2_q.any_whit && m2_q.llsc)) && 
+             !(!m2_q.llsc && m2_q.any_sbhit && m2_q.sb_strb == '1)) begin // 未命中（rhit for all || whit for ll.w）的 cached 读请求
               if((m2_q.sb_hit & sb_valid) == '0) fsm = S_MREFILL; // 如果命中 store buffer，等着就好了。
               m2_stall = '1;
               resp_valid = '0;
@@ -470,12 +493,12 @@ always_comb begin
               fsm = S_MUCLOAD;
               m2_stall = '1;
               resp_valid = '0;
-            end else if(m2_q.wreq && (sb_mhit_mask & m2_q.strb) != '0) begin // 重叠的写请求
+            end /*else if(m2_q.wreq && (sb_mhit_mask & m2_q.strb) != '0) begin // 重叠的写请求
               // 由于这条指令在 M2 级别，也就是写入过 SB 的最新指令，后续指令在这条指令前进之前，不会写 SB。
               // mod = M_WAITSB;
               m2_stall = '1;
               resp_valid = '0;
-            end else if(m2_q.cacop inside {HIT_INV, IDX_INIT, IDX_INV}) begin // Cache 无效化请求
+            end */else if(m2_q.cacop inside {HIT_INV, IDX_INIT, IDX_INV}) begin // Cache 无效化请求
               fsm = S_MCACOP;
               m2_stall = '1;
               resp_valid = '0;

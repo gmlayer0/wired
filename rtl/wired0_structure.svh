@@ -414,6 +414,7 @@ typedef struct packed {
 typedef struct packed {
   logic [31:0] paddr;
   logic [3:0] hit; // cache hit
+  logic [3:0] fwd_strb;
   logic [3:0] strb;
   logic       uncached;
   logic [31:0] wdata;

@@ -276,7 +276,7 @@ module wired_lsu_iq #(
     pipeline_cdb_t cdb_raw;
     wired_fifo #(
         .DATA_WIDTH($bits(pipeline_cdb_t)), // rid, wdata, jumppc, jump
-        .DEPTH(2)
+        .DEPTH(16)
     ) wired_commit_fifo (
         .clk(clk),
         .rst_n(rst_n && !flush_i),

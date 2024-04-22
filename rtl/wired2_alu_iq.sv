@@ -305,6 +305,7 @@ module wired_alu_iq #(
         assign cdb_o[p].need_jump         = c_jump;
         assign cdb_o[p].target_addr       = c_jump_target;
         assign cdb_o[p].uncached          = '0;
+        assign cdb_o[p].wrong_forward     = '0;
         // assign cdb_o[p].store_buffer      = '0;
         // assign cdb_o[p].store_conditional = '0;
         assign cdb_o[p].wdata             = c_wdata;

@@ -250,7 +250,13 @@ module wired_backend #(
     rob_rid_t    rid;
     logic[31:0] data;
   } wkup_pack_t;
-  wkup_pack_t [2 + 1 - 1:0] wkup_bus; // 2 ALU, 1 LSU
+  wkup_pack_t [4:0] wkup_bus; // 2 ALU, 2 LSU(with a stacked one)
+  wkup_pack_t [1:0][2:0] wkup_bus_stack;
+  assign wkup_bus[3] = wkup_bus_stack[0][2];
+  assign wkup_bus[4] = wkup_bus_stack[1][2];
+
+  always_ff @(posedge clk) wkup_bus_stack[0][2:0] <= wkup_bus[2:0];
+  always_ff @(posedge clk) wkup_bus_stack[1][2:0] <= wkup_bus_stack[0][2:0];
 
   // CDB 仲裁信号
   localparam CDB_MAX_COUNT = 5;
@@ -262,7 +268,7 @@ module wired_backend #(
   wire [1:0] mul_valid = p_issue & {p_pkg_q[1].di.mul_inst,p_pkg_q[0].di.mul_inst} & ~ifet_excp;
   wire [1:0] alu_valid = p_issue & ({p_pkg_q[1].di.alu_inst,p_pkg_q[0].di.alu_inst} | ifet_excp); // 取指阶段存在异常的指令全部送入 ALU
   wired_alu_iq #(
-    .WAKEUP_SRC_CNT(3)
+    .WAKEUP_SRC_CNT(4)
   ) wired_alu_iq_inst (
     `_WIRED_GENERAL_CONN,
     .p_ctrl_i(p_pkg_q),
@@ -274,9 +280,9 @@ module wired_backend #(
     .cdb_i(cdb),
     .flush_i(c_flush)
 
-    ,.wkup_valid_i({wkup_bus[2].valid, wkup_bus[1].valid, wkup_bus[0].valid})
-    ,.wkup_rid_i(  {wkup_bus[2].rid,   wkup_bus[1].rid,   wkup_bus[0].rid})
-    ,.wkup_data_i( {wkup_bus[2].data,  wkup_bus[1].data,  wkup_bus[0].data})
+    ,.wkup_valid_i({wkup_bus[3].valid, wkup_bus[2].valid, wkup_bus[1].valid, wkup_bus[0].valid})
+    ,.wkup_rid_i(  {wkup_bus[3].rid,   wkup_bus[2].rid,   wkup_bus[1].rid,   wkup_bus[0].rid})
+    ,.wkup_data_i( {wkup_bus[3].data,  wkup_bus[2].data,  wkup_bus[1].data,  wkup_bus[0].data})
 
     ,.wkup_valid_o({wkup_bus[1].valid, wkup_bus[0].valid})
     ,.wkup_rid_o(  {wkup_bus[1].rid,   wkup_bus[0].rid})
@@ -288,7 +294,7 @@ module wired_backend #(
   iq_lsu_req_t  iq_lsu_req;
   iq_lsu_resp_t lsu_iq_resp;
   wired_lsu_iq #(
-    .WAKEUP_SRC_CNT(3)
+    .WAKEUP_SRC_CNT(4)
   ) wired_lsu_iq_inst (
     `_WIRED_GENERAL_CONN,
     .p_ctrl_i(p_pkg_q),
@@ -306,9 +312,9 @@ module wired_backend #(
     .lsu_resp_ready_o(lsu_iq_ready),
     .lsu_resp_i(lsu_iq_resp)
 
-    ,.wkup_valid_i({wkup_bus[2].valid, wkup_bus[1].valid, wkup_bus[0].valid})
-    ,.wkup_rid_i(  {wkup_bus[2].rid,   wkup_bus[1].rid,   wkup_bus[0].rid})
-    ,.wkup_data_i( {wkup_bus[2].data,  wkup_bus[1].data,  wkup_bus[0].data})
+    ,.wkup_valid_i({wkup_bus[3].valid, wkup_bus[2].valid, wkup_bus[1].valid, wkup_bus[0].valid})
+    ,.wkup_rid_i(  {wkup_bus[3].rid,   wkup_bus[2].rid,   wkup_bus[1].rid,   wkup_bus[0].rid})
+    ,.wkup_data_i( {wkup_bus[3].data,  wkup_bus[2].data,  wkup_bus[1].data,  wkup_bus[0].data})
   );
   // LSU 例化
   lsu_bus_req_t bus_req;
