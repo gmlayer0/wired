@@ -148,7 +148,7 @@ module wired_backend #(
             r_p_pkg[p].scyc_raw[i] = '1;
           end
         end
-        r_p_data[p].rdata[0] = r_pkg[p].di.reg_type_r0 == `_REG_R0_IMM ? data_imm : r_rdata[p][0];
+        r_p_data[p].rdata[0] = r_pkg[p].di.reg_type_r0 == `_REG_IMM ? data_imm : r_rdata[p][0];
         r_p_data[p].rdata[1] = r_rdata[p][1];
         r_p_pkg[p].di   = get_p_from_d(r_pkg[p].di);
         r_p_pkg[p].wreg.arch_id = r_waddr[p];

@@ -10,16 +10,15 @@
 `define _RDCNT_ID_VLOW (2'd1)
 `define _RDCNT_VHIGH (2'd2)
 `define _RDCNT_VLOW (2'd3)
-`define _REG_R0_IMM (2'b11)
-`define _REG_R0_RD (2'b10)
-`define _REG_R0_RK (2'b01)
-`define _REG_R0_NONE (2'b00)
-`define _REG_R1_RJ (1'b1)
-`define _REG_R1_NONE (1'b0)
-`define _REG_W_BL1 (2'b11)
-`define _REG_W_RJD (2'b10)
-`define _REG_W_RD (2'b01)
+`define _REG_ZERO (3'b000)
+`define _REG_RD (3'b001)
+`define _REG_RJ (3'b010)
+`define _REG_RK (3'b011)
+`define _REG_IMM (3'b100)
 `define _REG_W_NONE (2'b00)
+`define _REG_W_RD (2'b01)
+`define _REG_W_RJD (2'b10)
+`define _REG_W_BL1 (2'b11)
 `define _IMM_U12 (3'd0)
 `define _IMM_U5 (3'd0)
 `define _IMM_S12 (3'd1)
@@ -86,18 +85,25 @@ typedef logic [0 : 0] tlbrd_en_t;
 typedef logic [0 : 0] tlbwr_en_t;
 typedef logic [0 : 0] tlbfill_en_t;
 typedef logic [0 : 0] invtlb_en_t;
+typedef logic [3 : 0] fpu_op_t;
+typedef logic [0 : 0] fpu_mode_t;
 typedef logic [31 : 0] inst_t;
 typedef logic [0 : 0] alu_inst_t;
 typedef logic [0 : 0] mul_inst_t;
 typedef logic [0 : 0] div_inst_t;
 typedef logic [0 : 0] lsu_inst_t;
-typedef logic [1 : 0] reg_type_r0_t;
-typedef logic [0 : 0] reg_type_r1_t;
+typedef logic [0 : 0] fpu_inst_t;
+typedef logic [2 : 0] reg_type_r0_t;
+typedef logic [2 : 0] reg_type_r1_t;
 typedef logic [1 : 0] reg_type_w_t;
 typedef logic [2 : 0] imm_type_t;
 typedef logic [1 : 0] addr_imm_type_t;
 typedef logic [0 : 0] slot0_t;
 typedef logic [0 : 0] refetch_t;
+typedef logic [0 : 0] need_fa_t;
+typedef logic [0 : 0] fr0_t;
+typedef logic [0 : 0] fr1_t;
+typedef logic [0 : 0] fw_t;
 typedef logic [1 : 0] alu_grand_op_t;
 typedef logic [1 : 0] alu_op_t;
 typedef logic [0 : 0] target_type_t;
@@ -146,6 +152,11 @@ typedef struct packed {
     target_type_t target_type;
     wait_inst_t wait_inst;
 } decode_info_c_t;
+
+typedef struct packed {
+    fpu_mode_t fpu_mode;
+    fpu_op_t fpu_op;
+} decode_info_fpu_t;
 
 typedef struct packed {
     alu_grand_op_t alu_grand_op;
@@ -206,6 +217,9 @@ typedef struct packed {
     dbarrier_t dbarrier;
     div_inst_t div_inst;
     ertn_inst_t ertn_inst;
+    fpu_inst_t fpu_inst;
+    fpu_mode_t fpu_mode;
+    fpu_op_t fpu_op;
     inst_t inst;
     invtlb_en_t invtlb_en;
     jump_inst_t jump_inst;
@@ -216,6 +230,7 @@ typedef struct packed {
     mem_type_t mem_type;
     mem_write_t mem_write;
     mul_inst_t mul_inst;
+    need_fa_t need_fa;
     priv_inst_t priv_inst;
     refetch_t refetch;
     slot0_t slot0;
@@ -240,6 +255,12 @@ typedef struct packed {
     dbarrier_t dbarrier;
     div_inst_t div_inst;
     ertn_inst_t ertn_inst;
+    fpu_inst_t fpu_inst;
+    fpu_mode_t fpu_mode;
+    fpu_op_t fpu_op;
+    fr0_t fr0;
+    fr1_t fr1;
+    fw_t fw;
     imm_type_t imm_type;
     inst_t inst;
     invtlb_en_t invtlb_en;
@@ -251,6 +272,7 @@ typedef struct packed {
     mem_type_t mem_type;
     mem_write_t mem_write;
     mul_inst_t mul_inst;
+    need_fa_t need_fa;
     priv_inst_t priv_inst;
     refetch_t refetch;
     reg_type_r0_t reg_type_r0;
@@ -337,6 +359,13 @@ function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
     return ret;
 endfunction
 
+function automatic decode_info_fpu_t get_fpu_from_p(input decode_info_p_t p);
+    decode_info_fpu_t ret;
+    ret.fpu_mode = p.fpu_mode;
+    ret.fpu_op = p.fpu_op;
+    return ret;
+endfunction
+
 function automatic decode_info_mdu_t get_mdu_from_p(input decode_info_p_t p);
     decode_info_mdu_t ret;
     ret.alu_grand_op = p.alu_grand_op;
@@ -405,6 +434,9 @@ function automatic decode_info_p_t get_p_from_d(input decode_info_d_t d);
     ret.dbarrier = d.dbarrier;
     ret.div_inst = d.div_inst;
     ret.ertn_inst = d.ertn_inst;
+    ret.fpu_inst = d.fpu_inst;
+    ret.fpu_mode = d.fpu_mode;
+    ret.fpu_op = d.fpu_op;
     ret.inst = d.inst;
     ret.invtlb_en = d.invtlb_en;
     ret.jump_inst = d.jump_inst;
@@ -415,6 +447,7 @@ function automatic decode_info_p_t get_p_from_d(input decode_info_d_t d);
     ret.mem_type = d.mem_type;
     ret.mem_write = d.mem_write;
     ret.mul_inst = d.mul_inst;
+    ret.need_fa = d.need_fa;
     ret.priv_inst = d.priv_inst;
     ret.refetch = d.refetch;
     ret.slot0 = d.slot0;
@@ -472,6 +505,14 @@ function automatic string wired_disassembler(input logic [31:0] inst_i);
         32'b0010101000??????????????????????: ret = {"ld.bu ", $sformatf("$r%02x, $r%02x, %03x=%d", rd, rj, I12, $signed(I12))};
         32'b0010101001??????????????????????: ret = {"ld.hu ", $sformatf("$r%02x, $r%02x, %03x=%d", rd, rj, I12, $signed(I12))};
         32'b0010101011??????????????????????: ret = {"preld_nop ", $sformatf("0")};
+        32'b0010101101??????????????????????: ret = {"fst.s ", $sformatf("$r%02x, $r%02x, %03x=%d", rd, rj, I12, $signed(I12))};
+        32'b0010101110??????????????????????: ret = {"fld.s ", $sformatf("$r%02x, $r%02x, %03x=%d", rd, rj, I12, $signed(I12))};
+        32'b000010000001????????????????????: ret = {"fmadd.s ", $sformatf(" ")};
+        32'b000010000101????????????????????: ret = {"fmsub.s ", $sformatf(" ")};
+        32'b000010001001????????????????????: ret = {"fnmadd.s ", $sformatf(" ")};
+        32'b000010001101????????????????????: ret = {"fnmsub.s ", $sformatf(" ")};
+        32'b000011000001????????????????????: ret = {"fcmp.cond.s ", $sformatf(" ")};
+        32'b000011010000????????????????????: ret = {"fsel ", $sformatf(" ")};
         32'b00000000000100000???????????????: ret = {"add.w ", $sformatf("$r%02x, $r%02x, $r%02x",rd, rj, rk)};
         32'b00000000000100010???????????????: ret = {"sub.w ", $sformatf("$r%02x, $r%02x, $r%02x",rd, rj, rk)};
         32'b00000000000100100???????????????: ret = {"slt ", $sformatf("$r%02x, $r%02x, $r%02x",rd, rj, rk)};
@@ -495,12 +536,40 @@ function automatic string wired_disassembler(input logic [31:0] inst_i);
         32'b00000000010000001???????????????: ret = {"slli.w ", $sformatf("$r%02x, $r%02x, %02x",rd, rj, rk)};
         32'b00000000010001001???????????????: ret = {"srli.w ", $sformatf("$r%02x, $r%02x, %02x",rd, rj, rk)};
         32'b00000000010010001???????????????: ret = {"srai.w ", $sformatf("$r%02x, $r%02x, %02x",rd, rj, rk)};
+        32'b00000001000000001???????????????: ret = {"fadd.s ", $sformatf(" ")};
+        32'b00000001000000101???????????????: ret = {"fsub.s ", $sformatf(" ")};
+        32'b00000001000001001???????????????: ret = {"fmul.s ", $sformatf(" ")};
+        32'b00000001000001101???????????????: ret = {"fdiv.s ", $sformatf(" ")};
+        32'b00000001000010001???????????????: ret = {"fmax.s ", $sformatf(" ")};
+        32'b00000001000010101???????????????: ret = {"fmin.s ", $sformatf(" ")};
+        32'b00000001000100101???????????????: ret = {"fcopysign.s ", $sformatf(" ")};
         32'b00000110010010001???????????????: ret = {"idle ", $sformatf(" ")};
         32'b00000110010010011???????????????: ret = {"invtlb ", $sformatf(" ")};
         32'b00111000011100100???????????????: ret = {"dbar ", $sformatf("0")};
         32'b00111000011100101???????????????: ret = {"ibar ", $sformatf("0")};
         32'b0000000000000000011000??????????: ret = {"rdcnt.w ", $sformatf(" ")};
         32'b0000000000000000011001??????????: ret = {"rdcnth.w ", $sformatf(" ")};
+        32'b0000000100010100000001??????????: ret = {"fabs.s ", $sformatf(" ")};
+        32'b0000000100010100000101??????????: ret = {"fneg.s ", $sformatf(" ")};
+        32'b0000000100010100001101??????????: ret = {"fclass.s ", $sformatf(" ")};
+        32'b0000000100010100010001??????????: ret = {"fsqrt.s ", $sformatf(" ")};
+        32'b0000000100010100010101??????????: ret = {"frecip.s ", $sformatf(" ")};
+        32'b0000000100010100011001??????????: ret = {"frsqrt.s ", $sformatf(" ")};
+        32'b0000000100010100100101??????????: ret = {"fmov.s ", $sformatf(" ")};
+        32'b0000000100010100101001??????????: ret = {"movgr2fr.w ", $sformatf(" ")};
+        32'b0000000100010100101101??????????: ret = {"movfr2gr.s ", $sformatf(" ")};
+        32'b0000000100010100110000??????????: ret = {"movgr2fcsr ", $sformatf(" ")};
+        32'b0000000100010100110010??????????: ret = {"movfcsr2gr ", $sformatf(" ")};
+        32'b0000000100010100110100??????????: ret = {"movfr2cf ", $sformatf(" ")};
+        32'b0000000100010100110101??????????: ret = {"movcf2fr ", $sformatf(" ")};
+        32'b0000000100010100110110??????????: ret = {"movgr2cf ", $sformatf(" ")};
+        32'b0000000100010100110111??????????: ret = {"movcf2gr ", $sformatf(" ")};
+        32'b0000000100011010000001??????????: ret = {"ftintrm.w.s ", $sformatf(" ")};
+        32'b0000000100011010010001??????????: ret = {"ftintrp.w.s ", $sformatf(" ")};
+        32'b0000000100011010100001??????????: ret = {"ftintrz.w.s ", $sformatf(" ")};
+        32'b0000000100011010110001??????????: ret = {"ftintrne.w.s ", $sformatf(" ")};
+        32'b0000000100011011000001??????????: ret = {"ftint.w.s ", $sformatf(" ")};
+        32'b0000000100011101000100??????????: ret = {"ffint.s.w ", $sformatf(" ")};
         32'b0000011001001000001010??????????: ret = {"tlbsrch ", $sformatf(" ")};
         32'b0000011001001000001011??????????: ret = {"tlbrd ", $sformatf(" ")};
         32'b0000011001001000001100??????????: ret = {"tlbwr ", $sformatf(" ")};

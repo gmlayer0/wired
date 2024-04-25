@@ -15,46 +15,115 @@
     },
     "inst": {
         "fadd.s": {
-            "opcode": "00000001000000001"
+            "opcode": "00000001000000001",
+            "reg_type_r0": "`_REG_RK",
+            "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fsub.s": {
-            "opcode": "00000001000000101"
+            "opcode": "00000001000000101",
+            "reg_type_r0": "`_REG_RK",
+            "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fmul.s": {
-            "opcode": "00000001000001001"
+            "opcode": "00000001000001001",
+            "reg_type_r0": "`_REG_RK",
+            "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fdiv.s": {
-            "opcode": "00000001000001101"
+            "opcode": "00000001000001101",
+            "reg_type_r0": "`_REG_RK",
+            "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fmax.s": {
-            "opcode": "00000001000010001"
+            "opcode": "00000001000010001",
+            "reg_type_r0": "`_REG_RK",
+            "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fmin.s": {
-            "opcode": "00000001000010101"
+            "opcode": "00000001000010101",
+            "reg_type_r0": "`_REG_RK",
+            "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
-        // "fmaxa.s": {
-        //     "opcode": "00000001000011001"
-        // },
         "fcopysign.s": {
-            "opcode": "00000001000100101"
+            "opcode": "00000001000100101",
+            "reg_type_r0": "`_REG_RK",
+            "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fabs.s": {
-            "opcode": "0000000100010100000001"
+            "opcode": "0000000100010100000001",
+            "reg_type_r0": "`_REG_ZERO",
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fneg.s": {
-            "opcode": "0000000100010100000101"
+            "opcode": "0000000100010100000101",
+            "reg_type_r0": "`_REG_ZERO",
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fclass.s": {
-            "opcode": "0000000100010100001101"
+            "opcode": "0000000100010100001101",
+            "reg_type_r0": "`_REG_ZERO",
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fsqrt.s": {
-            "opcode": "0000000100010100010001"
+            "opcode": "0000000100010100010001",
+            "reg_type_r0": "`_REG_ZERO",
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "frecip.s": {
-            "opcode": "0000000100010100010101"
+            "opcode": "0000000100010100010101",
+            "reg_type_r0": "`_REG_RJ",
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "frsqrt.s": {
-            "opcode": "0000000100010100011001"
+            "opcode": "0000000100010100011001",
+            "reg_type_r0": "`_REG_ZERO",
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fw": 1
         },
         "fmov.s": {
             "opcode": "0000000100010100100101"

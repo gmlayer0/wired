@@ -96,8 +96,8 @@
         "csrwrxchg": {
             "opcode": "00000100",
             "csr_op_en": 1,
-            "reg_type_r0": "`_REG_R0_RD",
-            "reg_type_r1": "`_REG_R1_RJ",
+            "reg_type_r0": "`_REG_RD",
+            "reg_type_r1": "`_REG_RJ",
             "reg_type_w": "`_REG_W_RD",
             "priv_inst": 1,
             "refetch": 1,
@@ -139,8 +139,8 @@
         "invtlb": {
             "opcode": "00000110010010011",
             "invtlb_en": 1,
-            "reg_type_r0": "`_REG_R0_RK",
-            "reg_type_r1": "`_REG_R1_RJ",
+            "reg_type_r0": "`_REG_RK",
+            "reg_type_r1": "`_REG_RJ",
             "priv_inst": 1,
             "refetch": 1,
             "alu_inst": 1,

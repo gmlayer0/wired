@@ -47,14 +47,14 @@
             "default_value": 0
         },
         "reg_type_r0": {
-            "length": 2,
+            "length": 3,
             "stage": "d",
-            "default_value": "`_REG_R0_NONE"
+            "default_value": "`_REG_ZERO"
         },
         "reg_type_r1": {
-            "length": 1,
+            "length": 3,
             "stage": "d",
-            "default_value": "`_REG_R1_NONE"
+            "default_value": "`_REG_ZERO"
         },
         "reg_type_w": {
             "length": 2,
@@ -86,33 +86,32 @@
             "stage": "p",
             "default_value": 0
         },
-        "fk": {
+        "fr0": {
             "length": 1,
             "stage": "d",
             "default_value": 0
         },
-        "fj": {
+        "fr1": {
             "length": 1,
             "stage": "d",
             "default_value": 0
         },
-        "fd": {
+        "fw": {
             "length": 1,
             "stage": "d",
             "default_value": 0
         }
     },
     "const": {
-        "_REG_R0_IMM": "2'b11",
-        "_REG_R0_RD": "2'b10",
-        "_REG_R0_RK": "2'b01",
-        "_REG_R0_NONE": "2'b00",
-        "_REG_R1_RJ": "1'b1",
-        "_REG_R1_NONE": "1'b0",
-        "_REG_W_BL1": "2'b11",
-        "_REG_W_RJD": "2'b10",
-        "_REG_W_RD": "2'b01",
+        "_REG_ZERO": "3'b000",
+        "_REG_RD": "3'b001",
+        "_REG_RJ": "3'b010",
+        "_REG_RK": "3'b011",
+        "_REG_IMM": "3'b100",
         "_REG_W_NONE": "2'b00",
+        "_REG_W_RD": "2'b01",
+        "_REG_W_RJD": "2'b10",
+        "_REG_W_BL1": "2'b11",
 
         "_IMM_U12" : "3'd0",
         "_IMM_U5"  : "3'd0",

@@ -6,8 +6,8 @@ function reg_info_t get_register_info(
   );
   reg_info_t ret;
 
-  logic [1:0] r0_sel, w_sel;
-  logic r1_sel;
+  logic [2:0] r0_sel, r1_sel;
+  logic [1:0] w_sel;
   r0_sel = di.reg_type_r0;
   r1_sel = di.reg_type_r1;
   w_sel  = di.reg_type_w;
@@ -16,13 +16,17 @@ function reg_info_t get_register_info(
     begin
       ret.r_reg[0] = '0;
     end
-    `_REG_R0_RK :
-    begin
-      ret.r_reg[0] = inst[14:10];
-    end
-    `_REG_R0_RD :
+    `_REG_RD :
     begin
       ret.r_reg[0] = inst[4:0];
+    end
+    `_REG_RJ :
+    begin
+      ret.r_reg[0] = inst[9:5];
+    end
+    `_REG_RK :
+    begin
+      ret.r_reg[0] = inst[14:10];
     end
   endcase
   case(r1_sel)
@@ -30,9 +34,17 @@ function reg_info_t get_register_info(
     begin
       ret.r_reg[1] = '0;
     end
-    `_REG_R1_RJ :
+    `_REG_RD :
+    begin
+      ret.r_reg[1] = inst[4:0];
+    end
+    `_REG_RJ :
     begin
       ret.r_reg[1] = inst[9:5];
+    end
+    `_REG_RK :
+    begin
+      ret.r_reg[1] = inst[14:10];
     end
   endcase
   case(w_sel)
