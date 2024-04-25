@@ -84,40 +84,40 @@
             "opcode": "0000000100010100110111"
         },
         "ftintrm.w.s": {
-            "opcode": ""
+            "opcode": "0000000100011010000001"
         },
         "ftintrp.w.s": {
-            "opcode": ""
+            "opcode": "0000000100011010010001"
         },
         "ftintrz.w.s": {
-            "opcode": ""
+            "opcode": "0000000100011010100001"
         },
         "ftintrne.w.s": {
-            "opcode": ""
+            "opcode": "0000000100011010110001"
         },
         "ftint.w.s": {
-            "opcode": ""
+            "opcode": "0000000100011011000001"
         },
         "ffint.s.w": {
-            "opcode": ""
+            "opcode": "0000000100011101000100"
         },
         "fmadd.s": {
-            "opcode": ""
+            "opcode": "000010000001"
         },
         "fmsub.s": {
-            "opcode": ""
+            "opcode": "000010000101"
         },
         "fnmadd.s": {
-            "opcode": ""
+            "opcode": "000010001001"
         },
         "fnmsub.s": {
-            "opcode": ""
+            "opcode": "000010001101"
         },
         "fcmp.cond.s": {
-            "opcode": ""
+            "opcode": "000011000001"
         },
         "fsel": {
-            "opcode": ""
+            "opcode": "000011010000"
         }
     }
 }
