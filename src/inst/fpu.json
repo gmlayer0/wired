@@ -1,0 +1,123 @@
+{
+    "const": {
+    },
+    "signal": {
+        "fpu_op": {
+            "length": 4,
+            "stage": "fpu",
+            "default_value": 0
+        },
+        "fpu_mode": {
+            "length": 1,
+            "stage": "fpu",
+            "default_value": 0
+        }
+    },
+    "inst": {
+        "fadd.s": {
+            "opcode": "00000001000000001"
+        },
+        "fsub.s": {
+            "opcode": "00000001000000101"
+        },
+        "fmul.s": {
+            "opcode": "00000001000001001"
+        },
+        "fdiv.s": {
+            "opcode": "00000001000001101"
+        },
+        "fmax.s": {
+            "opcode": "00000001000010001"
+        },
+        "fmin.s": {
+            "opcode": "00000001000010101"
+        },
+        // "fmaxa.s": {
+        //     "opcode": "00000001000011001"
+        // },
+        "fcopysign.s": {
+            "opcode": "00000001000100101"
+        },
+        "fabs.s": {
+            "opcode": "0000000100010100000001"
+        },
+        "fneg.s": {
+            "opcode": "0000000100010100000101"
+        },
+        "fclass.s": {
+            "opcode": "0000000100010100001101"
+        },
+        "fsqrt.s": {
+            "opcode": "0000000100010100010001"
+        },
+        "frecip.s": {
+            "opcode": "0000000100010100010101"
+        },
+        "frsqrt.s": {
+            "opcode": "0000000100010100011001"
+        },
+        "fmov.s": {
+            "opcode": "0000000100010100100101"
+        },
+        "movgr2fr.w": {
+            "opcode": "0000000100010100101001"
+        },
+        "movfr2gr.s": {
+            "opcode": "0000000100010100101101"
+        },
+        "movgr2fcsr": {
+            "opcode": "0000000100010100110000"
+        },
+        "movfcsr2gr": {
+            "opcode": "0000000100010100110010"
+        },
+        "movfr2cf": {
+            "opcode": "0000000100010100110100"
+        },
+        "movcf2fr": {
+            "opcode": "0000000100010100110101"
+        },
+        "movgr2cf": {
+            "opcode": "0000000100010100110110"
+        },
+        "movcf2gr": {
+            "opcode": "0000000100010100110111"
+        },
+        "ftintrm.w.s": {
+            "opcode": ""
+        },
+        "ftintrp.w.s": {
+            "opcode": ""
+        },
+        "ftintrz.w.s": {
+            "opcode": ""
+        },
+        "ftintrne.w.s": {
+            "opcode": ""
+        },
+        "ftint.w.s": {
+            "opcode": ""
+        },
+        "ffint.s.w": {
+            "opcode": ""
+        },
+        "fmadd.s": {
+            "opcode": ""
+        },
+        "fmsub.s": {
+            "opcode": ""
+        },
+        "fnmadd.s": {
+            "opcode": ""
+        },
+        "fnmsub.s": {
+            "opcode": ""
+        },
+        "fcmp.cond.s": {
+            "opcode": ""
+        },
+        "fsel": {
+            "opcode": ""
+        }
+    }
+}

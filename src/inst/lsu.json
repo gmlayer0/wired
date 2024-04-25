@@ -190,6 +190,29 @@
             "opcode": "0010101011",
             "alu_inst": 1,
             "das": "\"0\""
+        },
+        "fld.s": {
+            "opcode": "0010101110",
+            "mem_type": "`_MEM_TYPE_WORD",
+            "mem_read": 1,
+            "reg_type_r0": "`_REG_R0_NONE",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_RD",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)"
+        },
+        "fst.s": {
+            "opcode": "0010101101",
+            "mem_type": "`_MEM_TYPE_WORD",
+            "mem_write": 1,
+            "reg_type_r0": "`_REG_R0_RD",
+            "reg_type_r1": "`_REG_R1_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S12",
+            "reg_type_w": "`_REG_W_NONE",
+            "lsu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)",
+            "slot0": 1
         }
     }
 }

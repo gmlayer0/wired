@@ -7,6 +7,7 @@
         ["lsu", "c_lsu_common"],
         ["c", "c_lsu_common"],
         ["rob", "c"],
+        ["p", "fpu"],
         ["p", "mdu"],
         ["p", "lsu"],
         ["p", "alu"],
@@ -38,6 +39,11 @@
         "lsu_inst": {
             "length": 1,
             "stage": "c",
+            "default_value": 0
+        },
+        "fpu_inst": {
+            "length": 1,
+            "stage": "p",
             "default_value": 0
         },
         "reg_type_r0": {
@@ -73,6 +79,26 @@
         "refetch": {
             "length": 1,
             "stage": "c",
+            "default_value": 0
+        },
+        "need_fa": {
+            "length": 1,
+            "stage": "p",
+            "default_value": 0
+        },
+        "fk": {
+            "length": 1,
+            "stage": "d",
+            "default_value": 0
+        },
+        "fj": {
+            "length": 1,
+            "stage": "d",
+            "default_value": 0
+        },
+        "fd": {
+            "length": 1,
+            "stage": "d",
             "default_value": 0
         }
     },
