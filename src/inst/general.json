@@ -46,6 +46,11 @@
             "stage": "p",
             "default_value": 0
         },
+        "fbranch_inst": {
+            "length": 1,
+            "stage": "p",
+            "default_value": 0
+        },
         "reg_type_r0": {
             "length": 3,
             "stage": "d",
@@ -92,6 +97,11 @@
             "default_value": 0
         },
         "fr1": {
+            "length": 1,
+            "stage": "d",
+            "default_value": 0
+        },
+        "fr2": {
             "length": 1,
             "stage": "d",
             "default_value": 0

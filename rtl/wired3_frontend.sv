@@ -13,6 +13,7 @@ function reg_info_t get_register_info(
   w_sel  = di.reg_type_w;
   ret.r_reg[0][5] = di.fr0;
   ret.r_reg[1][5] = di.fr1;
+  if(di.fr2) ret.r_reg[2] = {1'b1, inst[19:15]};
   ret.w_reg[5] = di.fw;
   case(r0_sel)
     default :

@@ -11,7 +11,8 @@ module wired_packer #(
 
     // 来自对齐解码级
     input  logic                     valid_i,
-    output logic                     ready_o, //TODO 剩余指令数 <= 1 时前级可以就绪
+    output logic                     ready_o, // TODO 剩余指令数 <= 1 时前级可以就绪
+    input  logic               [1:0] slot0_i, // 只能在 slot0 发射的指令
     input  logic                [1:0]   nz_i,
     input  logic                [1:0] bank_i,
     input  logic  [1:0][PKG_SIZE-1:0]  pkg_i,
@@ -30,6 +31,7 @@ module wired_packer #(
   logic skid_busy_q;
   logic skid_nz_q;
   logic skid_bank_q;
+  logic skid_slot0_q;
   logic[PKG_SIZE-1:0] skid_pkg_q;
   logic skid_en, skid_sel;
   logic skid_busy;
@@ -44,6 +46,7 @@ module wired_packer #(
     if(skid_en) begin
       skid_nz_q   <= nz_i[skid_sel];
       skid_bank_q <= bank_i[skid_sel];
+      skid_slot0_q <= slot0_i[skid_sel];
       skid_pkg_q  <= pkg_i[skid_sel];
     end
   end
@@ -55,10 +58,10 @@ module wired_packer #(
 
   wire [1:0] c;
 `ifdef _WIRED_TDP_ARF
-  assign c = '0;
+  assign c = slot0_i;
 `else
-  assign c[0] = (skid_bank_q == bank_i[0]) && (skid_nz_q & nz_i[0]);
-  assign c[1] = (bank_i[0] == bank_i[1]) && (nz_i[0] & nz_i[1]);
+  assign c[0] = ((skid_bank_q == bank_i[0]) && (skid_nz_q & nz_i[0])) || slot0_i[0];
+  assign c[1] = ((bank_i[0] == bank_i[1]) && (nz_i[0] & nz_i[1])) || slot0_i[1];
 `endif
 
   assign valid_o = skid_busy_q | (|mask);
