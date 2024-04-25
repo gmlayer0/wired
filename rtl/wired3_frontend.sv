@@ -4,13 +4,16 @@ function reg_info_t get_register_info(
     input decode_info_d_t di,
     input logic[31:0] inst
   );
-  reg_info_t ret;
+  reg_info_t ret = '0;
 
   logic [2:0] r0_sel, r1_sel;
   logic [1:0] w_sel;
   r0_sel = di.reg_type_r0;
   r1_sel = di.reg_type_r1;
   w_sel  = di.reg_type_w;
+  ret.r_reg[0][5] = di.fr0;
+  ret.r_reg[1][5] = di.fr1;
+  ret.w_reg[5] = di.fw;
   case(r0_sel)
     default :
     begin
@@ -18,15 +21,15 @@ function reg_info_t get_register_info(
     end
     `_REG_RD :
     begin
-      ret.r_reg[0] = inst[4:0];
+      ret.r_reg[0][4:0] = inst[4:0];
     end
     `_REG_RJ :
     begin
-      ret.r_reg[0] = inst[9:5];
+      ret.r_reg[0][4:0] = inst[9:5];
     end
     `_REG_RK :
     begin
-      ret.r_reg[0] = inst[14:10];
+      ret.r_reg[0][4:0] = inst[14:10];
     end
   endcase
   case(r1_sel)
@@ -36,15 +39,15 @@ function reg_info_t get_register_info(
     end
     `_REG_RD :
     begin
-      ret.r_reg[1] = inst[4:0];
+      ret.r_reg[1][4:0] = inst[4:0];
     end
     `_REG_RJ :
     begin
-      ret.r_reg[1] = inst[9:5];
+      ret.r_reg[1][4:0] = inst[9:5];
     end
     `_REG_RK :
     begin
-      ret.r_reg[1] = inst[14:10];
+      ret.r_reg[1][4:0] = inst[14:10];
     end
   endcase
   case(w_sel)
@@ -54,15 +57,15 @@ function reg_info_t get_register_info(
     end
     `_REG_W_RD :
     begin
-      ret.w_reg = inst[4:0];
+      ret.w_reg[4:0] = inst[4:0];
     end
     `_REG_W_RJD :
     begin
-      ret.w_reg = inst[4:0] | inst[9:5];
+      ret.w_reg[4:0] = inst[4:0] | inst[9:5];
     end
     `_REG_W_BL1 :
     begin
-      ret.w_reg = 5'd1;
+      ret.w_reg[4:0] = 5'd1;
     end
   endcase
   return ret;
