@@ -50,17 +50,17 @@ module wired_backend #(
   wire r_valid = pkg_valid_i;
   // --- ARF ---
   // 连接到 r_pkg 中的寄存器号
-`ifdef _WIRED_PARAM_ENABLE_FPU
-  arch_rid_t [1:0][2:0] r_raddr;
-  rob_rid_t  [1:0][2:0] r_rrrid; // Rename_read_rob_register_id
-  logic      [1:0][2:0] r_arf_valid;
-  logic[1:0][2:0][31:0] r_rdata;
-`else
+// `ifdef _WIRED_PARAM_ENABLE_FPU
+  // add a read port for fmadd / fmsub instructions
+  arch_rid_t            r_r3_raddr;
+  rob_rid_t             r_r3_rrrid; // Rename_read_rob_register_id
+  logic                 r_r3_arf_valid;
+  logic          [31:0] r_r3_rdata;
+// `endif
   arch_rid_t [1:0][1:0] r_raddr;
   rob_rid_t  [1:0][1:0] r_rrrid; // Rename_read_rob_register_id
   logic      [1:0][1:0] r_arf_valid;
   logic[1:0][1:0][31:0] r_rdata;
-`endif
   arch_rid_t [1:0]      r_waddr;
   rob_rid_t  [1:0]      r_wrrid;
   logic      [1:0]      r_tier_id;
@@ -70,6 +70,7 @@ module wired_backend #(
     end
     assign r_waddr[i] = r_pkg[i].ri.w_reg;
   end
+  assign r_r3_raddr = r_pkg[0].ri.r_reg[2];
   // 连接到提交级的信号
   logic [1:0]       l_we;
   logic [1:0]       l_retire;
@@ -82,7 +83,11 @@ module wired_backend #(
   wired_registers_file_tp # (
     .DATA_WIDTH(32),
     .DEPTH(32),
-    .R_PORT_COUNT(4),
+    .R_PORT_COUNT(4
+  // `ifdef _WIRED_PARAM_ENABLE_FPU
+    +1
+  // `endif
+    ),
     .NEED_RESET(1),
     .NEED_FORWARD(1)
   )
@@ -90,7 +95,11 @@ module wired_backend #(
   wired_registers_file_banked # (
     .DATA_WIDTH(32),
     .DEPTH(32),
-    .R_PORT_COUNT(4),
+    .R_PORT_COUNT(4
+    // `ifdef _WIRED_PARAM_ENABLE_FPU
+      +1
+    // `endif
+    ),
     .W_PORT_COUNT(2),
     .NEED_RESET(1),
     .NEED_FORWARD(1)
@@ -98,8 +107,8 @@ module wired_backend #(
 `endif
                               arf (
                                 `_WIRED_GENERAL_CONN,
-                                .raddr_i(r_raddr),
-                                .rdata_o(r_rdata),
+                                .raddr_i({r_raddr, r_r3_raddr}),
+                                .rdata_o({r_rdata, r_r3_rdata}),
                                 .waddr_i(l_waddr),
                                 .we_i(l_we & {{(|l_waddr[1])}, {(|l_waddr[0])}}),
                                 .wdata_i(l_wdata)
@@ -113,9 +122,9 @@ module wired_backend #(
                )
                wired_rename_inst (
                 `_WIRED_GENERAL_CONN,
-                 .r_rarid_i(r_raddr),
-                 .r_rrrid_o(r_rrrid),
-                 .r_prf_valid_o(r_arf_valid),
+                 .r_rarid_i({r_raddr, r_r3_raddr}),
+                 .r_rrrid_o({r_rrrid, r_r3_rrrid}),
+                 .r_prf_valid_o({r_arf_valid, r_r3_arf_valid}),
                  .r_mask_i(r_mask),
                  .r_ready_o(r_ready),
 
@@ -140,8 +149,8 @@ module wired_backend #(
     always_comb begin
         r_p_data[p] = '0;
         r_p_pkg[p] = '0;
-        r_p_data[p].valid = r_arf_valid[p];
-        r_p_data[p].rreg = r_rrrid[p];
+        r_p_data[p].valid = {p == 0 ? r_r3_arf_valid : 1'b0, r_arf_valid[p]};
+        r_p_data[p].rreg = {p == 0 ? r_r3_rrrid : 6'd0, r_rrrid[p]};
         for(integer i = 0 ; i < 2 ; i += 1) begin
           if(p == 1 && r_raddr[1][i] == r_waddr[0] && r_waddr[0] != '0) begin
             r_p_data[p].rreg[i] = r_wrrid[0]; // 内部依赖
@@ -150,6 +159,7 @@ module wired_backend #(
         end
         r_p_data[p].rdata[0] = r_pkg[p].di.reg_type_r0 == `_REG_IMM ? data_imm : r_rdata[p][0];
         r_p_data[p].rdata[1] = r_rdata[p][1];
+        r_p_data[p].rdata[2] = p == 0 ? r_r3_rdata : '0;
         r_p_pkg[p].di   = get_p_from_d(r_pkg[p].di);
         r_p_pkg[p].wreg.arch_id = r_waddr[p];
         r_p_pkg[p].wreg.rob_id = r_wrrid[p];
@@ -208,6 +218,8 @@ module wired_backend #(
     end
   end
   // CDB 前递
+  logic                  p_r3_rob_valid;
+  logic           [31:0] p_r3_rob_data;
   logic [1:0][1:0]       p_rob_valid;
   logic [1:0][1:0][31:0] p_rob_data;
   for(genvar p = 0 ; p < 2 ; p += 1) begin
@@ -226,6 +238,20 @@ module wired_backend #(
         end
         p_data[p].valid[i] &= !p_pkg_q[p].scyc_raw[i];
       end
+      // 处理浮点用的第三个寄存器
+      if(p == 0) begin
+        p_data[p].valid[2] |= p_r3_rob_valid;
+        if(!p_data_q[p].valid[2] && p_r3_rob_valid) begin
+          p_data[p].rdata[i] = p_r3_rob_data;
+        end
+        // 监听 CDB
+        if(!p_data_q[p].valid[2] &&
+            cdb[p_data_q[p].rreg[2][0]].valid &&
+            cdb[p_data_q[p].rreg[2][0]].wid[`_WIRED_PARAM_ROB_LEN-1:1] == p_data_q[p].rreg[2][`_WIRED_PARAM_ROB_LEN-1:1]) begin
+          p_data[p].rdata[2] = cdb[p_data_q[p].rreg[2][0]].wdata;
+          p_data[p].valid[2] = '1;
+        end
+      end
     end
   end
   // ROB (分发 / 提交级别)
@@ -238,8 +264,8 @@ module wired_backend #(
     // .p_rrrid_i(),
     .p_ctrl_i(p_pkg_q),
     .p_data_i(p_data_q),
-    .p_rob_valid_o(p_rob_valid),
-    .p_rrdata_o(p_rob_data),
+    .p_rob_valid_o({p_r3_rob_valid, p_rob_valid}),
+    .p_rrdata_o({p_r3_rob_data, p_rob_data}),
     .p_valid_i(p_issue),
     // .p_wrrid_i(),
     // .p_winfo_i(),
@@ -269,13 +295,15 @@ module wired_backend #(
   always_ff @(posedge clk) wkup_bus_stack[1][2:0] <= wkup_bus_stack[0][2:0];
 
   // CDB 仲裁信号
-  localparam CDB_MAX_COUNT = 5;
+  localparam CDB_MAX_COUNT = 6;
   logic [CDB_MAX_COUNT-1:0] raw_cdb_ready;
   pipeline_cdb_t [CDB_MAX_COUNT-1:0]  raw_cdb;
   wire [1:0] ifet_excp = {(|p_pkg_q[1].excp), (|p_pkg_q[0].excp)};
   wire [1:0] lsu_valid = p_issue & {p_pkg_q[1].di.lsu_inst,p_pkg_q[0].di.lsu_inst} & ~ifet_excp;
   wire [1:0] div_valid = p_issue & {p_pkg_q[1].di.div_inst,p_pkg_q[0].di.div_inst} & ~ifet_excp;
   wire [1:0] mul_valid = p_issue & {p_pkg_q[1].di.mul_inst,p_pkg_q[0].di.mul_inst} & ~ifet_excp;
+  wire fpu_valid = p_issue[0] & p_pkg_q[0].di.fpu_inst & ~ifet_excp[0];
+  wire fcc_valid = p_issue[0] & p_pkg_q[0].di.fbranch_inst & ~ifet_excp[0];
   wire [1:0] alu_valid = p_issue & ({p_pkg_q[1].di.alu_inst,p_pkg_q[0].di.alu_inst} | ifet_excp); // 取指阶段存在异常的指令全部送入 ALU
   wired_alu_iq #(
     .WAKEUP_SRC_CNT(3)
@@ -470,6 +498,29 @@ module wired_backend #(
     .ready_i(ex_div_resp_ready),
     .valid_o(ex_div_resp_valid),
     .resp_o(ex_div_resp)
+  );
+
+  // FPU 部分例化
+  logic ex_fpu_req_valid, ex_fpu_req_ready, ex_fpu_resp_valid, ex_fpu_resp_ready;
+  logic ex_fcc_req_valid, ex_fcc_req_ready, ex_fcc_resp_valid, ex_fcc_resp_ready;
+  iq_mdu_req_t ex_fpu_req, ex_fcc_req;
+  iq_mdu_resp_t ex_fpu_resp, ex_fcc_resp;
+  wired_fooo_iq wired_fpu_iq_inst (
+    `_WIRED_GENERAL_CONN,
+    .p_ctrl_i(p_pkg_q[0]),
+    .p_data_i(p_data[0]),
+    .p_valid_i(fpu_valid),
+    .p_ready_o(fpu_ready),
+    .cdb_o(raw_cdb[5]),
+    .cdb_ready_i(raw_cdb_ready[5]),
+    .cdb_i(cdb),
+    .flush_i(c_flush),
+    .ex_valid_o(ex_fpu_req_valid),
+    .ex_ready_i(ex_fpu_req_ready),
+    .ex_req_o(ex_fpu_req),
+    .ex_valid_i(ex_fpu_resp_valid),
+    .ex_ready_o(ex_fpu_resp_ready),
+    .ex_resp_i(ex_fpu_resp)
   );
 
   // CDB ARBITER

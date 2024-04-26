@@ -77,8 +77,8 @@ module wired_rob (
     // input  rob_rid_t        [3:0] p_rrrid_i,
     input pipeline_ctrl_p_t [1:0] p_ctrl_i,
     input pipeline_data_t   [1:0] p_data_i,
-    output logic            [3:0] p_rob_valid_o, // PRF 中存储的值是有效的
-    output rob_entry_data_t [3:0] p_rrdata_o,
+    output logic            [4:0] p_rob_valid_o, // PRF 中存储的值是有效的
+    output rob_entry_data_t [4:0] p_rrdata_o,
 
     // Part 2: ROB 写端口（P级）
     input logic              [1:0] p_valid_i, // 即发射信号
@@ -99,13 +99,15 @@ module wired_rob (
     input  logic                   flush_i
   );
 
-  rob_rid_t          [1:0][1:0] p_rrrid_i;
+  rob_rid_t          [4:0]      p_rrrid_i;
+  rob_rid_t          [1:0][1:0] p_rrrid_int;
   rob_rid_t          [1:0] p_wrrid_i;
   rob_entry_static_t [1:0] p_winfo_i;
   // 参数提取
+  assign p_rrrid_i = {p_data_i[0].rreg[2], p_rrrid_int};
   for(genvar p = 0 ; p < 2 ; p += 1) begin
     for(genvar i = 0 ; i < 2 ; i += 1) begin
-        assign p_rrrid_i[p][i] = p_data_i[p].rreg[i];
+        assign p_rrrid_int[p][i] = p_data_i[p].rreg[i];
     end
     assign p_wrrid_i[p] = p_ctrl_i[p].wreg.rob_id;
     always_comb begin
@@ -142,12 +144,12 @@ module wired_rob (
                               );
 
   // Data 表
-  rob_entry_data_t [3:0] p_rob_entry_data;
+  rob_entry_data_t [4:0] p_rob_entry_data;
   rob_entry_data_t [1:0] c_rob_entry_data;
   wired_registers_file_banked # (
                                 .DATA_WIDTH($bits(rob_entry_data_t)),
                                 .DEPTH(1 << `_WIRED_PARAM_ROB_LEN),
-                                .R_PORT_COUNT(6),
+                                .R_PORT_COUNT(7),
                                 .W_PORT_COUNT(2),
                                 .NEED_RESET(0)
                               )
@@ -191,7 +193,7 @@ module wired_rob (
 
   // Valid 表，分两部分
   logic [1:0] c_rob_valid_q;
-  logic [3:0] p_rob_valid_pt, p_rob_valid_ct;
+  logic [4:0] p_rob_valid_pt, p_rob_valid_ct;
   logic [1:0] c_rob_valid_pt, c_rob_valid_ct;
   assign p_rob_valid_o = p_rob_valid_pt ^ p_rob_valid_ct;
   // 不用再等待数据就绪，全部送往提交级
@@ -200,7 +202,7 @@ module wired_rob (
   wired_registers_file_banked # (
                                 .DATA_WIDTH(1),
                                 .DEPTH(1 << `_WIRED_PARAM_ROB_LEN),
-                                .R_PORT_COUNT(8),
+                                .R_PORT_COUNT(9),
                                 .W_PORT_COUNT(2),
                                 .NEED_RESET(0)
                               )
@@ -215,7 +217,7 @@ module wired_rob (
   wired_registers_file_banked # (
                                 .DATA_WIDTH(1),
                                 .DEPTH(1 << `_WIRED_PARAM_ROB_LEN),
-                                .R_PORT_COUNT(8),
+                                .R_PORT_COUNT(9),
                                 .W_PORT_COUNT(2),
                                 .NEED_RESET(0)
                               )

@@ -1,23 +1,25 @@
 `include "wired0_defines.svh"
 
 // Fuction module for Wired project
-// mdu issue queue
-// 此模块支持乱序执行
+// OOO FPU-Excution issue queue
+// 此模块支持乱序执行的 FPU 指令，即不涉及 CC 状态位的所有计算类 FPU 计算指令。
+// 此模块后端对接fpnew(cvfpu)，借助其输出 TAG 记录执行顺序。
+// 注意，此模块乱序发出浮点指令，cvfpu 也是乱序执行，先执行结束的先返回，尽可能的挖掘指令潜在的并行性。
 
-module wired_mdu_iq #(
+module wired_fooo_iq #(
     parameter int IQ_SIZE = `_WIRED_PARAM_MDU_IQ_DEPTH // 不用很大，4 项即可
 )(
     `_WIRED_GENERAL_DEFINE,
 
     // 连接到 DISPATCH(P) 级别的端口
-    input pipeline_ctrl_p_t [1:0] p_ctrl_i,  // 来自 P 级的所有指令信息，全部提供给 ISSUE QUEUE，由 ISSUE QUEUE 进一步处理细分
-    input pipeline_data_t   [1:0] p_data_i,  // 注意：这里已经读取过 ROB ，且对来自 CDB 的数据做了转发
-    input  logic            [1:0] p_valid_i,
+    input pipeline_ctrl_p_t       p_ctrl_i,  // 来自 P 级的所有指令信息，全部提供给 ISSUE QUEUE，由 ISSUE QUEUE 进一步处理细分
+    input pipeline_data_t         p_data_i,  // 注意：这里已经读取过 ROB ，且对来自 CDB 的数据做了转发
+    input  logic                  p_valid_i,
     output logic                  p_ready_o, // 提示 alu_iq 非满，可以接受此两条指令
 
-    // 连接到 CDB ARBITER 的端口，做仲裁(调度为固定优先级别 ALU > LSU > MDU)
+    // 连接到 CDB ARBITER 的端口，做仲裁(调度为固定优先级别 ALU > LSU > MDU > FPU)
     // 因此来自 ALU 的两条指令几乎永远可以同时提交到 CDB
-    // 但需要考虑 ROB 的 BANK CONFLICT 问题。
+    // 但需要考虑 ROB 的 BANK CONFLICT 问题
     output pipeline_cdb_t cdb_o,
     input  logic          cdb_ready_i, // 这里可以接 FIFO
 
@@ -27,11 +29,11 @@ module wired_mdu_iq #(
     // 执行单元端口
     output logic         ex_valid_o,
     input  logic         ex_ready_i,
-    output iq_mdu_req_t  ex_req_o,
+    output iq_fpu_req_t  ex_req_o,
 
     input  logic         ex_valid_i,
     output logic         ex_ready_o,
-    input  iq_mdu_resp_t ex_resp_i,
+    input  iq_fpu_resp_t ex_resp_i,
 
     // FLUSH 端口
     input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
@@ -97,45 +99,46 @@ module wired_mdu_iq #(
 
     // Reserve station static entry 定义
     typedef struct packed {
-        decode_info_mdu_t di;
+        decode_info_fpu_t di;
         logic[31:0] pc; // 仅供调试用
         rob_rid_t wreg;
     } iq_static_t;
     // 输入给 IQ 的 static 信息
-    iq_static_t [1:0] p_static;
+    iq_static_t p_static;
 
     // IQ 中存储的信息
-    word_t      [IQ_SIZE-1:0][1:0] iq_data;
+    word_t      [IQ_SIZE-1:0][2:0] iq_data;
     iq_static_t [IQ_SIZE-1:0] iq_static;
     logic       excute_ready; // 当此信号为高时候，才可以向 Excute 级别写入新的指令
 
     // 解包信息
-    for(genvar i = 0 ; i < 2 ; i += 1) begin
+    // for(genvar i = 0 ; i < 2 ; i += 1) begin
         always_comb begin
-            p_static[i].di       = get_mdu_from_p(p_ctrl_i[i].di);
-            p_static[i].pc       = p_ctrl_i[i].pc;
-            p_static[i].wreg     = p_ctrl_i[i].wreg.rob_id;
+            p_static.di       = get_mdu_from_p(p_ctrl_i.di);
+            p_static.pc       = p_ctrl_i.pc;
+            p_static.wreg     = p_ctrl_i.wreg.rob_id;
         end
-    end
+    // end
 
     // 例化 Reserve station entry
     // 与 Excute Unit 的握手信号
     for(genvar i = 0 ; i < IQ_SIZE ; i += 1) begin
-        wire [1:0] update_by;
-        for(genvar j = 0 ; j < 2 ; j += 1) begin
-            assign update_by[j] = upd_sel_oh[j][i] & p_valid_i[j];
-        end
+        wire update_by;
+        // for(genvar j = 0 ; j < 2 ; j += 1) begin
+            assign update_by = upd_sel_oh[0][i] & p_valid_i;
+        // end
         wired_iq_entry # (
             .CDB_COUNT(2),
             .PAYLOAD_SIZE($bits(iq_static_t)),
-            .WAKEUP_SRC_CNT(1)
+            .WAKEUP_SRC_CNT(1),
+            .RREG_CNT(3)
         )
         wired_iq_entry_inst (
             `_WIRED_GENERAL_CONN,
             .sel_i((fire_sel_oh[i] & excute_ready) | flush_i),
-            .updata_i(|update_by),
-            .data_i(update_by[1] ? p_data_i[1] : p_data_i[0]),
-            .payload_i(update_by[0] ? p_static[0] : p_static[1]),
+            .updata_i(update_by),
+            .data_i(p_data_i),
+            .payload_i(p_static),
             .wkup_valid_i('0),
             .wkup_rid_i('0),
             .cdb_i(cdb_i),
@@ -148,7 +151,7 @@ module wired_mdu_iq #(
         );
     end
     iq_static_t sel_static_q,  sel_static;
-    word_t [1:0] sel_data_q,    sel_data;
+    word_t [2:0] sel_data_q,    sel_data;
     // 选择两个用于 MDU 输入的 data 和 static
     always_comb begin
         sel_static = '0;
@@ -177,9 +180,11 @@ module wired_mdu_iq #(
     end
     // 连接到 MDU
     assign ex_valid_o   = excute_valid_q;
-    assign ex_req_o.op  = sel_static_q.di.alu_op[1:0];
+    assign ex_req_o.op  = sel_static_q.di.fpu_op;
+    assign ex_req_o.mode  = sel_static_q.di.fpu_mode;
     assign ex_req_o.r0  = sel_data_q[0];
     assign ex_req_o.r1  = sel_data_q[1];
+    assign ex_req_o.r2  = sel_data_q[2];
     assign ex_req_o.wid = sel_static_q.wreg;
 
     // 连接到 CDB 的 FIFO

@@ -196,19 +196,19 @@ typedef struct packed {
 //   word_t    wdata;
 // } pipeline_cdb_data_t;
 
-`ifdef _WIRED_PARAM_ENABLE_FPU
+// `ifdef _WIRED_PARAM_ENABLE_FPU
 typedef struct packed{
   logic [2:0] valid;
   rob_rid_t [2:0] rreg;
   word_t [2:0] rdata;
 } pipeline_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
-`else
-typedef struct packed{
-  logic [1:0] valid;
-  rob_rid_t [1:0] rreg;
-  word_t [1:0] rdata;
-} pipeline_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
-`endif
+// `else
+// typedef struct packed{
+  // logic [1:0] valid;
+  // rob_rid_t [1:0] rreg;
+  // word_t [1:0] rdata;
+// } pipeline_data_t; // Rename 级产生（读取 ARF），在读取 ROB 之前需要注意转发，在读取 ROB 后只需要监视 CDB
+// `endif
 // 提交级流水
 // 提交级控制实际 ARF 写回，控制 Rename 表项回收，保证 ROB 永远不会出现 Overflow 的情况
 
@@ -319,6 +319,18 @@ typedef struct packed {
   logic[31:0] result;
   rob_rid_t   wid;     // 写回地址
 } iq_mdu_resp_t;
+typedef struct packed {
+  logic[3:0]  op;
+  logic     mode;
+  logic[31:0] r0;
+  logic[31:0] r1;
+  logic[31:0] r2;
+  rob_rid_t  wid;     // 写回地址
+} iq_fpu_req_t;
+typedef struct packed {
+  logic[31:0] result;
+  rob_rid_t   wid;     // 写回地址
+} iq_fpu_resp_t;
 
 // LSU IQ 到 LSU 的请求
 typedef struct packed {
