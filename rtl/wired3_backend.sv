@@ -252,7 +252,7 @@ module wired_backend #(
       if(p == 0) begin
         p_data[p].valid[2] |= p_r3_rob_valid;
         if(!p_data_q[p].valid[2] && p_r3_rob_valid) begin
-          p_data[p].rdata[i] = p_r3_rob_data;
+          p_data[p].rdata[2] = p_r3_rob_data;
         end
         // 监听 CDB
         if(!p_data_q[p].valid[2] &&

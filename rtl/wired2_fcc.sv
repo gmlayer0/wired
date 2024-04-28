@@ -89,10 +89,10 @@ module wired_fcc (
     // CC 变更逻辑
     always_comb begin
         fcc = fcc_q;
-        if(req_q.fcmp) begin
+        if(valid_q && req_q.fcmp) begin
             fcc = |(cmp & req_q.cond);
         end
-        if(req_q.upd_fcc) begin
+        if(valid_q && req_q.upd_fcc) begin
             fcc = req_q.r0[0];
         end
     end
@@ -100,6 +100,8 @@ module wired_fcc (
     // 输出逻辑
     always_comb begin
         ex_resp_o = '0;
+        ex_resp_o.fcc = fcc;
+        ex_resp_o.wid = req_q.wid;
         ex_resp_o.need_jump = (req_q.beqz && !fcc_q) || (req_q.bnez && fcc_q);
         ex_resp_o.target_addr = req_q.pc + {{9{req_q.addr_imm[22]}}, req_q.addr_imm[22:0]};
         if(req_q.fsel) begin
@@ -128,6 +130,16 @@ module wired_fcc (
         if(req_q.fcmp) begin
             ex_resp_o.fp_excp.NV = any_signal || (any_nan && req_q.cond[0]);
         end
+    end
+
+    // 调试输出
+    shortreal _da, _db;
+    assign _da = $bitstoshortreal(req_q.r0);
+    assign _db = $bitstoshortreal(req_q.r1);
+    always_ff @(posedge clk) begin
+        // if(valid_q && req_q.fcmp) begin
+        //     $display("Encounter fcmp inst with input %f %f", _da, _db);
+        // end
     end
 
 endmodule

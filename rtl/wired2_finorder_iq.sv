@@ -111,6 +111,7 @@ module wired_finorder_iq #(
     always_comb begin
         p_static.di       = get_fcc_from_p(p_ctrl_i.di);
         p_static.pc       = p_ctrl_i.pc;
+        p_static.addr_imm = p_ctrl_i.addr_imm;
         p_static.wreg     = p_ctrl_i.wreg.rob_id;
     end
 

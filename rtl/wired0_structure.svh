@@ -103,7 +103,7 @@ typedef logic[`_WIRED_PARAM_ARF_LEN-1:0] arch_rid_t; // 架构寄存器号
 typedef logic[`_WIRED_PARAM_ROB_LEN-1:0] rob_rid_t;  // 重命名后寄存器号 == {}
 
 typedef struct packed{
-    arch_rid_t [1:0] r_reg; // 0 for rk, 1 for rj
+    arch_rid_t [2:0] r_reg; // 0 for rk, 1 for rj
     arch_rid_t       w_reg;
 } reg_info_t;
 
@@ -375,7 +375,7 @@ typedef struct packed {
   fp_excp_t  fp_excp;      // 发现的浮点异常
   logic       fcc;         // 持续更新
   logic       need_jump;   // 需要跳转
-  logic       target_addr; // 跳转目标
+  logic[31:0] target_addr; // 跳转目标
   rob_rid_t   wid;         // 写回地址
 } iq_fcc_resp_t;
 

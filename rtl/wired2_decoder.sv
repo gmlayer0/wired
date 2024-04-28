@@ -696,10 +696,8 @@ module wired_decoder(
                 is_o.fpu_mode = 1'd0;
                 is_o.fpd_inst = 1'd1;
                 is_o.fpu_inst = 1'd1;
-                is_o.reg_type_r0 = `_REG_RJ;
                 is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
                 is_o.fw = 1'd1;
             end
@@ -709,10 +707,8 @@ module wired_decoder(
                 is_o.fpu_mode = 1'd1;
                 is_o.fpd_inst = 1'd1;
                 is_o.fpu_inst = 1'd1;
-                is_o.reg_type_r0 = `_REG_RJ;
                 is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
                 is_o.fw = 1'd1;
             end

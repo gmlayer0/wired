@@ -14,6 +14,7 @@ function reg_info_t get_register_info(
   ret.r_reg[0][5] = di.fr0;
   ret.r_reg[1][5] = di.fr1;
   if(di.fr2) ret.r_reg[2] = {1'b1, inst[19:15]};
+  if(di.fpu_op == fpnew_pkg::ADD) ret.r_reg[2] = {1'b1, inst[9:5]};
   ret.w_reg[5] = di.fw;
   case(r0_sel)
     default :
@@ -323,6 +324,7 @@ module wired_frontend #(
                  .flush_i(g_flush),
                  .valid_i(b_valid),
                  .ready_o(b_ready),
+                 .slot0_i({b_decode.p[1].di.fpu_inst || b_decode.p[1].di.fbranch_inst, b_decode.p[0].di.fpu_inst || b_decode.p[0].di.fbranch_inst}),
                  .nz_i({(b_decode.p[1].ri.w_reg!='0),(b_decode.p[0].ri.w_reg!='0)}),
                  .bank_i({b_decode.p[1].ri.w_reg[0],b_decode.p[0].ri.w_reg[0]}),
                  .pkg_i(b_decode.p),
