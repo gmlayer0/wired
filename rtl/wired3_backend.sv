@@ -12,6 +12,7 @@ function fpnew_pkg::roundmode_e get_rm (input logic[1:0] rm, input logic[3:0] rn
       2'b11:   ret = fpnew_pkg::RDN; // RM
     endcase
   end
+  return ret;
 endfunction
 
 // Fuction module for Wired project
