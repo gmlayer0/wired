@@ -1,13 +1,17 @@
 `include "wired0_defines.svh"
 
-function fpnew_pkg::roundmode_e get_rm (input logic[1:0] rm);
+function fpnew_pkg::roundmode_e get_rm (input logic[1:0] rm, input logic[3:0] rnd_mode);
   fpnew_pkg::roundmode_e ret;
-  case(rm)
-  default: ret = fpnew_pkg::RNE; // RNE
-  2'b01:   ret = fpnew_pkg::RTZ; // RZ
-  2'b10:   ret = fpnew_pkg::RUP; // RP
-  2'b11:   ret = fpnew_pkg::RMM; // RM
-  endcase
+  if(rnd_mode[3]) begin
+    ret = rnd_mode[2:0];
+  end else begin
+    case(rm)
+      default: ret = fpnew_pkg::RNE; // RNE
+      2'b01:   ret = fpnew_pkg::RTZ; // RZ
+      2'b10:   ret = fpnew_pkg::RUP; // RP
+      2'b11:   ret = fpnew_pkg::RDN; // RM
+    endcase
+  end
 endfunction
 
 // Fuction module for Wired project
@@ -580,7 +584,7 @@ module wired_backend #(
     .clk_i(clk),
     .rst_ni(rst_n),
     .operands_i({ex_fpu_req.r2, ex_fpu_req.r1, ex_fpu_req.r0}),
-    .rnd_mode_i(ex_fpu_req.op == fpnew_pkg::SGNJ ? fpnew_pkg::RNE : get_rm(csr_o.fcsr[9:8])),
+    .rnd_mode_i(get_rm(csr_o.fcsr[9:8], ex_fpu_req.rnd_mode)),
     .op_i(ex_fpu_req.op),
     .op_mod_i(ex_fpu_req.mode),
     .src_fmt_i(fpnew_pkg::FP32),

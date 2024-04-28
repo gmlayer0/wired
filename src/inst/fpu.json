@@ -12,6 +12,11 @@
             "stage": "fpu",
             "default_value": 0
         },
+        "rnd_mode": {
+            "length": 4,
+            "stage": "fpu",
+            "default_value": 0
+        },
         "fpd_inst": {
             "length": 1,
             "stage": "p",
@@ -37,7 +42,7 @@
             "stage": "rob",
             "default_value": 0
         },
-        "gr2fcc": {
+        "upd_fcc": {
             "length": 1,
             "stage": "fcc",
             "default_value": 0
@@ -66,134 +71,198 @@
     "inst": {
         "fadd.s": {
             "opcode": "00000001000000001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::ADD",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fsub.s": {
             "opcode": "00000001000000101",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::ADD",
+            "fpu_mode": 1,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fmul.s": {
             "opcode": "00000001000001001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::MUL",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fdiv.s": {
             "opcode": "00000001000001101",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::DIV",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fmadd.s": {
             "opcode": "000010000001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::FMADD",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "fr2": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fmsub.s": {
             "opcode": "000010000101",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::FMADD",
+            "fpu_mode": 1,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "fr2": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fnmadd.s": {
             "opcode": "000010001001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::FNMSUB",
+            "fpu_mode": 1,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "fr2": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fnmsub.s": {
             "opcode": "000010001101",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::FNMSUB",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "fr2": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fmax.s": {
             "opcode": "00000001000010001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::MINMAX",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RTZ}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fmin.s": {
             "opcode": "00000001000010101",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::MINMAX",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RNE}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fabs.s": {
             "opcode": "0000000100010100000001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::SGNJ",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RDN}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RJ",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fneg.s": {
             "opcode": "0000000100010100000101",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::SGNJ",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RTZ}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RJ",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fsqrt.s": {
             "opcode": "0000000100010100010001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::SQRT",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "frecip.s": {
             "opcode": "0000000100010100010101",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::DIV",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_IMM",
             "imm_type": "`_IMM_F1",
             "reg_type_r1": "`_REG_RJ",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fcopysign.s": {
             "opcode": "00000001000100101",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::SGNJ",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RNE}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
@@ -204,6 +273,7 @@
         },
         "fclass.s": {
             "opcode": "0000000100010100001101",
+            "fbranch_inst": 1,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
@@ -223,45 +293,73 @@
         },
         "ffint.s.w": {
             "opcode": "0000000100011101000100",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::I2F",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "ftint.w.s": {
             "opcode": "0000000100011011000001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::F2I",
+            "fpu_mode": 0,
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "ftintrm.w.s": {
             "opcode": "0000000100011010000001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::F2I",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RDN}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "ftintrp.w.s": {
             "opcode": "0000000100011010010001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::F2I",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RUP}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "ftintrz.w.s": {
             "opcode": "0000000100011010100001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::F2I",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RTZ}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "ftintrne.w.s": {
             "opcode": "0000000100011010110001",
+            "fpu_inst": 1,
+            "fpu_op": "fpnew_pkg::F2I",
+            "fpu_mode": 0,
+            "rnd_mode": "{1'd1,fpnew_pkg::RNE}",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fmov.s": {
             "opcode": "0000000100010100100101",
@@ -328,21 +426,31 @@
         },
         "movfr2cf": {
             "opcode": "0000000100010100110100",
+            "fbranch_inst": 1,
             "reg_type_r0": "`_REG_RJ",
-            "fr0": 1
+            "fr0": 1,
+            "upd_fcc": 1,
+            "fpd_inst": 1
         },
         "movcf2fr": {
             "opcode": "0000000100010100110101",
+            "fbranch_inst": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "movgr2cf": {
             "opcode": "0000000100010100110110",
-            "reg_type_r0": "`_REG_RJ"
+            "fbranch_inst": 1,
+            "reg_type_r0": "`_REG_RJ",
+            "upd_fcc": 1,
+            "fpd_inst": 1
         },
         "movcf2gr": {
             "opcode": "0000000100010100110111",
-            "reg_type_w": "`_REG_W_RD"
+            "fbranch_inst": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fpd_inst": 1
         },
         "bcnez": {
             "opcode": "010010",

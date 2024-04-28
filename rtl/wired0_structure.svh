@@ -343,7 +343,8 @@ typedef struct packed {
   rob_rid_t   wid;     // 写回地址
 } iq_mdu_resp_t;
 typedef struct packed {
-  logic[3:0]  op;
+  logic[3:0]       op;
+  logic[3:0] rnd_mode;
   logic     mode;
   logic[31:0] r0;
   logic[31:0] r1;

@@ -181,6 +181,7 @@ module wired_fooo_iq #(
     // 连接到 MDU
     assign ex_valid_o   = excute_valid_q;
     assign ex_req_o.op  = sel_static_q.di.fpu_op;
+    assign ex_req_o.op  = sel_static_q.di.rnd_mode;
     assign ex_req_o.mode  = sel_static_q.di.fpu_mode;
     assign ex_req_o.r0  = sel_data_q[0];
     assign ex_req_o.r1  = sel_data_q[1];
