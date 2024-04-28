@@ -20,7 +20,7 @@ module wired_fcc (
     // 返回端口
     output logic   ex_resp_valid_o,
     input  logic   ex_resp_ready_i,
-    output iq_fcc_resp_t ex_resp_o,
+    output iq_fcc_resp_t ex_resp_o
 );
 
     // 这个模块只需要处理几类指令：
@@ -102,7 +102,6 @@ module wired_fcc (
         ex_resp_o = '0;
         ex_resp_o.need_jump = (req_q.beqz && !fcc_q) || (req_q.bnez && fcc_q);
         ex_resp_o.target_addr = req_q.pc + {{9{req_q.addr_imm[22]}}, req_q.addr_imm[22:0]};
-        ex_resp_o.fp_excp = req_q.fcmp && ();
         if(req_q.fsel) begin
             ex_resp_o.result = fcc_q ? opb : opa;
             ex_resp_o.fp_excp.NV = any_signal;

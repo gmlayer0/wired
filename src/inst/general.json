@@ -2,8 +2,6 @@
     "node_relations": [
         ["fcc", "c_fcc_common"],
         ["c", "c_fcc_common"],
-        ["fpu", "c_fpu_common"],
-        ["c", "c_fpu_common"],
         ["alu", "c_alu_common"],
         ["c", "c_alu_common"],
         ["mdu", "alu_mdu_common"],

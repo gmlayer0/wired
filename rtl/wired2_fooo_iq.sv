@@ -7,7 +7,7 @@
 // 注意，此模块乱序发出浮点指令，cvfpu 也是乱序执行，先执行结束的先返回，尽可能的挖掘指令潜在的并行性。
 
 module wired_fooo_iq #(
-    parameter int IQ_SIZE = `_WIRED_PARAM_MDU_IQ_DEPTH // 不用很大，4 项即可
+    parameter int IQ_SIZE = 4 // 不用很大，4 项即可
 )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -85,7 +85,7 @@ module wired_fooo_iq #(
     // 这样保证在 ALU 中的两条指令起步走，转发的两个源头也是齐步走的
     wire excute_valid = |fire_sel_oh; // 标记 Excute 级的两个执行槽是否有效
     logic [2:0] free_cnt_q;
-    wire  [2:0] free_cnt = free_cnt_q - p_valid_i[0] - p_valid_i[1] + (excute_ready&excute_valid);
+    wire  [2:0] free_cnt = free_cnt_q - p_valid_i + (excute_ready & excute_valid);
     always_ff @(posedge clk) begin
         if(!rst_n || flush_i) begin
             free_cnt_q <= IQ_SIZE;
@@ -179,10 +179,10 @@ module wired_fooo_iq #(
         end
     end
     // 连接到 MDU
-    assign ex_valid_o   = excute_valid_q;
-    assign ex_req_o.op  = sel_static_q.di.fpu_op;
-    assign ex_req_o.op  = sel_static_q.di.rnd_mode;
-    assign ex_req_o.mode  = sel_static_q.di.fpu_mode;
+    assign ex_valid_o        = excute_valid_q;
+    assign ex_req_o.op       = sel_static_q.di.fpu_op;
+    assign ex_req_o.rnd_mode = sel_static_q.di.rnd_mode;
+    assign ex_req_o.mode     = sel_static_q.di.fpu_mode;
     assign ex_req_o.r0  = sel_data_q[0];
     assign ex_req_o.r1  = sel_data_q[1];
     assign ex_req_o.r2  = sel_data_q[2];

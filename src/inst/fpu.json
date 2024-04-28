@@ -44,7 +44,7 @@
         },
         "upd_fcc": {
             "length": 1,
-            "stage": "fcc",
+            "stage": "c_fcc_common",
             "default_value": 0
         },
         "fsel": {
@@ -453,8 +453,9 @@
             "fpd_inst": 1
         },
         "bcnez": {
-            "opcode": "010010",
+            "opcode": "010010xxxxxxxxxxxxxxxx01",
             "fbranch_inst": 1,
+            "bcnez": 1,
             "cmp_type": "`_CMP_E",
             "target_type": "`_TARGET_REL",
             "jump_inst": 1,
@@ -463,8 +464,9 @@
             "slot0": 1
         },
         "bceqz": {
-            "opcode": "010010",
+            "opcode": "010010xxxxxxxxxxxxxxxx00",
             "fbranch_inst": 1,
+            "bceqz": 1,
             "cmp_type": "`_CMP_E",
             "target_type": "`_TARGET_REL",
             "jump_inst": 1,

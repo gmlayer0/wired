@@ -660,7 +660,7 @@ module wired_commit #(
                         endcase
                     end
                     if(h_entry_q[0].di.gr2fcsr) begin // also do refetch
-                        case(op_code[1:0])
+                        case(h_entry_q[0].op_code[1:0])
                         2'b00: begin csr.fcsr[4:0] = h_entry_q[0].wdata[4:0]; csr.fcsr[9:8] = h_entry_q[0].wdata[9:8]; csr.fcsr[20:16] = h_entry_q[0].wdata[20:16]; csr.fcsr[28:24] = h_entry_q[0].wdata[28:24]; end
                         2'b01: begin csr.fcsr[4:0] = h_entry_q[0].wdata[4:0]; end
                         2'b11: begin csr.fcsr[9:8] = h_entry_q[0].wdata[9:8]; end
@@ -673,7 +673,7 @@ module wired_commit #(
                         l_data[0] = h_csr_rdata_q; // 强制刷新数据
                     end
                     // 及时更新 fcc
-                    if(h_entry_q[0].di.fcmp) begin
+                    if(h_entry_q[0].di.fcmp || h_entry_q[0].di.upd_fcc) begin
                         csr.fcc = h_entry_q[0].fcc;
                     end
                     // 及时更新 fcsr 中的统计信息

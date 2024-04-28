@@ -4,6 +4,7 @@
 `define _VERILATOR
 // `define _ASIC
 
+`include "fpnew_pkg.svh"
 `include "wired0_params.svh"
 `include "wired0_decoder.svh"
 `include "wired0_macros.svh"

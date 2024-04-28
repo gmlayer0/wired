@@ -2,7 +2,10 @@
 
 // Fuction module for Wired project
 // FPU inorder issue queue
-module wired_finorder_iq (
+module wired_finorder_iq #(
+    parameter int IQ_SIZE = 4, // 不用很大，4 项即可
+    parameter int WAKEUP_SRC_CNT = 1
+)(
     `_WIRED_GENERAL_DEFINE,
 
     // 连接到 DISPATCH(P) 级别的端口
@@ -11,7 +14,7 @@ module wired_finorder_iq (
     input  logic                  p_valid_i,
     output logic                  p_ready_o, // 提示 alu_iq 非满，可以接受此两条指令
 
-    // 连接到 CDB ARBITER 的端口，做仲裁(调度为固定优先级别 ALU > LSU > MDU)
+    // 连接到 CDB ARBITER 的端口，做仲裁(调度为固定优先级别 ALU > LSU > MDU > FCC > FPU)
     // 因此来自 ALU 的两条指令几乎永远可以同时提交到 CDB
     // 但需要考虑 ROB 的 BANK CONFLICT 问题。
     output pipeline_cdb_t cdb_o,
@@ -31,7 +34,7 @@ module wired_finorder_iq (
 
     input  logic         ex_valid_i,
     output logic         ex_ready_o,
-    input  iq_fcc_resp_t ex_resp_i,
+    input  iq_fcc_resp_t ex_resp_i
 
     // 以下为可选端口
     ,input  logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i
@@ -99,11 +102,9 @@ module wired_finorder_iq (
     iq_static_t [IQ_SIZE-1:0] iq_static;
     word_t [1:0] s_data;
     iq_static_t  s_static;
-    `ifdef 
         logic [IQ_SIZE-1:0][1:0][WAKEUP_SRC_CNT-1:0] wkup_src; // IQ_INDEX REG_INDEX STACK_IDX SRC_INDEX
         logic [1:0][WAKEUP_SRC_CNT-1:0] s_wkup_src;
         assign s_wkup_src = wkup_src[iq_tail_q];
-    `endif
     assign s_data = iq_data[iq_tail_q];
     assign s_static = iq_static[iq_tail_q];
     // 解包信息
@@ -187,58 +188,20 @@ module wired_finorder_iq (
                 .data_o(real_data[i])
             );
     end
-    iq_lsu_req_t s_lsu_req;
-    always_comb begin
-        s_lsu_req = '0;
-        s_lsu_req.wid = s_iq_q.wreg;
-        s_lsu_req.vaddr = {{4{s_iq_q.addr_imm[27]}},
-                              s_iq_q.addr_imm} + real_data[1];
-        s_lsu_req.msize = '0;
-        case (s_iq_q.di.mem_type[1:0])
-        2'd1: s_lsu_req.msize = 2'd2; // Word
-        2'd2: s_lsu_req.msize = 2'd1; // Half
-        default/*2'd3*/: s_lsu_req.msize = 2'd0; // Byte
-        endcase
-        s_lsu_req.msigned = !s_iq_q.di.mem_type[2];
-        s_lsu_req.strb  = '0;
-        if(s_iq_q.di.mem_write) begin
-            case (s_iq_q.di.mem_type[1:0])
-            2'd1: s_lsu_req.strb = 4'b1111; // Word
-            2'd2: s_lsu_req.strb = 4'b0011 << {s_lsu_req.vaddr[1],1'd0}; // Half
-            default/*2'd3*/: s_lsu_req.strb = 4'b0001 << s_lsu_req.vaddr[1:0]; // Byte
-            endcase
-        end
-        
-        s_lsu_req.cacop = s_iq_q.di.mem_write ? WR_ALLOC :
-                          s_iq_q.di.dbarrier ? NOT_VALID_INV_PARM : RD_ALLOC;
-        if(s_iq_q.di.mem_cacop) begin
-            if(s_iq_q.op_code[2:0] == 3'd1) begin// dcacheop
-                case(s_iq_q.op_code[4:3])
-                2'd0: begin
-                    s_lsu_req.cacop = IDX_INIT;
-                end
-                2'd1: begin
-                    s_lsu_req.cacop = IDX_INV;
-                end
-                default /*2'd2*/: begin
-                    s_lsu_req.cacop = HIT_INV;
-                end
-                endcase
-            end else begin
-                s_lsu_req.cacop = NOT_VALID_INV_PARM;
-            end
-        end
-        s_lsu_req.dbar  = s_iq_q.di.dbarrier;
-        s_lsu_req.llsc  = s_iq_q.di.llsc_inst;
-        case (s_iq_q.di.mem_type[1:0])
-        default/*2'd1*/: s_lsu_req.wdata = real_data[0];
-        2'd2: s_lsu_req.wdata = (real_data[0]) << {s_lsu_req.vaddr[1], 4'd0};   // Half
-        2'd3: s_lsu_req.wdata = (real_data[0]) << {s_lsu_req.vaddr[1:0], 3'd0}; // Byte
-        endcase
-    end
-    assign lsu_req_valid_o = s_top_valid_q;
-    assign s_top_ready = lsu_req_ready_i;
-    assign lsu_req_o = s_lsu_req;
+    assign ex_valid_o        = s_top_valid_q;
+    assign s_top_ready       = ex_ready_i;
+    assign ex_req_o.cond     = s_iq_q.addr_imm[11:7];
+    assign ex_req_o.pc       = s_iq_q.pc;
+    assign ex_req_o.addr_imm = s_iq_q.addr_imm;
+    assign ex_req_o.upd_fcc  = s_iq_q.di.upd_fcc;
+    assign ex_req_o.fcmp     = s_iq_q.di.fcmp;
+    assign ex_req_o.fsel     = s_iq_q.di.fsel;
+    assign ex_req_o.fclass   = s_iq_q.di.fclass;
+    assign ex_req_o.beqz     = s_iq_q.di.bceqz;
+    assign ex_req_o.bnez     = s_iq_q.di.bcnez;
+    assign ex_req_o.r0       = real_data[0];
+    assign ex_req_o.r1       = real_data[1];
+    assign ex_req_o.wid      = s_iq_q.wreg;
 
     // 连接 CDB
     pipeline_cdb_t fifo_cdb;
@@ -260,8 +223,8 @@ module wired_finorder_iq (
     ) wired_commit_fifo (
         .clk(clk),
         .rst_n(rst_n && !flush_i),
-        .inport_valid_i(lsu_resp_valid_i),
-        .inport_ready_o(lsu_resp_ready_o),
+        .inport_valid_i(ex_valid_i),
+        .inport_ready_o(ex_ready_o),
         .inport_payload_i(fifo_cdb),
         .outport_valid_o(cdb_raw_valid),
         .outport_ready_i(cdb_ready_i),

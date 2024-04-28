@@ -24,7 +24,8 @@
 `define _IMM_S12 (3'd1)
 `define _IMM_S20 (3'd2)
 `define _IMM_S16 (3'd3)
-`define _IMM_S21 (3'd4)
+`define _IMM_F1 (3'd4)
+`define _IMM_S21 (3'd5)
 `define _ADDR_IMM_S26 (2'd0)
 `define _ADDR_IMM_S12 (2'd1)
 `define _ADDR_IMM_S14 (2'd2)
@@ -87,12 +88,24 @@ typedef logic [0 : 0] tlbfill_en_t;
 typedef logic [0 : 0] invtlb_en_t;
 typedef logic [3 : 0] fpu_op_t;
 typedef logic [0 : 0] fpu_mode_t;
+typedef logic [3 : 0] rnd_mode_t;
+typedef logic [0 : 0] fpd_inst_t;
+typedef logic [0 : 0] fcsr_upd_t;
+typedef logic [0 : 0] fcmp_t;
+typedef logic [0 : 0] fcsr2gr_t;
+typedef logic [0 : 0] gr2fcsr_t;
+typedef logic [0 : 0] upd_fcc_t;
+typedef logic [0 : 0] fsel_t;
+typedef logic [0 : 0] fclass_t;
+typedef logic [0 : 0] bceqz_t;
+typedef logic [0 : 0] bcnez_t;
 typedef logic [31 : 0] inst_t;
 typedef logic [0 : 0] alu_inst_t;
 typedef logic [0 : 0] mul_inst_t;
 typedef logic [0 : 0] div_inst_t;
 typedef logic [0 : 0] lsu_inst_t;
 typedef logic [0 : 0] fpu_inst_t;
+typedef logic [0 : 0] fbranch_inst_t;
 typedef logic [2 : 0] reg_type_r0_t;
 typedef logic [2 : 0] reg_type_r1_t;
 typedef logic [1 : 0] reg_type_w_t;
@@ -103,6 +116,7 @@ typedef logic [0 : 0] refetch_t;
 typedef logic [0 : 0] need_fa_t;
 typedef logic [0 : 0] fr0_t;
 typedef logic [0 : 0] fr1_t;
+typedef logic [0 : 0] fr2_t;
 typedef logic [0 : 0] fw_t;
 typedef logic [1 : 0] alu_grand_op_t;
 typedef logic [1 : 0] alu_op_t;
@@ -115,6 +129,11 @@ typedef logic [0 : 0] mem_read_t;
 typedef logic [0 : 0] mem_cacop_t;
 typedef logic [0 : 0] llsc_inst_t;
 typedef logic [0 : 0] dbarrier_t;
+
+typedef struct packed {
+    fcmp_t fcmp;
+    upd_fcc_t upd_fcc;
+} decode_info_c_fcc_common_t;
 
 typedef struct packed {
     cmp_type_t cmp_type;
@@ -140,6 +159,7 @@ typedef struct packed {
     cmp_type_t cmp_type;
     csr_op_en_t csr_op_en;
     dbarrier_t dbarrier;
+    fcmp_t fcmp;
     inst_t inst;
     invtlb_en_t invtlb_en;
     jump_inst_t jump_inst;
@@ -150,12 +170,23 @@ typedef struct packed {
     mem_write_t mem_write;
     refetch_t refetch;
     target_type_t target_type;
+    upd_fcc_t upd_fcc;
     wait_inst_t wait_inst;
 } decode_info_c_t;
 
 typedef struct packed {
+    bceqz_t bceqz;
+    bcnez_t bcnez;
+    fclass_t fclass;
+    fcmp_t fcmp;
+    fsel_t fsel;
+    upd_fcc_t upd_fcc;
+} decode_info_fcc_t;
+
+typedef struct packed {
     fpu_mode_t fpu_mode;
     fpu_op_t fpu_op;
+    rnd_mode_t rnd_mode;
 } decode_info_fpu_t;
 
 typedef struct packed {
@@ -187,6 +218,10 @@ typedef struct packed {
     csr_rdcnt_t csr_rdcnt;
     dbarrier_t dbarrier;
     ertn_inst_t ertn_inst;
+    fcmp_t fcmp;
+    fcsr2gr_t fcsr2gr;
+    fcsr_upd_t fcsr_upd;
+    gr2fcsr_t gr2fcsr;
     inst_t inst;
     invtlb_en_t invtlb_en;
     jump_inst_t jump_inst;
@@ -203,6 +238,7 @@ typedef struct packed {
     tlbrd_en_t tlbrd_en;
     tlbsrch_en_t tlbsrch_en;
     tlbwr_en_t tlbwr_en;
+    upd_fcc_t upd_fcc;
     wait_inst_t wait_inst;
 } decode_info_rob_t;
 
@@ -210,6 +246,8 @@ typedef struct packed {
     alu_grand_op_t alu_grand_op;
     alu_inst_t alu_inst;
     alu_op_t alu_op;
+    bceqz_t bceqz;
+    bcnez_t bcnez;
     break_inst_t break_inst;
     cmp_type_t cmp_type;
     csr_op_en_t csr_op_en;
@@ -217,9 +255,17 @@ typedef struct packed {
     dbarrier_t dbarrier;
     div_inst_t div_inst;
     ertn_inst_t ertn_inst;
+    fbranch_inst_t fbranch_inst;
+    fclass_t fclass;
+    fcmp_t fcmp;
+    fcsr2gr_t fcsr2gr;
+    fcsr_upd_t fcsr_upd;
+    fpd_inst_t fpd_inst;
     fpu_inst_t fpu_inst;
     fpu_mode_t fpu_mode;
     fpu_op_t fpu_op;
+    fsel_t fsel;
+    gr2fcsr_t gr2fcsr;
     inst_t inst;
     invtlb_en_t invtlb_en;
     jump_inst_t jump_inst;
@@ -233,6 +279,7 @@ typedef struct packed {
     need_fa_t need_fa;
     priv_inst_t priv_inst;
     refetch_t refetch;
+    rnd_mode_t rnd_mode;
     slot0_t slot0;
     syscall_inst_t syscall_inst;
     target_type_t target_type;
@@ -240,6 +287,7 @@ typedef struct packed {
     tlbrd_en_t tlbrd_en;
     tlbsrch_en_t tlbsrch_en;
     tlbwr_en_t tlbwr_en;
+    upd_fcc_t upd_fcc;
     wait_inst_t wait_inst;
 } decode_info_p_t;
 
@@ -248,6 +296,8 @@ typedef struct packed {
     alu_grand_op_t alu_grand_op;
     alu_inst_t alu_inst;
     alu_op_t alu_op;
+    bceqz_t bceqz;
+    bcnez_t bcnez;
     break_inst_t break_inst;
     cmp_type_t cmp_type;
     csr_op_en_t csr_op_en;
@@ -255,12 +305,21 @@ typedef struct packed {
     dbarrier_t dbarrier;
     div_inst_t div_inst;
     ertn_inst_t ertn_inst;
+    fbranch_inst_t fbranch_inst;
+    fclass_t fclass;
+    fcmp_t fcmp;
+    fcsr2gr_t fcsr2gr;
+    fcsr_upd_t fcsr_upd;
+    fpd_inst_t fpd_inst;
     fpu_inst_t fpu_inst;
     fpu_mode_t fpu_mode;
     fpu_op_t fpu_op;
     fr0_t fr0;
     fr1_t fr1;
+    fr2_t fr2;
+    fsel_t fsel;
     fw_t fw;
+    gr2fcsr_t gr2fcsr;
     imm_type_t imm_type;
     inst_t inst;
     invtlb_en_t invtlb_en;
@@ -278,6 +337,7 @@ typedef struct packed {
     reg_type_r0_t reg_type_r0;
     reg_type_r1_t reg_type_r1;
     reg_type_w_t reg_type_w;
+    rnd_mode_t rnd_mode;
     slot0_t slot0;
     syscall_inst_t syscall_inst;
     target_type_t target_type;
@@ -285,8 +345,23 @@ typedef struct packed {
     tlbrd_en_t tlbrd_en;
     tlbsrch_en_t tlbsrch_en;
     tlbwr_en_t tlbwr_en;
+    upd_fcc_t upd_fcc;
     wait_inst_t wait_inst;
 } decode_info_d_t;
+
+function automatic decode_info_c_fcc_common_t get_c_fcc_common_from_fcc(input decode_info_fcc_t fcc);
+    decode_info_c_fcc_common_t ret;
+    ret.fcmp = fcc.fcmp;
+    ret.upd_fcc = fcc.upd_fcc;
+    return ret;
+endfunction
+
+function automatic decode_info_c_fcc_common_t get_c_fcc_common_from_c(input decode_info_c_t c);
+    decode_info_c_fcc_common_t ret;
+    ret.fcmp = c.fcmp;
+    ret.upd_fcc = c.upd_fcc;
+    return ret;
+endfunction
 
 function automatic decode_info_c_alu_common_t get_c_alu_common_from_alu(input decode_info_alu_t alu);
     decode_info_c_alu_common_t ret;
@@ -345,6 +420,7 @@ function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
     ret.cmp_type = rob.cmp_type;
     ret.csr_op_en = rob.csr_op_en;
     ret.dbarrier = rob.dbarrier;
+    ret.fcmp = rob.fcmp;
     ret.inst = rob.inst;
     ret.invtlb_en = rob.invtlb_en;
     ret.jump_inst = rob.jump_inst;
@@ -355,7 +431,19 @@ function automatic decode_info_c_t get_c_from_rob(input decode_info_rob_t rob);
     ret.mem_write = rob.mem_write;
     ret.refetch = rob.refetch;
     ret.target_type = rob.target_type;
+    ret.upd_fcc = rob.upd_fcc;
     ret.wait_inst = rob.wait_inst;
+    return ret;
+endfunction
+
+function automatic decode_info_fcc_t get_fcc_from_p(input decode_info_p_t p);
+    decode_info_fcc_t ret;
+    ret.bceqz = p.bceqz;
+    ret.bcnez = p.bcnez;
+    ret.fclass = p.fclass;
+    ret.fcmp = p.fcmp;
+    ret.fsel = p.fsel;
+    ret.upd_fcc = p.upd_fcc;
     return ret;
 endfunction
 
@@ -363,6 +451,7 @@ function automatic decode_info_fpu_t get_fpu_from_p(input decode_info_p_t p);
     decode_info_fpu_t ret;
     ret.fpu_mode = p.fpu_mode;
     ret.fpu_op = p.fpu_op;
+    ret.rnd_mode = p.rnd_mode;
     return ret;
 endfunction
 
@@ -402,6 +491,10 @@ function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
     ret.csr_rdcnt = p.csr_rdcnt;
     ret.dbarrier = p.dbarrier;
     ret.ertn_inst = p.ertn_inst;
+    ret.fcmp = p.fcmp;
+    ret.fcsr2gr = p.fcsr2gr;
+    ret.fcsr_upd = p.fcsr_upd;
+    ret.gr2fcsr = p.gr2fcsr;
     ret.inst = p.inst;
     ret.invtlb_en = p.invtlb_en;
     ret.jump_inst = p.jump_inst;
@@ -418,6 +511,7 @@ function automatic decode_info_rob_t get_rob_from_p(input decode_info_p_t p);
     ret.tlbrd_en = p.tlbrd_en;
     ret.tlbsrch_en = p.tlbsrch_en;
     ret.tlbwr_en = p.tlbwr_en;
+    ret.upd_fcc = p.upd_fcc;
     ret.wait_inst = p.wait_inst;
     return ret;
 endfunction
@@ -427,6 +521,8 @@ function automatic decode_info_p_t get_p_from_d(input decode_info_d_t d);
     ret.alu_grand_op = d.alu_grand_op;
     ret.alu_inst = d.alu_inst;
     ret.alu_op = d.alu_op;
+    ret.bceqz = d.bceqz;
+    ret.bcnez = d.bcnez;
     ret.break_inst = d.break_inst;
     ret.cmp_type = d.cmp_type;
     ret.csr_op_en = d.csr_op_en;
@@ -434,9 +530,17 @@ function automatic decode_info_p_t get_p_from_d(input decode_info_d_t d);
     ret.dbarrier = d.dbarrier;
     ret.div_inst = d.div_inst;
     ret.ertn_inst = d.ertn_inst;
+    ret.fbranch_inst = d.fbranch_inst;
+    ret.fclass = d.fclass;
+    ret.fcmp = d.fcmp;
+    ret.fcsr2gr = d.fcsr2gr;
+    ret.fcsr_upd = d.fcsr_upd;
+    ret.fpd_inst = d.fpd_inst;
     ret.fpu_inst = d.fpu_inst;
     ret.fpu_mode = d.fpu_mode;
     ret.fpu_op = d.fpu_op;
+    ret.fsel = d.fsel;
+    ret.gr2fcsr = d.gr2fcsr;
     ret.inst = d.inst;
     ret.invtlb_en = d.invtlb_en;
     ret.jump_inst = d.jump_inst;
@@ -450,6 +554,7 @@ function automatic decode_info_p_t get_p_from_d(input decode_info_d_t d);
     ret.need_fa = d.need_fa;
     ret.priv_inst = d.priv_inst;
     ret.refetch = d.refetch;
+    ret.rnd_mode = d.rnd_mode;
     ret.slot0 = d.slot0;
     ret.syscall_inst = d.syscall_inst;
     ret.target_type = d.target_type;
@@ -457,6 +562,7 @@ function automatic decode_info_p_t get_p_from_d(input decode_info_d_t d);
     ret.tlbrd_en = d.tlbrd_en;
     ret.tlbsrch_en = d.tlbsrch_en;
     ret.tlbwr_en = d.tlbwr_en;
+    ret.upd_fcc = d.upd_fcc;
     ret.wait_inst = d.wait_inst;
     return ret;
 endfunction
@@ -554,7 +660,6 @@ function automatic string wired_disassembler(input logic [31:0] inst_i);
         32'b0000000100010100001101??????????: ret = {"fclass.s ", $sformatf(" ")};
         32'b0000000100010100010001??????????: ret = {"fsqrt.s ", $sformatf(" ")};
         32'b0000000100010100010101??????????: ret = {"frecip.s ", $sformatf(" ")};
-        32'b0000000100010100011001??????????: ret = {"frsqrt.s ", $sformatf(" ")};
         32'b0000000100010100100101??????????: ret = {"fmov.s ", $sformatf(" ")};
         32'b0000000100010100101001??????????: ret = {"movgr2fr.w ", $sformatf(" ")};
         32'b0000000100010100101101??????????: ret = {"movfr2gr.s ", $sformatf(" ")};
@@ -575,6 +680,8 @@ function automatic string wired_disassembler(input logic [31:0] inst_i);
         32'b0000011001001000001100??????????: ret = {"tlbwr ", $sformatf(" ")};
         32'b0000011001001000001101??????????: ret = {"tlbfill ", $sformatf(" ")};
         32'b0000011001001000001110??????????: ret = {"ertn ", $sformatf(" ")};
+        32'b010010????????????????00????????: ret = {"bceqz ", $sformatf("%07x",I26<<2)};
+        32'b010010????????????????01????????: ret = {"bcnez ", $sformatf("%07x",I26<<2)};
     endcase
     return ret;
 endfunction

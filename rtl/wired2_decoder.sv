@@ -22,12 +22,24 @@ module wired_decoder(
         is_o.invtlb_en = 1'd0;
         is_o.fpu_op = 4'd0;
         is_o.fpu_mode = 1'd0;
+        is_o.rnd_mode = 4'd0;
+        is_o.fpd_inst = 1'd0;
+        is_o.fcsr_upd = 1'd0;
+        is_o.fcmp = 1'd0;
+        is_o.fcsr2gr = 1'd0;
+        is_o.gr2fcsr = 1'd0;
+        is_o.upd_fcc = 1'd0;
+        is_o.fsel = 1'd0;
+        is_o.fclass = 1'd0;
+        is_o.bceqz = 1'd0;
+        is_o.bcnez = 1'd0;
         is_o.inst = inst_i;
         is_o.alu_inst = 1'd0;
         is_o.mul_inst = 1'd0;
         is_o.div_inst = 1'd0;
         is_o.lsu_inst = 1'd0;
         is_o.fpu_inst = 1'd0;
+        is_o.fbranch_inst = 1'd0;
         is_o.reg_type_r0 = `_REG_ZERO;
         is_o.reg_type_r1 = `_REG_ZERO;
         is_o.reg_type_w = `_REG_W_NONE;
@@ -38,6 +50,7 @@ module wired_decoder(
         is_o.need_fa = 1'd0;
         is_o.fr0 = 1'd0;
         is_o.fr1 = 1'd0;
+        is_o.fr2 = 1'd0;
         is_o.fw = 1'd0;
         is_o.alu_grand_op = 2'd0;
         is_o.alu_op = 2'd0;
@@ -402,21 +415,81 @@ module wired_decoder(
             end
             32'b000010000001????????????????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::FMADD;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fr1 = 1'd1;
+                is_o.fr2 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b000010000101????????????????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::FMADD;
+                is_o.fpu_mode = 1'd1;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fr1 = 1'd1;
+                is_o.fr2 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b000010001001????????????????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::FNMSUB;
+                is_o.fpu_mode = 1'd1;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fr1 = 1'd1;
+                is_o.fr2 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b000010001101????????????????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::FNMSUB;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fr1 = 1'd1;
+                is_o.fr2 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b000011000001????????????????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fcmp = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
+                is_o.fr0 = 1'd1;
+                is_o.fr1 = 1'd1;
             end
             32'b000011010000????????????????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fsel = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fr1 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b00000000000100000???????????????: begin
                 decode_err_o = 1'b0;
@@ -617,8 +690,12 @@ module wired_decoder(
             end
             32'b00000001000000001???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_RK;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::ADD;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
@@ -626,8 +703,12 @@ module wired_decoder(
             end
             32'b00000001000000101???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_RK;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::ADD;
+                is_o.fpu_mode = 1'd1;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
@@ -635,8 +716,12 @@ module wired_decoder(
             end
             32'b00000001000001001???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_RK;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::MUL;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
@@ -644,8 +729,12 @@ module wired_decoder(
             end
             32'b00000001000001101???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_RK;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::DIV;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
@@ -653,8 +742,13 @@ module wired_decoder(
             end
             32'b00000001000010001???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_RK;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::MINMAX;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RTZ};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
@@ -662,8 +756,13 @@ module wired_decoder(
             end
             32'b00000001000010101???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_RK;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::MINMAX;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RNE};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
@@ -671,8 +770,13 @@ module wired_decoder(
             end
             32'b00000001000100101???????????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_RK;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::SGNJ;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RNE};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
                 is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
@@ -727,96 +831,214 @@ module wired_decoder(
             end
             32'b0000000100010100000001??????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_ZERO;
+                is_o.fpu_op = fpnew_pkg::SGNJ;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RDN};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
                 is_o.reg_type_r1 = `_REG_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
                 is_o.fw = 1'd1;
             end
             32'b0000000100010100000101??????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_ZERO;
+                is_o.fpu_op = fpnew_pkg::SGNJ;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RTZ};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
                 is_o.reg_type_r1 = `_REG_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
                 is_o.fr1 = 1'd1;
                 is_o.fw = 1'd1;
             end
             32'b0000000100010100001101??????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_ZERO;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpd_inst = 1'd1;
+                is_o.fclass = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.fr1 = 1'd1;
+                is_o.fr0 = 1'd1;
                 is_o.fw = 1'd1;
             end
             32'b0000000100010100010001??????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_ZERO;
-                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::SQRT;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.fr1 = 1'd1;
+                is_o.fr0 = 1'd1;
                 is_o.fw = 1'd1;
             end
             32'b0000000100010100010101??????????: begin
                 decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.fpu_op = fpnew_pkg::DIV;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_IMM;
                 is_o.reg_type_r1 = `_REG_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
-                is_o.fr1 = 1'd1;
-                is_o.fw = 1'd1;
-            end
-            32'b0000000100010100011001??????????: begin
-                decode_err_o = 1'b0;
-                is_o.reg_type_r0 = `_REG_ZERO;
-                is_o.reg_type_r1 = `_REG_RJ;
-                is_o.reg_type_w = `_REG_W_RD;
+                is_o.imm_type = `_IMM_F1;
                 is_o.fr1 = 1'd1;
                 is_o.fw = 1'd1;
             end
             32'b0000000100010100100101??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fw = 1'd1;
+                is_o.alu_grand_op = `_ALU_GTYPE_BW;
+                is_o.alu_op = `_ALU_STYPE_OR;
             end
             32'b0000000100010100101001??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fw = 1'd1;
+                is_o.alu_grand_op = `_ALU_GTYPE_BW;
+                is_o.alu_op = `_ALU_STYPE_OR;
             end
             32'b0000000100010100101101??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.alu_grand_op = `_ALU_GTYPE_BW;
+                is_o.alu_op = `_ALU_STYPE_OR;
             end
             32'b0000000100010100110000??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.gr2fcsr = 1'd1;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
+                is_o.alu_grand_op = `_ALU_GTYPE_BW;
+                is_o.alu_op = `_ALU_STYPE_OR;
             end
             32'b0000000100010100110010??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fcsr2gr = 1'd1;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.slot0 = 1'd1;
+                is_o.refetch = 1'd1;
             end
             32'b0000000100010100110100??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.upd_fcc = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.fr0 = 1'd1;
             end
             32'b0000000100010100110101??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fw = 1'd1;
             end
             32'b0000000100010100110110??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.upd_fcc = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
             end
             32'b0000000100010100110111??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.reg_type_w = `_REG_W_RD;
             end
             32'b0000000100011010000001??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::F2I;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RDN};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b0000000100011010010001??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::F2I;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RUP};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b0000000100011010100001??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::F2I;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RTZ};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b0000000100011010110001??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::F2I;
+                is_o.fpu_mode = 1'd0;
+                is_o.rnd_mode = {1'd1,fpnew_pkg::RNE};
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b0000000100011011000001??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::F2I;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b0000000100011101000100??????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpu_op = fpnew_pkg::I2F;
+                is_o.fpu_mode = 1'd0;
+                is_o.fpd_inst = 1'd1;
+                is_o.fpu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.fr0 = 1'd1;
+                is_o.fw = 1'd1;
             end
             32'b0000011001001000001010??????????: begin
                 decode_err_o = 1'b0;
@@ -857,6 +1079,26 @@ module wired_decoder(
                 is_o.alu_inst = 1'd1;
                 is_o.slot0 = 1'd1;
                 is_o.refetch = 1'd1;
+            end
+            32'b010010????????????????00????????: begin
+                decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.bceqz = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.slot0 = 1'd1;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_E;
+                is_o.jump_inst = 1'd1;
+            end
+            32'b010010????????????????01????????: begin
+                decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.bcnez = 1'd1;
+                is_o.fbranch_inst = 1'd1;
+                is_o.slot0 = 1'd1;
+                is_o.target_type = `_TARGET_REL;
+                is_o.cmp_type = `_CMP_E;
+                is_o.jump_inst = 1'd1;
             end
         endcase
     end

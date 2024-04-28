@@ -542,8 +542,7 @@ module wired_backend #(
     .ex_resp_i(ex_fpu_resp)
   );
   wired_finorder_iq # (
-    .IQ_SIZE(4),
-    .WAKEUP_SRC_1CNT(1)
+    .IQ_SIZE(4)
   )
   wired_finorder_iq_inst (
     `_WIRED_GENERAL_CONN,
