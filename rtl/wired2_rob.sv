@@ -181,6 +181,8 @@ module wired_rob (
     assign cdb_entry_dynamic[i].uncached = cdb_i[i].uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
     // assign cdb_entry_dynamic[i].store_buffer = cdb_i[i].store_buffer;      // 提交一条 Store_buffer 中的写请求
     // assign cdb_entry_dynamic[i].store_conditional = cdb_i[i].store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
+    assign cdb_entry_dynamic[i].fp_excp = cdb_i[i].fp_excp;
+    assign cdb_entry_dynamic[i].fcc     = cdb_i[i].fcc;
   end
   wired_registers_file_banked # (
                                 .DATA_WIDTH($bits(rob_entry_dynamic_t)),

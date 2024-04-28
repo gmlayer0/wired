@@ -390,8 +390,21 @@ module wired_decoder(
                 decode_err_o = 1'b0;
                 is_o.alu_inst = 1'd1;
             end
+            32'b0010101100??????????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
+                is_o.lsu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_ZERO;
+                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.addr_imm_type = `_ADDR_IMM_S12;
+                is_o.fw = 1'd1;
+                is_o.mem_type = `_MEM_TYPE_WORD;
+                is_o.mem_read = 1'd1;
+            end
             32'b0010101101??????????????????????: begin
                 decode_err_o = 1'b0;
+                is_o.fpd_inst = 1'd1;
                 is_o.lsu_inst = 1'd1;
                 is_o.reg_type_r0 = `_REG_RD;
                 is_o.reg_type_r1 = `_REG_RJ;
@@ -401,17 +414,6 @@ module wired_decoder(
                 is_o.fr0 = 1'd1;
                 is_o.mem_type = `_MEM_TYPE_WORD;
                 is_o.mem_write = 1'd1;
-            end
-            32'b0010101110??????????????????????: begin
-                decode_err_o = 1'b0;
-                is_o.lsu_inst = 1'd1;
-                is_o.reg_type_r0 = `_REG_ZERO;
-                is_o.reg_type_r1 = `_REG_RJ;
-                is_o.reg_type_w = `_REG_W_RD;
-                is_o.addr_imm_type = `_ADDR_IMM_S12;
-                is_o.fw = 1'd1;
-                is_o.mem_type = `_MEM_TYPE_WORD;
-                is_o.mem_read = 1'd1;
             end
             32'b000010000001????????????????????: begin
                 decode_err_o = 1'b0;

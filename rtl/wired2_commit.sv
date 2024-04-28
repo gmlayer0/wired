@@ -1067,7 +1067,7 @@ end
                 // $display("%p", excute_cycle);
                 $display("succ: %d fail: %d, frac: %f", succ_cnt, fail_cnt, 100.0 * succ_cnt / (succ_cnt + fail_cnt));
                 $display("Flush count: %d", flush_cnt);
-                $finish();
+                // $finish();
             end
         end
         // 分支预测监视器

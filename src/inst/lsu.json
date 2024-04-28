@@ -192,7 +192,7 @@
             "das": "\"0\""
         },
         "fld.s": {
-            "opcode": "0010101110",
+            "opcode": "0010101100",
             "mem_type": "`_MEM_TYPE_WORD",
             "mem_read": 1,
             "reg_type_r0": "`_REG_ZERO",
@@ -201,6 +201,7 @@
             "reg_type_w": "`_REG_W_RD",
             "lsu_inst": 1,
             "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)",
+            "fpd_inst": 1,
             "fw": 1
         },
         "fst.s": {
@@ -213,6 +214,7 @@
             "reg_type_w": "`_REG_W_NONE",
             "lsu_inst": 1,
             "das": "\"$r%02x, $r%02x, %03x=%d\", rd, rj, I12, $signed(I12)",
+            "fpd_inst": 1,
             "slot0": 1,
             "fr0": 1
         }

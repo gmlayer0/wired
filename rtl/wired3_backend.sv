@@ -189,9 +189,9 @@ module wired_backend #(
         r_p_pkg[p].excp.pif  = r_pkg[p].fetch_excp.pif;
         r_p_pkg[p].excp.ppi  = r_pkg[p].fetch_excp.ppi;
         r_p_pkg[p].excp.ine  = r_pkg[p].ine;
+        r_p_pkg[p].excp.fpd  = !(|r_pkg[p].fetch_excp) && !r_pkg[p].ine && !csr_o.euen[0] && r_pkg[p].di.fpd_inst;
         r_p_pkg[p].excp.ipe  = r_pkg[p].di.priv_inst && (csr_o.crmd[`_CRMD_PLV] == 2'd3);
         r_p_pkg[p].excp.sys  = r_pkg[p].di.syscall_inst;
-        r_p_pkg[p].excp.fpd  = !csr_o.euen[0] && r_pkg[p].di.fpd_inst; // 会触发 FPD 的所有浮点指令
         r_p_pkg[p].excp.brk  = r_pkg[p].di.break_inst;
     end
   end
