@@ -19,6 +19,10 @@ typedef struct packed {
           // 访存流相关
           logic  wrong_forward;
           logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
+
+          // 浮点相关
+          logic          fcc;
+          fp_excp_t  fp_excp;
         } rob_entry_dynamic_t;
 // ROB 存储表项定义
 // Static 表项，双写口双读口，在 disPatch 时写入，保持不变
@@ -61,6 +65,9 @@ function automatic rob_entry_t gather_rob(rob_entry_static_t static_i, rob_entry
   ret.uncached = dynamic_i.uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
   // ret.store_buffer = dynamic_i.store_buffer;      // 提交一条 Store_buffer 中的写请求
   // ret.store_conditional = dynamic_i.store_conditional; // 条件写，若未命中，则直接失败并冲刷流水线
+  // 浮点相关
+  ret.fp_excp = dynamic_i.fp_excp;
+  ret.fcc = dynamic_i.fcc;
   // 写回 ARF 的数据
   ret.wdata = data_i;
   return ret;

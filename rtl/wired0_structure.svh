@@ -55,9 +55,9 @@ typedef struct packed {
   // FRONTEND
   // logic interrupt[9:0]; // ALL Interrupt including software Interruption
   // logic fetch_int;      // None Masked Interruption founded, if founded, this instruction is forced to issue in ALU slot
-  logic adef ;
+  logic adef;
   logic tlbr;
-  logic pif  ;
+  logic pif ;
   logic ppi ;
 
   // DECODE
@@ -65,6 +65,7 @@ typedef struct packed {
   logic ipe  ;
   logic sys  ;
   logic brk  ;
+  logic fpd  ;
 } static_excp_t;
 
 typedef struct packed {
@@ -82,6 +83,7 @@ typedef struct packed {
   logic itlbr;
   logic pif  ;
   logic ippi ;
+  logic fpd  ;
   // DECODE
   logic ine  ;
   logic ipe  ;
@@ -145,7 +147,7 @@ endfunction
 
 function logic[31:0] mkimm_data(input logic[2:0] data_imm_type, input logic[25:0] raw_imm);
   // !!! CAUTIOUS !!! : DOESN'T SUPPORT IMM U16 | IMM S21 FOR NOW
-  case(data_imm_type[1:0])
+  case(data_imm_type[2:0])
     // default/*IMM U5*/: begin
     //   mkimm_data = {27'd0, raw_imm[15:10]};
     // end NO NEED ANY MORE
@@ -157,6 +159,10 @@ function logic[31:0] mkimm_data(input logic[2:0] data_imm_type, input logic[25:0
     end
     `_IMM_S20 : begin
       mkimm_data = {{12{raw_imm[24]}}, raw_imm[24:5]};
+    end
+    `_IMM_F1 : begin
+      // Float point const 1.0f
+      mkimm_data = 32'h3f800000;
     end
   endcase
 endfunction
@@ -173,6 +179,14 @@ typedef struct packed{
   static_excp_t   excp;
 } pipeline_ctrl_p_t;
 
+typedef struct packed {
+  logic NV; // Invalid
+  logic DZ; // Divide by zero
+  logic OF; // Overflow
+  logic UF; // Underflow
+  logic NX; // Inexact
+} fp_excp_t;
+
 // 从 CDB 写入 ROB 的指令数据信息
 typedef struct packed {
   // 控制流相关
@@ -185,6 +199,10 @@ typedef struct packed {
   logic       uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
   word_t      wdata;
   
+  // 浮点控制流
+  fp_excp_t   fp_excp;
+  logic       fcc;
+
   // 有效性
   rob_rid_t   wid;
   logic       valid;
@@ -235,6 +253,10 @@ typedef struct packed {
   logic uncached;          // 对于 Uncached 的指令，一定会触发流水线冲刷，重新执行，结果直接写入 ARF，不经过 ROB。
                            // Uncached 指令占用 Request_buffer (仅有一个表项，占用时不再进行后续指令执行)
 
+  // 浮点相关
+  logic          fcc;
+  fp_excp_t  fp_excp;
+
   // 写回 ARF 的数据
   word_t wdata;
 } rob_entry_t; // 聚合
@@ -246,6 +268,7 @@ function automatic excp_t gather_excp(static_excp_t static_i, lsu_excp_t lsu_i);
   ret.itlbr = static_i.tlbr;
   ret.pif = static_i.pif ;
   ret.ippi = static_i.ppi;
+  ret.fpd  = static_i.fpd;
   ret.ine = static_i.ine ;
   ret.ipe = static_i.ipe ;
   ret.sys = static_i.sys ;
@@ -329,8 +352,31 @@ typedef struct packed {
 } iq_fpu_req_t;
 typedef struct packed {
   logic[31:0] result;
+  fp_excp_t  fp_excp;
   rob_rid_t   wid;     // 写回地址
 } iq_fpu_resp_t;
+typedef struct packed {
+  logic[4:0]      cond; // TODO: Where to get cond?
+  logic[31:0]       pc;
+  logic[27:0] addr_imm;
+  logic    upd_fcc;
+  logic       fcmp;
+  logic       fsel;
+  logic     fclass;
+  logic       beqz;
+  logic       bnez;
+  logic[31:0] r0;
+  logic[31:0] r1;
+  rob_rid_t  wid;     // 写回地址
+} iq_fcc_req_t;
+typedef struct packed {
+  logic[31:0] result;
+  fp_excp_t  fp_excp;      // 发现的浮点异常
+  logic       fcc;         // 持续更新
+  logic       need_jump;   // 需要跳转
+  logic       target_addr; // 跳转目标
+  rob_rid_t   wid;         // 写回地址
+} iq_fcc_resp_t;
 
 // LSU IQ 到 LSU 的请求
 typedef struct packed {

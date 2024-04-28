@@ -11,6 +11,56 @@
             "length": 1,
             "stage": "fpu",
             "default_value": 0
+        },
+        "fpd_inst": {
+            "length": 1,
+            "stage": "p",
+            "default_value": 0
+        },
+        "fcsr_upd": {
+            "length": 1,
+            "stage": "rob",
+            "default_value": 0
+        },
+        "fcmp": {
+            "length": 1,
+            "stage": "c_fcc_common",
+            "default_value": 0
+        },
+        "fcsr2gr": {
+            "length": 1,
+            "stage": "rob",
+            "default_value": 0
+        },
+        "gr2fcsr": {
+            "length": 1,
+            "stage": "rob",
+            "default_value": 0
+        },
+        "gr2fcc": {
+            "length": 1,
+            "stage": "fcc",
+            "default_value": 0
+        },
+        "fsel": {
+            "length": 1,
+            "stage": "fcc",
+            "default_value": 0
+        },
+        "fclass": {
+            "length": 1,
+            "stage": "fcc",
+            "default_value": 0
+        },
+        "bceqz": {
+            "length": 1,
+            "stage": "fcc",
+            "default_value": 0
+        },
+        "bcnez": {
+            "length": 1,
+            "stage": "fcc",
+            "default_value": 0
         }
     },
     "inst": {
@@ -112,6 +162,8 @@
             "opcode": "0000000100010100000001",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
             "fw": 1
         },
@@ -119,6 +171,8 @@
             "opcode": "0000000100010100000101",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
             "fw": 1
         },
@@ -131,8 +185,10 @@
         },
         "frecip.s": {
             "opcode": "0000000100010100010101",
-            "reg_type_r0": "`_REG_RJ",
-            "fr0": 1,
+            "reg_type_r0": "`_REG_IMM",
+            "imm_type": "`_IMM_F1",
+            "reg_type_r1": "`_REG_RJ",
+            "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
             "fw": 1
         },
@@ -143,14 +199,17 @@
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fclass.s": {
             "opcode": "0000000100010100001101",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fclass": 1,
+            "fpd_inst": 1
         },
         "fcmp.cond.s": {
             "opcode": "000011000001",
@@ -158,7 +217,9 @@
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_r1": "`_REG_RK",
-            "fr1": 1
+            "fr1": 1,
+            "fcmp": 1,
+            "fpd_inst": 1
         },
         "ffint.s.w": {
             "opcode": "0000000100011101000100",
@@ -204,10 +265,14 @@
         },
         "fmov.s": {
             "opcode": "0000000100010100100101",
+            "alu_inst": 1,
+            "alu_grand_op":"`_ALU_GTYPE_BW",
+            "alu_op":"`_ALU_STYPE_OR",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "fsel": {
             "opcode": "000011010000",
@@ -217,27 +282,49 @@
             "reg_type_r1": "`_REG_RK",
             "fr1": 1,
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fsel": 1,
+            "fpd_inst": 1
         },
         "movgr2fr.w": {
             "opcode": "0000000100010100101001",
+            "alu_inst": 1,
+            "alu_grand_op":"`_ALU_GTYPE_BW",
+            "alu_op":"`_ALU_STYPE_OR",
             "reg_type_r0": "`_REG_RJ",
             "reg_type_w": "`_REG_W_RD",
-            "fw": 1
+            "fw": 1,
+            "fpd_inst": 1
         },
         "movfr2gr.s": {
             "opcode": "0000000100010100101101",
+            "alu_inst": 1,
+            "alu_grand_op":"`_ALU_GTYPE_BW",
+            "alu_op":"`_ALU_STYPE_OR",
             "reg_type_r0": "`_REG_RJ",
             "fr0": 1,
-            "reg_type_w": "`_REG_W_RD"
+            "reg_type_w": "`_REG_W_RD",
+            "fpd_inst": 1
         },
         "movgr2fcsr": {
             "opcode": "0000000100010100110000",
-            "reg_type_r0": "`_REG_RJ"
+            "alu_inst": 1,
+            "alu_grand_op":"`_ALU_GTYPE_BW",
+            "alu_op":"`_ALU_STYPE_OR",
+            "reg_type_r0": "`_REG_RJ",
+            "gr2fcsr": 1,
+            "refetch": 1,
+            "fpd_inst": 1,
+            "slot0": 1
         },
         "movfcsr2gr": {
             "opcode": "0000000100010100110010",
-            "reg_type_w": "`_REG_W_RD"
+            "alu_inst": 1,
+            "reg_type_w": "`_REG_W_RD",
+            "fcsr2gr": 1,
+            "refetch": 1,
+            "fpd_inst": 1,
+            "slot0": 1
         },
         "movfr2cf": {
             "opcode": "0000000100010100110100",
@@ -257,9 +344,25 @@
             "opcode": "0000000100010100110111",
             "reg_type_w": "`_REG_W_RD"
         },
-        "bc": {
+        "bcnez": {
             "opcode": "010010",
-            "fbranch_inst": 1
+            "fbranch_inst": 1,
+            "cmp_type": "`_CMP_E",
+            "target_type": "`_TARGET_REL",
+            "jump_inst": 1,
+            "das": "\"%07x\",I26<<2",
+            "fpd_inst": 1,
+            "slot0": 1
+        },
+        "bceqz": {
+            "opcode": "010010",
+            "fbranch_inst": 1,
+            "cmp_type": "`_CMP_E",
+            "target_type": "`_TARGET_REL",
+            "jump_inst": 1,
+            "das": "\"%07x\",I26<<2",
+            "fpd_inst": 1,
+            "slot0": 1
         }
     }
 }

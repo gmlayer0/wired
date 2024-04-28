@@ -204,6 +204,8 @@ module wired_mdu_iq #(
     assign cdb_o.target_addr       = '0;
     assign cdb_o.uncached          = '0;
     assign cdb_o.wrong_forward     = '0;
+    assign cdb_o.fp_excp           = '0;
+    assign cdb_o.fcc               = '0;
     // assign cdb_o[p].store_buffer      = '0;
     // assign cdb_o[p].store_conditional = '0;
     assign cdb_o.wdata             = c_wdata;

@@ -152,6 +152,8 @@ module wired_commit #(
         // 特殊处理 rdcnt 命令
         if(h_entry[0].di.csr_rdcnt[0] /*== `_RDCNT_ID_VLOW*/) h_csr_rdata = (|h_entry[0].op_code) ? csr_q.tid : timer_64_q[31:0];
         else if(h_entry[0].di.csr_rdcnt[1] /*== `_RDCNT_VHIGH*/) h_csr_rdata = timer_64_q[63:32];
+        // 特殊处理 fcsr2gr 命令
+        if(h_entry[0].di.fcsr2gr) h_csr_rdata = csr_q.fcsr; // 别区别具体读取哪个域了
     end
 
     // TLBSRCH / TLBRD / INVTLB PRE-RUN.
@@ -500,6 +502,11 @@ module wired_commit #(
                             csr.badv = h_entry_q[0].pc;
                             csr.tlbehi[`_TLBEHI_VPPN] = h_entry_q[0].pc[`_TLBEHI_VPPN];
                         end
+                        excp.fpd: begin
+                            csr.estat[`_ESTAT_ECODE] = 6'h0f;
+                            csr.estat[`_ESTAT_ESUBCODE] = '0;
+                        end
+                        // Currently we are not going to implement FPD
                         excp.ine: begin
                             csr.estat[`_ESTAT_ECODE] = 6'h0d;
                             csr.estat[`_ESTAT_ESUBCODE] = '0;
@@ -652,7 +659,28 @@ module wired_commit #(
                         `_CSR_DMW1:      begin `_MW(dmw1,`_DMW_PLV0);`_MW(dmw1,`_DMW_PLV3);`_MW(dmw1,`_DMW_MAT);`_MW(dmw1,`_DMW_PSEG);`_MW(dmw1,`_DMW_VSEG); end
                         endcase
                     end
-`undef _MW
+                    if(h_entry_q[0].di.gr2fcsr) begin // also do refetch
+                        case(op_code[1:0])
+                        2'b00: begin csr.fcsr[4:0] = h_entry_q[0].wdata[4:0]; csr.fcsr[9:8] = h_entry_q[0].wdata[9:8]; csr.fcsr[20:16] = h_entry_q[0].wdata[20:16]; csr.fcsr[28:24] = h_entry_q[0].wdata[28:24]; end
+                        2'b01: begin csr.fcsr[4:0] = h_entry_q[0].wdata[4:0]; end
+                        2'b11: begin csr.fcsr[9:8] = h_entry_q[0].wdata[9:8]; end
+                        2'b10: begin csr.fcsr[20:16] = h_entry_q[0].wdata[20:16]; csr.fcsr[28:24] = h_entry_q[0].wdata[28:24]; end
+                        endcase
+                    end
+                    `undef _MW
+                    // 实现 fcsr2gr 指令
+                    if(h_entry_q[0].di.fcsr2gr) begin 
+                        l_data[0] = h_csr_rdata_q; // 强制刷新数据
+                    end
+                    // 及时更新 fcc
+                    if(h_entry_q[0].di.fcmp) begin
+                        csr.fcc = h_entry_q[0].fcc;
+                    end
+                    // 及时更新 fcsr 中的统计信息
+                    if(h_entry_q[0].di.fcsr_upd) begin
+                        csr.fcsr[28:24] = {h_entry_q[0].fp_excp.NV,h_entry_q[0].fp_excp.DZ,h_entry_q[0].fp_excp.OF,h_entry_q[0].fp_excp.UF,h_entry_q[0].fp_excp.NX};
+                        csr.fcsr[20:16] = csr_q.fcsr[20:16] | {h_entry_q[0].fp_excp.NV,h_entry_q[0].fp_excp.DZ,h_entry_q[0].fp_excp.OF,h_entry_q[0].fp_excp.UF,h_entry_q[0].fp_excp.NX};
+                    end
                     // 实现 RDCNT 指令
                     if(h_entry_q[0].di.csr_rdcnt != '0) begin
                         // RDCNT LOW | ID

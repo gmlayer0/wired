@@ -1,5 +1,15 @@
 `include "wired0_defines.svh"
 
+function fpnew_pkg::roundmode_e get_rm (input logic[1:0] rm);
+  fpnew_pkg::roundmode_e ret;
+  case(rm)
+  default: ret = fpnew_pkg::RNE; // RNE
+  2'b01:   ret = fpnew_pkg::RTZ; // RZ
+  2'b10:   ret = fpnew_pkg::RUP; // RP
+  2'b11:   ret = fpnew_pkg::RMM; // RM
+  endcase
+endfunction
+
 // Fuction module for Wired project
 module wired_backend #(
     parameter int unsigned SOURCE_WIDTH  = 1,
@@ -184,6 +194,7 @@ module wired_backend #(
         r_p_pkg[p].excp.ine  = r_pkg[p].ine;
         r_p_pkg[p].excp.ipe  = r_pkg[p].di.priv_inst && (csr_o.crmd[`_CRMD_PLV] == 2'd3);
         r_p_pkg[p].excp.sys  = r_pkg[p].di.syscall_inst;
+        r_p_pkg[p].excp.fpd  = !csr_o.euen[0] && r_pkg[p].di.fpd_inst; // 会触发 FPD 的所有浮点指令
         r_p_pkg[p].excp.brk  = r_pkg[p].di.break_inst;
     end
   end
@@ -192,12 +203,14 @@ module wired_backend #(
   wire lsu_ready;
   wire mul_ready;
   wire div_ready;
+  wire fpu_ready;
+  wire fcc_ready;
   wire [1:0] p_issue; // 是否有指令被提交
   pipeline_ctrl_p_t [1:0] p_pkg_q;
   pipeline_data_t [1:0] p_data, p_data_q;
   logic [1:0] p_valid_mask_q;
   assign p_issue = p_valid_mask_q & {r_p_ready, r_p_ready} & {~c_flush, ~c_flush};
-  assign r_p_ready = alu_ready & lsu_ready & mul_ready & div_ready;
+  assign r_p_ready = alu_ready & lsu_ready & mul_ready & div_ready & fpu_ready & fcc_ready;
   always_ff @(posedge clk) begin
     if(!rst_n || c_flush) begin
       p_valid_mask_q <= '0;
@@ -295,7 +308,7 @@ module wired_backend #(
   always_ff @(posedge clk) wkup_bus_stack[1][2:0] <= wkup_bus_stack[0][2:0];
 
   // CDB 仲裁信号
-  localparam CDB_MAX_COUNT = 6;
+  localparam CDB_MAX_COUNT = 7;
   logic [CDB_MAX_COUNT-1:0] raw_cdb_ready;
   pipeline_cdb_t [CDB_MAX_COUNT-1:0]  raw_cdb;
   wire [1:0] ifet_excp = {(|p_pkg_q[1].excp), (|p_pkg_q[0].excp)};
@@ -503,8 +516,10 @@ module wired_backend #(
   // FPU 部分例化
   logic ex_fpu_req_valid, ex_fpu_req_ready, ex_fpu_resp_valid, ex_fpu_resp_ready;
   logic ex_fcc_req_valid, ex_fcc_req_ready, ex_fcc_resp_valid, ex_fcc_resp_ready;
-  iq_mdu_req_t ex_fpu_req, ex_fcc_req;
-  iq_mdu_resp_t ex_fpu_resp, ex_fcc_resp;
+  iq_fpu_req_t ex_fpu_req;
+  iq_fpu_resp_t ex_fpu_resp;
+  iq_fcc_req_t ex_fcc_req;
+  iq_fcc_resp_t ex_fcc_resp;
   wired_fooo_iq wired_fpu_iq_inst (
     `_WIRED_GENERAL_CONN,
     .p_ctrl_i(p_pkg_q[0]),
@@ -521,6 +536,79 @@ module wired_backend #(
     .ex_valid_i(ex_fpu_resp_valid),
     .ex_ready_o(ex_fpu_resp_ready),
     .ex_resp_i(ex_fpu_resp)
+  );
+  wired_finorder_iq # (
+    .IQ_SIZE(4),
+    .WAKEUP_SRC_1CNT(1)
+  )
+  wired_finorder_iq_inst (
+    `_WIRED_GENERAL_CONN,
+    .p_ctrl_i(p_pkg_q[0]),
+    .p_data_i(p_data[0]),
+    .p_valid_i(fcc_valid),
+    .p_ready_o(fcc_ready),
+    .cdb_o(raw_cdb[6]),
+    .cdb_ready_i(raw_cdb_ready[6]),
+    .cdb_i(cdb),
+    .flush_i(c_flush),
+    .ex_valid_o(ex_fcc_req_valid),
+    .ex_ready_i(ex_fcc_req_ready),
+    .ex_req_o(ex_fcc_req),
+    .ex_valid_i(ex_fcc_resp_valid),
+    .ex_ready_o(ex_fcc_resp_ready),
+    .ex_resp_i(ex_fcc_resp)
+  );
+  // FPU 计算部分例化
+  localparam fpnew_pkg::fpu_implementation_t FPU_IMPLEMENTATION = '{
+    PipeRegs:  '{// FP32, FP64, FP16, FP8, FP16alt
+                '{4, 5, 3, 3, 3}, // ADDMUL
+                '{default: 21}, // DIVSQRT
+                '{default: 3}, // NONCOMP
+                '{default: 3}}, // CONV
+    UnitTypes: '{'{default: fpnew_pkg::MERGED},   // ADDMUL
+                '{default: fpnew_pkg::MERGED},   // DIVSQRT
+                '{default: fpnew_pkg::PARALLEL}, // NONCOMP
+                '{default: fpnew_pkg::MERGED}},  // CONV
+    PipeConfig: fpnew_pkg::AFTER
+  };
+  fpnew_top #(
+    .Features       ( fpnew_pkg::RV32F          ),
+    .Implementation ( FPU_IMPLEMENTATION        ),
+    .TagType        ( rob_rid_t                 ),
+    .PulpDivsqrt    ( 1'b1                      )
+  ) fpnew_top_inst (
+    .clk_i(clk),
+    .rst_ni(rst_n),
+    .operands_i({ex_fpu_req.r2, ex_fpu_req.r1, ex_fpu_req.r0}),
+    .rnd_mode_i(ex_fpu_req.op == fpnew_pkg::SGNJ ? fpnew_pkg::RNE : get_rm(csr_o.fcsr[9:8])),
+    .op_i(ex_fpu_req.op),
+    .op_mod_i(ex_fpu_req.mode),
+    .src_fmt_i(fpnew_pkg::FP32),
+    .dst_fmt_i(fpnew_pkg::FP32),
+    .int_fmt_i(fpnew_pkg::INT32),
+    .vectorial_op_i('0),
+    .simd_mask_i('1),
+    .tag_i(ex_fpu_req.wid),
+    .in_valid_i(ex_fpu_req_valid),
+    .in_ready_o(ex_fpu_req_ready),
+    .flush_i(c_flush),
+    .result_o(ex_fpu_resp.result),
+    .status_o(ex_fpu_resp.fp_excp),
+    .tag_o(ex_fpu_resp.wid),
+    .out_valid_o(ex_fpu_resp_valid),
+    .out_ready_i(ex_fpu_resp_ready),
+    .busy_o() // 没啥用，流控通过 valid-ready 握手完成
+  );
+  wired_fcc wired_fcc_inst (
+    `_WIRED_GENERAL_CONN,
+    .flush_i(c_flush),
+    .fcc_i(csr_o.fcc),
+    .ex_req_valid_i(ex_fcc_req_valid),
+    .ex_req_ready_o(ex_fcc_req_ready),
+    .ex_req_i(ex_fcc_req),
+    .ex_resp_valid_o(ex_fcc_resp_valid),
+    .ex_resp_ready_i(ex_fcc_resp_ready),
+    .ex_resp_o(ex_fcc_resp)
   );
 
   // CDB ARBITER

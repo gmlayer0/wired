@@ -1,11 +1,8 @@
 `include "wired0_defines.svh"
 
 // Fuction module for Wired project
-// lsu issue queue + lsu
-module wired_finorder_iq #(
-    parameter int IQ_SIZE = `_WIRED_PARAM_FPU_IQ_DEPTH,
-    parameter int WAKEUP_SRC_CNT = 1
-)(
+// FPU inorder issue queue
+module wired_finorder_iq (
     `_WIRED_GENERAL_DEFINE,
 
     // 连接到 DISPATCH(P) 级别的端口
@@ -25,14 +22,16 @@ module wired_finorder_iq #(
 
     // FLUSH 端口
     input logic flush_i, // 后端正在清洗管线，发射所有指令而不等待就绪
+    input logic fcc_i,   // 后端记录的正确 fcc
 
-    output logic         lsu_req_valid_o,
-    input  logic         lsu_req_ready_i,
-    output iq_lsu_req_t  lsu_req_o,
+    // 执行单元端口
+    output logic         ex_valid_o,
+    input  logic         ex_ready_i,
+    output iq_fcc_req_t  ex_req_o,
 
-    input  logic         lsu_resp_valid_i,
-    output logic         lsu_resp_ready_o,
-    input  iq_lsu_resp_t lsu_resp_i
+    input  logic         ex_valid_i,
+    output logic         ex_ready_o,
+    input  iq_fcc_resp_t ex_resp_i,
 
     // 以下为可选端口
     ,input  logic     [WAKEUP_SRC_CNT-1:0] wkup_valid_i
@@ -42,7 +41,7 @@ module wired_finorder_iq #(
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
 
-    // 注意，LSU 的 iq 是完全顺序发射的
+    // 注意，此 iq 是完全顺序发射的
     // 实际上被实现为一个 FIFO，有队顶指针，队尾指针，分配策略与 ALU 与 MDU 的 IQ 存在本质不同。
     localparam integer PTR_LEN = $clog2(IQ_SIZE);
     logic [PTR_LEN-1:0] iq_head_q, iq_tail_q;
@@ -88,11 +87,10 @@ module wired_finorder_iq #(
     end
     // Reserve station static entry 定义
     typedef struct packed {
-        decode_info_lsu_t di;
-        logic[31:0] pc;
+        decode_info_fcc_t di;
+        logic [31:0] pc;
         logic[27:0] addr_imm;
-        rob_rid_t   wreg;
-        logic[4:0]  op_code;
+        rob_rid_t wreg;
     } iq_static_t;
     // 输入给 IQ 的 static 信息
     iq_static_t p_static;
@@ -110,11 +108,9 @@ module wired_finorder_iq #(
     assign s_static = iq_static[iq_tail_q];
     // 解包信息
     always_comb begin
-        p_static.di       = get_lsu_from_p(p_ctrl_i.di);
+        p_static.di       = get_fcc_from_p(p_ctrl_i.di);
         p_static.pc       = p_ctrl_i.pc;
-        p_static.addr_imm = p_ctrl_i.addr_imm;
         p_static.wreg     = p_ctrl_i.wreg.rob_id;
-        p_static.op_code  = p_ctrl_i.op_code;
     end
 
     // 例化 Reserve station entry
@@ -246,13 +242,15 @@ module wired_finorder_iq #(
 
     // 连接 CDB
     pipeline_cdb_t fifo_cdb;
-    assign fifo_cdb.excp              = lsu_resp_i.excp;
-    assign fifo_cdb.need_jump         = '0;
-    assign fifo_cdb.target_addr       = lsu_resp_i.vaddr;
-    assign fifo_cdb.uncached          = lsu_resp_i.uncached;
-    assign fifo_cdb.wrong_forward     = lsu_resp_i.wrong_forward;
-    assign fifo_cdb.wdata             = lsu_resp_i.rdata;
-    assign fifo_cdb.wid               = lsu_resp_i.wid;
+    assign fifo_cdb.excp              = '0;
+    assign fifo_cdb.need_jump         = ex_resp_i.need_jump;
+    assign fifo_cdb.target_addr       = ex_resp_i.target_addr;
+    assign fifo_cdb.uncached          = '0;
+    assign fifo_cdb.wrong_forward     = '0;
+    assign fifo_cdb.wdata             = ex_resp_i.result;
+    assign fifo_cdb.fp_excp           = ex_resp_i.fp_excp;
+    assign fifo_cdb.fcc               = ex_resp_i.fcc;
+    assign fifo_cdb.wid               = ex_resp_i.wid;
     assign fifo_cdb.valid             = '0;
     logic cdb_raw_valid;
     pipeline_cdb_t cdb_raw;

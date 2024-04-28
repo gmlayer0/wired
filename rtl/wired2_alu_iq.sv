@@ -260,7 +260,7 @@ module wired_alu_iq #(
             .op_i(sel_static_q[p].di.alu_op),
             .res_o(ex_wdata[p])
         );
-        logic [31:0] csrxchg_wdata; // 实际上是写 mask
+        logic [31:0] csrxchg_wdata; // 实际上是写寄存器值
         assign csrxchg_wdata = real_data[p][0];
         assign ex_wdata_ext[p] = sel_static_q[p].di.csr_op_en ? csrxchg_wdata : ex_wdata[p];
         wired_jump  wired_jump_inst (
@@ -307,6 +307,8 @@ module wired_alu_iq #(
         assign cdb_o[p].target_addr       = c_jump_target;
         assign cdb_o[p].uncached          = '0;
         assign cdb_o[p].wrong_forward     = '0;
+        assign cdb_o[p].fp_excp           = '0;
+        assign cdb_o[p].fcc               = '0;
         // assign cdb_o[p].store_buffer      = '0;
         // assign cdb_o[p].store_conditional = '0;
         assign cdb_o[p].wdata             = c_wdata;

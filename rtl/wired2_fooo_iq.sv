@@ -114,7 +114,7 @@ module wired_fooo_iq #(
     // 解包信息
     // for(genvar i = 0 ; i < 2 ; i += 1) begin
         always_comb begin
-            p_static.di       = get_mdu_from_p(p_ctrl_i.di);
+            p_static.di       = get_fpu_from_p(p_ctrl_i.di);
             p_static.pc       = p_ctrl_i.pc;
             p_static.wreg     = p_ctrl_i.wreg.rob_id;
         end
@@ -190,8 +190,9 @@ module wired_fooo_iq #(
     // 连接到 CDB 的 FIFO
     rob_rid_t c_rid;
     logic[31:0] c_wdata;
+    fp_excp_t c_fpexcp;
     wired_fifo #(
-        .DATA_WIDTH($bits(rob_rid_t) + 32), // rid, wdata, jumppc, jump
+        .DATA_WIDTH($bits(rob_rid_t) + $bits(fp_excp_t) + 32), // rid, wdata, jumppc, jump
         .DEPTH(2)
     )
     wired_commit_fifo(
@@ -199,10 +200,10 @@ module wired_fooo_iq #(
         .rst_n(rst_n && !flush_i),
         .inport_valid_i(ex_valid_i),
         .inport_ready_o(ex_ready_o),
-        .inport_payload_i({ex_resp_i.wid, ex_resp_i.result}),
+        .inport_payload_i({ex_resp_i.wid, ex_resp_i.result, ex_resp_i.fp_excp}),
         .outport_valid_o(cdb_o.valid),
         .outport_ready_i(cdb_ready_i),
-        .outport_payload_o({c_rid, c_wdata})
+        .outport_payload_o({c_rid, c_wdata, c_fpexcp})
     );
     assign cdb_o.excp              = '0;
     assign cdb_o.need_jump         = '0;
@@ -211,6 +212,8 @@ module wired_fooo_iq #(
     assign cdb_o.wrong_forward     = '0;
     // assign cdb_o[p].store_buffer      = '0;
     // assign cdb_o[p].store_conditional = '0;
+    assign cdb_o.fp_excp           = c_fpexcp;
+    assign cdb_o.fcc               = '0;
     assign cdb_o.wdata             = c_wdata;
     assign cdb_o.wid               = c_rid;
 
