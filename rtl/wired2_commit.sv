@@ -856,16 +856,16 @@ module wired_commit #(
 
     // 连接差分测试
 if(ENABLE_DIFFTEST) begin
-  logic[31:0][31:0] ref_regs;
-    for(genvar i = 0 ; i < 32 ; i ++) begin
+  logic[63:0][31:0] ref_regs;
+    for(genvar i = 0 ; i < 64 ; i ++) begin
       always_ff @(posedge clk) begin
         if(!rst_n) begin
           ref_regs[i] <= '0;
         end
-        else if(l_commit[1] && l_warid[1] == i[4:0] && i != 0) begin
+        else if(l_commit[1] && l_warid[1] == i[5:0] && i != 0) begin
           ref_regs[i] <= l_data[1];
         end
-        else if(l_commit[0] && l_warid[0] == i[4:0] && i != 0) begin
+        else if(l_commit[0] && l_warid[0] == i[5:0] && i != 0) begin
           ref_regs[i] <= l_data[0];
         end
       end
@@ -947,7 +947,7 @@ if(ENABLE_DIFFTEST) begin
                         .is_CNTinst    ((df_entry_q[p].di.csr_rdcnt != '0) && l_commit_o[p]),
                         .timer_64_value(dbg_timer_64_q  ),
                         .wen           (l_warid_o[p] == '0 ? '0 : l_commit_o[p]),
-                        .wdest         (l_warid_o[p]),
+                        .wdest         (l_warid_o[p][4:0]),
                         .wdata         (l_warid_o[p] == '0 ? '0 : l_data_o[p]),
                         .csr_rstat     (df_entry_q[p].di.csr_op_en && df_entry_q[p].csr_id[8:0] == `_CSR_ESTAT && l_commit_o[p]),
                         .csr_data      (l_data_o[p]),

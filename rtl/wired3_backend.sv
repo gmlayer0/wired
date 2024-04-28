@@ -96,24 +96,16 @@ module wired_backend #(
 `ifdef _WIRED_TDP_ARF
   wired_registers_file_tp # (
     .DATA_WIDTH(32),
-    .DEPTH(32),
-    .R_PORT_COUNT(4
-  // `ifdef _WIRED_PARAM_ENABLE_FPU
-    +1
-  // `endif
-    ),
+    .DEPTH(1 << `_WIRED_PARAM_ARF_LEN),
+    .R_PORT_COUNT(5),
     .NEED_RESET(1),
     .NEED_FORWARD(1)
   )
 `else
   wired_registers_file_banked # (
     .DATA_WIDTH(32),
-    .DEPTH(32),
-    .R_PORT_COUNT(4
-    // `ifdef _WIRED_PARAM_ENABLE_FPU
-      +1
-    // `endif
-    ),
+    .DEPTH(1 << `_WIRED_PARAM_ARF_LEN),
+    .R_PORT_COUNT(5),
     .W_PORT_COUNT(2),
     .NEED_RESET(1),
     .NEED_FORWARD(1)
@@ -132,7 +124,8 @@ module wired_backend #(
   wire r_p_valid, r_p_ready;
   assign r_p_valid = r_valid;
   wired_rename # (
-                 .DEPTH(32)
+                 .DEPTH(1 << `_WIRED_PARAM_ARF_LEN),
+                 .RREG_COUNT(5)
                )
                wired_rename_inst (
                 `_WIRED_GENERAL_CONN,
@@ -172,7 +165,7 @@ module wired_backend #(
           end
         end
         r_p_data[p].rdata[0] = r_pkg[p].di.reg_type_r0 == `_REG_IMM ? data_imm : r_rdata[p][0];
-        r_p_data[p].rdata[1] = r_rdata[p][1];
+        r_p_data[p].rdata[1] = /*r_pkg[p].di.reg_type_r0 == `_REG_IMM ? data_imm : */r_rdata[p][1];
         r_p_data[p].rdata[2] = p == 0 ? r_r3_rdata : '0;
         r_p_pkg[p].di   = get_p_from_d(r_pkg[p].di);
         r_p_pkg[p].wreg.arch_id = r_waddr[p];
