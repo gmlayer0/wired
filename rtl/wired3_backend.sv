@@ -3,7 +3,7 @@
 function fpnew_pkg::roundmode_e get_rm (input logic[1:0] rm, input logic[3:0] rnd_mode);
   fpnew_pkg::roundmode_e ret;
   if(rnd_mode[3]) begin
-    ret = rnd_mode[2:0];
+    ret = fpnew_pkg::roundmode_e'(rnd_mode[2:0]);
   end else begin
     case(rm)
       default: ret = fpnew_pkg::RNE; // RNE
@@ -558,7 +558,7 @@ module wired_backend #(
   // FPU 计算部分例化
   localparam fpnew_pkg::fpu_implementation_t FPU_IMPLEMENTATION = '{
     PipeRegs:  '{// FP32, FP64, FP16, FP8, FP16alt
-                '{4, 5, 3, 3, 3}, // ADDMUL
+                '{6, 8, 3, 3, 3}, // ADDMUL
                 '{default: 21}, // DIVSQRT
                 '{default: 3}, // NONCOMP
                 '{default: 3}}, // CONV

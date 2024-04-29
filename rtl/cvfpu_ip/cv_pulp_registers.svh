@@ -10,8 +10,8 @@
 // specific language governing permissions and limitations under the License.
 
 // Common register defines for RTL designs
-`ifndef COMMON_CELLS_REGISTERS_SVH_
-`define COMMON_CELLS_REGISTERS_SVH_
+`ifndef CV_COMMON_CELLS_REGISTERS_SVH_
+`define CV_COMMON_CELLS_REGISTERS_SVH_
 
 // Abridged Summary of available FF macros:
 // `CV_FF:      asynchronous active-low reset (implicit clock and reset)
