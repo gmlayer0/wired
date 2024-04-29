@@ -115,16 +115,16 @@ module fpnew_divsqrt_th_32 #(
     // 2. if the next stage only holds a bubble (not valid) -> we can pop it
     assign inp_pipe_ready[i] = inp_pipe_ready[i+1] | ~inp_pipe_valid_q[i+1];
     // Valid: enabled by ready signal, synchronous clear with the flush signal
-    `FFLARNC(inp_pipe_valid_q[i+1], inp_pipe_valid_q[i], inp_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
+    `CV_FFLARNC(inp_pipe_valid_q[i+1], inp_pipe_valid_q[i], inp_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
     // Enable register if pipleine ready and a valid data item is present
     assign reg_ena = (inp_pipe_ready[i] & inp_pipe_valid_q[i]) | reg_ena_i[i];
     // Generate the pipeline registers within the stages, use enable-registers
-    `FFL(inp_pipe_operands_q[i+1], inp_pipe_operands_q[i], reg_ena, '0)
-    `FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
-    `FFL(inp_pipe_op_q[i+1],       inp_pipe_op_q[i],       reg_ena, fpnew_pkg::FMADD)
-    `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, TagType'('0))
-    `FFL(inp_pipe_mask_q[i+1],     inp_pipe_mask_q[i],     reg_ena, '0)
-    `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, AuxType'('0))
+    `CV_FFL(inp_pipe_operands_q[i+1], inp_pipe_operands_q[i], reg_ena, '0)
+    `CV_FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
+    `CV_FFL(inp_pipe_op_q[i+1],       inp_pipe_op_q[i],       reg_ena, fpnew_pkg::FMADD)
+    `CV_FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, TagType'('0))
+    `CV_FFL(inp_pipe_mask_q[i+1],     inp_pipe_mask_q[i],     reg_ena, '0)
+    `CV_FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, AuxType'('0))
   end
   // Output stage: assign selected pipe outputs to signals for later use
   assign operands_q = inp_pipe_operands_q[NUM_INP_REGS];
@@ -159,9 +159,9 @@ module fpnew_divsqrt_th_32 #(
   assign div_op_d  = (fdsu_fpu_ex1_stall) ? div_op  : 1'b0;
   assign sqrt_op_d = (fdsu_fpu_ex1_stall) ? sqrt_op : 1'b0;
 
-  `FFL(fdsu_fpu_ex1_stall_q, fdsu_fpu_ex1_stall, 1'b1, '0)
-  `FFL(div_op_q, div_op_d, 1'b1, '0)
-  `FFL(sqrt_op_q, sqrt_op_d, 1'b1, '0)
+  `CV_FFL(fdsu_fpu_ex1_stall_q, fdsu_fpu_ex1_stall, 1'b1, '0)
+  `CV_FFL(div_op_q, div_op_d, 1'b1, '0)
+  `CV_FFL(sqrt_op_q, sqrt_op_d, 1'b1, '0)
 
   // FSM to safely apply and receive data from DIVSQRT unit
   always_comb begin : flag_fsm
@@ -232,7 +232,7 @@ module fpnew_divsqrt_th_32 #(
   end
 
   // FSM status register (asynch active low reset)
-  `FF(state_q, state_d, IDLE)
+  `CV_FF(state_q, state_d, IDLE)
 
   // Hold additional information while the operation is in progress
   TagType result_tag_q;
@@ -240,9 +240,9 @@ module fpnew_divsqrt_th_32 #(
   logic   result_mask_q;
 
   // Fill the registers everytime a valid operation arrives (load FF, active low asynch rst)
-  `FFL(result_tag_q,  inp_pipe_tag_q[NUM_INP_REGS],  op_starting, '0)
-  `FFL(result_mask_q, inp_pipe_mask_q[NUM_INP_REGS], op_starting, '0)
-  `FFL(result_aux_q,  inp_pipe_aux_q[NUM_INP_REGS],  op_starting, '0)
+  `CV_FFL(result_tag_q,  inp_pipe_tag_q[NUM_INP_REGS],  op_starting, '0)
+  `CV_FFL(result_mask_q, inp_pipe_mask_q[NUM_INP_REGS], op_starting, '0)
+  `CV_FFL(result_aux_q,  inp_pipe_aux_q[NUM_INP_REGS],  op_starting, '0)
 
   // -----------------
   // DIVSQRT instance
@@ -297,7 +297,7 @@ module fpnew_divsqrt_th_32 #(
     end
   end
 
-  `FFL(unit_ready_q, unit_ready_d, 1'b1, 1'b1)
+  `CV_FFL(unit_ready_q, unit_ready_d, 1'b1, 1'b1)
 
   // determine input of time to select operands
   always_comb begin
@@ -392,7 +392,7 @@ module fpnew_divsqrt_th_32 #(
   );
 
   assign ex2_inst_wb_vld_d = ctrl_fdsu_ex1_sel;
-  `FF(ex2_inst_wb_vld_q, ex2_inst_wb_vld_d, '0)
+  `CV_FF(ex2_inst_wb_vld_q, ex2_inst_wb_vld_d, '0)
 
   pa_fpu_frbus x_pa_fpu_frbus (
     .ctrl_frbus_ex2_wb_req     ( ex2_inst_wb & ex2_inst_wb_vld_q ),
@@ -413,8 +413,8 @@ module fpnew_divsqrt_th_32 #(
   end
 
   // The Hold register (load, no reset)
-  `FFLNR(held_result_q, unit_result, hold_result, clk_i)
-  `FFLNR(held_status_q, unit_status, hold_result, clk_i)
+  `CV_FFLNR(held_result_q, unit_result, hold_result, clk_i)
+  `CV_FFLNR(held_status_q, unit_status, hold_result, clk_i)
 
   // --------------
   // Output Select
@@ -456,15 +456,15 @@ module fpnew_divsqrt_th_32 #(
     // 2. if the next stage only holds a bubble (not valid) -> we can pop it
     assign out_pipe_ready[i] = out_pipe_ready[i+1] | ~out_pipe_valid_q[i+1];
     // Valid: enabled by ready signal, synchronous clear with the flush signal
-    `FFLARNC(out_pipe_valid_q[i+1], out_pipe_valid_q[i], out_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
+    `CV_FFLARNC(out_pipe_valid_q[i+1], out_pipe_valid_q[i], out_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
     // Enable register if pipleine ready and a valid data item is present
     assign reg_ena = (out_pipe_ready[i] & out_pipe_valid_q[i]) | reg_ena_i[NUM_INP_REGS + i];
     // Generate the pipeline registers within the stages, use enable-registers
-    `FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
-    `FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
-    `FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, TagType'('0))
-    `FFL(out_pipe_mask_q[i+1],   out_pipe_mask_q[i],   reg_ena, '0)
-    `FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, AuxType'('0))
+    `CV_FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
+    `CV_FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
+    `CV_FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, TagType'('0))
+    `CV_FFL(out_pipe_mask_q[i+1],   out_pipe_mask_q[i],   reg_ena, '0)
+    `CV_FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, AuxType'('0))
   end
   // Output stage: Ready travels backwards from output side, driven by downstream circuitry
   assign out_pipe_ready[NUM_OUT_REGS] = out_ready_i;

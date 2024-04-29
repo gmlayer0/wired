@@ -468,12 +468,12 @@ or set Features.FpFmtMask to support only FP32");
       // 2. if the next stage only holds a bubble (not valid) -> we can pop it
       assign byp_pipe_ready[i] = byp_pipe_ready[i+1] | ~byp_pipe_valid_q[i+1];
       // Valid: enabled by ready signal, synchronous clear with the flush signal
-      `FFLARNC(byp_pipe_valid_q[i+1], byp_pipe_valid_q[i], byp_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
+      `CV_FFLARNC(byp_pipe_valid_q[i+1], byp_pipe_valid_q[i], byp_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
       // Enable register if pipleine ready and a valid data item is present
       assign reg_ena = (byp_pipe_ready[i] & byp_pipe_valid_q[i]) | reg_ena_i[i];
       // Generate the pipeline registers within the stages, use enable-registers
-      `FFL(byp_pipe_target_q[i+1],  byp_pipe_target_q[i],  reg_ena, '0)
-      `FFL(byp_pipe_aux_q[i+1],     byp_pipe_aux_q[i],     reg_ena, '0)
+      `CV_FFL(byp_pipe_target_q[i+1],  byp_pipe_target_q[i],  reg_ena, '0)
+      `CV_FFL(byp_pipe_aux_q[i+1],     byp_pipe_aux_q[i],     reg_ena, '0)
     end
     // Output stage: Ready travels backwards from output side, driven by downstream circuitry
     assign byp_pipe_ready[NumPipeRegs] = out_ready_i & result_is_vector;

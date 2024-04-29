@@ -14,19 +14,19 @@
 `define COMMON_CELLS_REGISTERS_SVH_
 
 // Abridged Summary of available FF macros:
-// `FF:      asynchronous active-low reset (implicit clock and reset)
-// `FFAR:    asynchronous active-high reset
-// `FFARN:   asynchronous active-low reset
-// `FFSR:    synchronous active-high reset
-// `FFSRN:   synchronous active-low reset
-// `FFNR:    without reset
-// `FFL:     load-enable and asynchronous active-low reset (implicit clock and reset)
-// `FFLAR:   load-enable and asynchronous active-high reset
-// `FFLARN:  load-enable and asynchronous active-low reset
-// `FFLARNC: load-enable and asynchronous active-low reset and synchronous active-high clear
-// `FFLSR:   load-enable and synchronous active-high reset
-// `FFLSRN:  load-enable and synchronous active-low reset
-// `FFLNR:   load-enable without reset
+// `CV_FF:      asynchronous active-low reset (implicit clock and reset)
+// `CV_FFAR:    asynchronous active-high reset
+// `CV_FFARN:   asynchronous active-low reset
+// `CV_FFSR:    synchronous active-high reset
+// `CV_FFSRN:   synchronous active-low reset
+// `CV_FFNR:    without reset
+// `CV_FFL:     load-enable and asynchronous active-low reset (implicit clock and reset)
+// `CV_FFLAR:   load-enable and asynchronous active-high reset
+// `CV_FFLARN:  load-enable and asynchronous active-low reset
+// `CV_FFLARNC: load-enable and asynchronous active-low reset and synchronous active-high clear
+// `CV_FFLSR:   load-enable and synchronous active-high reset
+// `CV_FFLSRN:  load-enable and synchronous active-low reset
+// `CV_FFLNR:   load-enable without reset
 
 
 // Flip-Flop with asynchronous active-low reset (implicit clock and reset)
@@ -36,7 +36,7 @@
 // Implicit:
 // clk_i: clock input
 // rst_ni: reset input (asynchronous, active low)
-`define FF(__q, __d, __reset_value)                  \
+`define CV_FF(__q, __d, __reset_value)                  \
   always_ff @(posedge clk_i or negedge rst_ni) begin \
     if (!rst_ni) begin                               \
       __q <= (__reset_value);                        \
@@ -51,7 +51,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __arst: asynchronous reset
-`define FFAR(__q, __d, __reset_value, __clk, __arst)     \
+`define CV_FFAR(__q, __d, __reset_value, __clk, __arst)     \
   always_ff @(posedge (__clk) or posedge (__arst)) begin \
     if (__arst) begin                                    \
       __q <= (__reset_value);                            \
@@ -66,7 +66,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __arst_n: asynchronous reset
-`define FFARN(__q, __d, __reset_value, __clk, __arst_n)    \
+`define CV_FFARN(__q, __d, __reset_value, __clk, __arst_n)    \
   always_ff @(posedge (__clk) or negedge (__arst_n)) begin \
     if (!__arst_n) begin                                   \
       __q <= (__reset_value);                              \
@@ -81,7 +81,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __reset_clk: reset input
-`define FFSR(__q, __d, __reset_value, __clk, __reset_clk) \
+`define CV_FFSR(__q, __d, __reset_value, __clk, __reset_clk) \
   `ifndef VERILATOR                       \
   /``* synopsys sync_set_reset `"__reset_clk`" *``/       \
     `endif                        \
@@ -95,7 +95,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __reset_n_clk: reset input
-`define FFSRN(__q, __d, __reset_value, __clk, __reset_n_clk) \
+`define CV_FFSRN(__q, __d, __reset_value, __clk, __reset_n_clk) \
     `ifndef VERILATOR                       \
   /``* synopsys sync_set_reset `"__reset_n_clk`" *``/        \
     `endif                        \
@@ -107,7 +107,7 @@
 // __q: Q output of FF
 // __d: D input of FF
 // __clk: clock input
-`define FFNR(__q, __d, __clk)        \
+`define CV_FFNR(__q, __d, __clk)        \
   always_ff @(posedge (__clk)) begin \
     __q <= (__d);                    \
   end
@@ -120,7 +120,7 @@
 // Implicit:
 // clk_i: clock input
 // rst_ni: reset input (asynchronous, active low)
-`define FFL(__q, __d, __load, __reset_value)         \
+`define CV_FFL(__q, __d, __load, __reset_value)         \
   always_ff @(posedge clk_i or negedge rst_ni) begin \
     if (!rst_ni) begin                               \
       __q <= (__reset_value);                        \
@@ -136,7 +136,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __arst: asynchronous reset
-`define FFLAR(__q, __d, __load, __reset_value, __clk, __arst) \
+`define CV_FFLAR(__q, __d, __load, __reset_value, __clk, __arst) \
   always_ff @(posedge (__clk) or posedge (__arst)) begin      \
     if (__arst) begin                                         \
       __q <= (__reset_value);                                 \
@@ -152,7 +152,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __arst_n: asynchronous reset
-`define FFLARN(__q, __d, __load, __reset_value, __clk, __arst_n) \
+`define CV_FFLARN(__q, __d, __load, __reset_value, __clk, __arst_n) \
   always_ff @(posedge (__clk) or negedge (__arst_n)) begin       \
     if (!__arst_n) begin                                         \
       __q <= (__reset_value);                                    \
@@ -168,7 +168,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __reset_clk: reset input
-`define FFLSR(__q, __d, __load, __reset_value, __clk, __reset_clk)       \
+`define CV_FFLSR(__q, __d, __load, __reset_value, __clk, __reset_clk)       \
     `ifndef VERILATOR                       \
   /``* synopsys sync_set_reset `"__reset_clk`" *``/                      \
     `endif                        \
@@ -183,7 +183,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __reset_n_clk: reset input
-`define FFLSRN(__q, __d, __load, __reset_value, __clk, __reset_n_clk)       \
+`define CV_FFLSRN(__q, __d, __load, __reset_value, __clk, __reset_n_clk)       \
     `ifndef VERILATOR                       \
   /``* synopsys sync_set_reset `"__reset_n_clk`" *``/                       \
     `endif                        \
@@ -199,7 +199,7 @@
 // __reset_value: value assigned upon reset
 // __clk: clock input
 // __arst_n: asynchronous reset
-`define FFLARNC(__q, __d, __load, __clear, __reset_value, __clk, __arst_n) \
+`define CV_FFLARNC(__q, __d, __load, __clear, __reset_value, __clk, __arst_n) \
     `ifndef VERILATOR                       \
   /``* synopsys sync_set_reset `"__clear`" *``/                       \
     `endif                        \
@@ -216,7 +216,7 @@
 // __d: D input of FF
 // __load: load d value into FF
 // __clk: clock input
-`define FFLNR(__q, __d, __load, __clk) \
+`define CV_FFLNR(__q, __d, __load, __clk) \
   always_ff @(posedge (__clk)) begin   \
     __q <= (__load) ? (__d) : (__q);   \
   end

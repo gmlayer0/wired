@@ -125,18 +125,18 @@ module fpnew_divsqrt_multi #(
     // 2. if the next stage only holds a bubble (not valid) -> we can pop it
     assign inp_pipe_ready[i] = inp_pipe_ready[i+1] | ~inp_pipe_valid_q[i+1];
     // Valid: enabled by ready signal, synchronous clear with the flush signal
-    `FFLARNC(inp_pipe_valid_q[i+1], inp_pipe_valid_q[i], inp_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
+    `CV_FFLARNC(inp_pipe_valid_q[i+1], inp_pipe_valid_q[i], inp_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
     // Enable register if pipleine ready and a valid data item is present
     assign reg_ena = (inp_pipe_ready[i] & inp_pipe_valid_q[i]) | reg_ena_i[i];
     // Generate the pipeline registers within the stages, use enable-registers
-    `FFL(inp_pipe_operands_q[i+1], inp_pipe_operands_q[i], reg_ena, '0)
-    `FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
-    `FFL(inp_pipe_op_q[i+1],       inp_pipe_op_q[i],       reg_ena, fpnew_pkg::FMADD)
-    `FFL(inp_pipe_dst_fmt_q[i+1],  inp_pipe_dst_fmt_q[i],  reg_ena, fpnew_pkg::fp_format_e'(0))
-    `FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, TagType'('0))
-    `FFL(inp_pipe_mask_q[i+1],     inp_pipe_mask_q[i],     reg_ena, '0)
-    `FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, AuxType'('0))
-    `FFL(inp_pipe_vec_op_q[i+1],   inp_pipe_vec_op_q[i],   reg_ena, AuxType'('0))
+    `CV_FFL(inp_pipe_operands_q[i+1], inp_pipe_operands_q[i], reg_ena, '0)
+    `CV_FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
+    `CV_FFL(inp_pipe_op_q[i+1],       inp_pipe_op_q[i],       reg_ena, fpnew_pkg::FMADD)
+    `CV_FFL(inp_pipe_dst_fmt_q[i+1],  inp_pipe_dst_fmt_q[i],  reg_ena, fpnew_pkg::fp_format_e'(0))
+    `CV_FFL(inp_pipe_tag_q[i+1],      inp_pipe_tag_q[i],      reg_ena, TagType'('0))
+    `CV_FFL(inp_pipe_mask_q[i+1],     inp_pipe_mask_q[i],     reg_ena, '0)
+    `CV_FFL(inp_pipe_aux_q[i+1],      inp_pipe_aux_q[i],      reg_ena, AuxType'('0))
+    `CV_FFL(inp_pipe_vec_op_q[i+1],   inp_pipe_vec_op_q[i],   reg_ena, AuxType'('0))
   end
   // Output stage: assign selected pipe outputs to signals for later use
   assign operands_q = inp_pipe_operands_q[NUM_INP_REGS];
@@ -146,7 +146,7 @@ module fpnew_divsqrt_multi #(
   assign in_valid_q = inp_pipe_valid_q[NUM_INP_REGS];
 
   logic ext_op_start_q;
-  `FF(ext_op_start_q, reg_ena_i[NUM_INP_REGS-1], 1'b0)
+  `CV_FF(ext_op_start_q, reg_ena_i[NUM_INP_REGS-1], 1'b0)
 
   // -----------------
   // Input processing
@@ -201,11 +201,11 @@ module fpnew_divsqrt_multi #(
   logic result_vec_op_q;
 
   // Fill the registers everytime a valid operation arrives (load FF, active low asynch rst)
-  `FFL(result_is_fp8_q, input_is_fp8,                 op_starting, '0)
-  `FFL(result_tag_q,    inp_pipe_tag_q[NUM_INP_REGS], op_starting, '0)
-  `FFL(result_mask_q,   inp_pipe_mask_q[NUM_INP_REGS],op_starting, '0)
-  `FFL(result_aux_q,    inp_pipe_aux_q[NUM_INP_REGS], op_starting, '0)
-  `FFL(result_vec_op_q, inp_pipe_vec_op_q[NUM_INP_REGS], op_starting, '0)
+  `CV_FFL(result_is_fp8_q, input_is_fp8,                 op_starting, '0)
+  `CV_FFL(result_tag_q,    inp_pipe_tag_q[NUM_INP_REGS], op_starting, '0)
+  `CV_FFL(result_mask_q,   inp_pipe_mask_q[NUM_INP_REGS],op_starting, '0)
+  `CV_FFL(result_aux_q,    inp_pipe_aux_q[NUM_INP_REGS], op_starting, '0)
+  `CV_FFL(result_vec_op_q, inp_pipe_vec_op_q[NUM_INP_REGS], op_starting, '0)
 
   // Wait for other lanes only if the operation is vectorial
   assign simd_synch_done = simd_synch_done_i || ~result_vec_op_q;
@@ -214,7 +214,7 @@ module fpnew_divsqrt_multi #(
   // When one divsqrt unit completes an operation, keep its done high, waiting for the other lanes
   // As soon as all the lanes are over, we can clear this FF and start with a new operation
   logic unit_done_clear;
-  `FFLARNC(unit_done_q, unit_done, unit_done, unit_done_clear, 1'b0, clk_i, rst_ni)
+  `CV_FFLARNC(unit_done_q, unit_done, unit_done, unit_done_clear, 1'b0, clk_i, rst_ni)
   assign unit_done_clear = simd_synch_done | reg_ena_i[NUM_INP_REGS-1];
   // Tell the other units that this unit has finished now or in the past
   assign divsqrt_done_o = (unit_done_q | unit_done) & result_vec_op_q;
@@ -286,7 +286,7 @@ module fpnew_divsqrt_multi #(
   end
 
   // FSM status register (asynch active low reset)
-  `FF(state_q, state_d, IDLE)
+  `CV_FF(state_q, state_d, IDLE)
 
   // -----------------
   // DIVSQRT instance
@@ -320,8 +320,8 @@ module fpnew_divsqrt_multi #(
   // or the operation is not vectorial, and the result can be accepted downstream
   assign hold_en = unit_done & (~simd_synch_done_i | ~out_ready) & ~(~result_vec_op_q & out_ready);
   // The Hold register (load, no reset)
-  `FFLNR(held_result_q, adjusted_result, hold_en, clk_i)
-  `FFLNR(held_status_q, unit_status,     hold_en, clk_i)
+  `CV_FFLNR(held_result_q, adjusted_result, hold_en, clk_i)
+  `CV_FFLNR(held_status_q, unit_status,     hold_en, clk_i)
 
   // --------------
   // Output Select
@@ -365,15 +365,15 @@ module fpnew_divsqrt_multi #(
     // 2. if the next stage only holds a bubble (not valid) -> we can pop it
     assign out_pipe_ready[i] = out_pipe_ready[i+1] | ~out_pipe_valid_q[i+1];
     // Valid: enabled by ready signal, synchronous clear with the flush signal
-    `FFLARNC(out_pipe_valid_q[i+1], out_pipe_valid_q[i], out_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
+    `CV_FFLARNC(out_pipe_valid_q[i+1], out_pipe_valid_q[i], out_pipe_ready[i], flush_i, 1'b0, clk_i, rst_ni)
     // Enable register if pipleine ready and a valid data item is present
     assign reg_ena = (out_pipe_ready[i] & out_pipe_valid_q[i]) | reg_ena_i[NUM_INP_REGS + i];
     // Generate the pipeline registers within the stages, use enable-registers
-    `FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
-    `FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
-    `FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, TagType'('0))
-    `FFL(out_pipe_mask_q[i+1],   out_pipe_mask_q[i],   reg_ena, '0)
-    `FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, AuxType'('0))
+    `CV_FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
+    `CV_FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
+    `CV_FFL(out_pipe_tag_q[i+1],    out_pipe_tag_q[i],    reg_ena, TagType'('0))
+    `CV_FFL(out_pipe_mask_q[i+1],   out_pipe_mask_q[i],   reg_ena, '0)
+    `CV_FFL(out_pipe_aux_q[i+1],    out_pipe_aux_q[i],    reg_ena, AuxType'('0))
   end
   // Output stage: Ready travels backwards from output side, driven by downstream circuitry
   assign out_pipe_ready[NUM_OUT_REGS] = out_ready_i;
