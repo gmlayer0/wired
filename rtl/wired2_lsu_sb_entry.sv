@@ -58,7 +58,7 @@ module wired_lsu_sb_entry(
         end
       end
     end
-    if(gvalid_i && meta_q.paddr[11:2] == meta_i.paddr[11:2]) begin
+    if(gvalid_i && meta_q.paddr[31:2] == meta_i.paddr[31:2]) begin
       // 对同一个字的写入，无效化最新的
       meta.fwd_strb = meta_q.fwd_strb & ~meta_i.fwd_strb;
     end
