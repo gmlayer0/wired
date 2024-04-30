@@ -133,9 +133,9 @@ module wired_fcc (
     end
 
     // 调试输出
-    shortreal _da, _db;
-    assign _da = $bitstoshortreal(req_q.r0);
-    assign _db = $bitstoshortreal(req_q.r1);
+    // shortreal _da, _db;
+    // assign _da = $bitstoshortreal(req_q.r0);
+    // assign _db = $bitstoshortreal(req_q.r1);
     always_ff @(posedge clk) begin
         // if(valid_q && req_q.fcmp) begin
         //     $display("Encounter fcmp inst with input %f %f", _da, _db);
