@@ -113,6 +113,7 @@ module fpnew_cast_multi #(
   fpnew_pkg::int_format_e int_fmt_q;
 
   // Input pipeline signals, index i holds signal after i register stages
+  // verilator lint_off BLKANDNBLK
   logic                   [0:NUM_INP_REGS][WIDTH-1:0]       inp_pipe_operands_q;
   logic                   [0:NUM_INP_REGS][NUM_FORMATS-1:0] inp_pipe_is_boxed_q;
   fpnew_pkg::roundmode_e  [0:NUM_INP_REGS]                  inp_pipe_rnd_mode_q;
@@ -125,6 +126,7 @@ module fpnew_cast_multi #(
   logic                   [0:NUM_INP_REGS]                  inp_pipe_mask_q;
   AuxType                 [0:NUM_INP_REGS]                  inp_pipe_aux_q;
   logic                   [0:NUM_INP_REGS]                  inp_pipe_valid_q;
+  // verilator lint_on BLKANDNBLK
   // Ready signal is combinatorial for all stages
   logic [0:NUM_INP_REGS] inp_pipe_ready;
 
@@ -323,8 +325,7 @@ module fpnew_cast_multi #(
   fpnew_pkg::fp_format_e           dst_fmt_q2;
   fpnew_pkg::int_format_e          int_fmt_q2;
   // Internal pipeline signals, index i holds signal after i register stages
-
-
+  // verilator lint_off BLKANDNBLK
   logic                   [0:NUM_MID_REGS]                    mid_pipe_input_sign_q;
   logic signed            [0:NUM_MID_REGS][INT_EXP_WIDTH-1:0] mid_pipe_input_exp_q;
   logic                   [0:NUM_MID_REGS][INT_MAN_WIDTH-1:0] mid_pipe_input_mant_q;
@@ -342,6 +343,7 @@ module fpnew_cast_multi #(
   logic                   [0:NUM_MID_REGS]                    mid_pipe_mask_q;
   AuxType                 [0:NUM_MID_REGS]                    mid_pipe_aux_q;
   logic                   [0:NUM_MID_REGS]                    mid_pipe_valid_q;
+  // verilator lint_on BLKANDNBLK
   // Ready signal is combinatorial for all stages
   logic [0:NUM_MID_REGS] mid_pipe_ready;
 
