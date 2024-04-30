@@ -23,7 +23,7 @@ module wired_commit #(
 
     // Part 3: ARF / Rename 更新端口
     output      logic        [1:0] l_retire_o, // FOR RENAME
-    output      logic        [1:0] l_commit_o, // FOR ARF
+    (*mark_debug="true"*) output      logic        [1:0] l_commit_o, // FOR ARF
     output     word_t        [1:0] l_data_o,
     output arch_rid_t        [1:0] l_warid_o,
     output  rob_rid_t        [1:0] l_wrrid_o,
@@ -316,7 +316,7 @@ module wired_commit #(
     // S_WAIT_FLUSH,    // 这个是用来刷流水线的
     S_WAIT_INTERRUPT // 这个是用来等待中断的
     } commit_fsm_e;
-    commit_fsm_e fsm_q;
+    (*mark_debug="true"*)commit_fsm_e fsm_q;
     commit_fsm_e fsm;
     logic h_tid;
     logic h_tid_q; // 跳转使用的 id 标识
@@ -855,6 +855,8 @@ module wired_commit #(
     assign csr_o = csr_q;
 
     // 连接差分测试
+    (*mark_debug="true"*) rob_entry_t [1:0] df_entry_q;
+    always_ff @(posedge clk) df_entry_q <= h_entry_q;
 if(ENABLE_DIFFTEST) begin
   logic[63:0][31:0] ref_regs;
     for(genvar i = 0 ; i < 64 ; i ++) begin
@@ -906,8 +908,6 @@ if(ENABLE_DIFFTEST) begin
         .gpr_30(ref_regs[30]),
         .gpr_31(ref_regs[31])
         );
-    rob_entry_t [1:0] df_entry_q;
-    always_ff @(posedge clk) df_entry_q <= h_entry_q;
     logic [`_TLBIDX_INDEX] dbg_tlb_rndsel;
     logic [63:0] dbg0_timer_64_q, dbg_timer_64_q;
     wire h_excp_inst = h_valid_inst_q[0] && h_entry_q[0].excp_found && fsm_q == S_NORMAL;

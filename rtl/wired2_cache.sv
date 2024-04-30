@@ -307,7 +307,7 @@ always_ff @(posedge clk) begin
 end
 
 m2_pack_t m1_gat; // 收集(gather) M1 侧的数据，生成 m2 数据
-m2_pack_t m2_q;
+(*mark_debug="true"*)m2_pack_t m2_q;
 always_ff @(posedge clk) if(!m2_stall) m2_q <= m1_gat;
 always_comb begin
   m1_gat = '0;
@@ -342,7 +342,7 @@ typedef enum logic[3:0] {
   S_CUCSTRD, // Uncached store
   S_CREFILL  // Store miss(SC exclude) REFILL
 } fsm_e;
-fsm_e fsm_q;
+(*mark_debug="true"*) fsm_e fsm_q;
 fsm_e fsm;
 always_ff @(posedge clk) begin
   if(!rst_n) fsm_q <= S_NORMAL;
@@ -354,7 +354,7 @@ typedef enum logic[1:0] {
   M_DBAR     // 阻塞 LSU 后续请求，但响应 CPU 请求
 //M_WAITSB    // Storebuffer Multihit
 } mod_e;
-mod_e mod_q;
+(*mark_debug="true"*) mod_e mod_q;
 mod_e mod;
 always_ff @(posedge clk) begin
   if(!rst_n || flush_i) mod_q <= M_NORMAL;
