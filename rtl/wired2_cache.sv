@@ -486,7 +486,7 @@ always_comb begin
             if(!m2_q.uncache && m2_q.cacop == RD_ALLOC && 
             (!m2_q.any_rhit || (!m2_q.any_whit && m2_q.llsc)) && 
              !(!m2_q.llsc && m2_q.any_sbhit && m2_q.sb_strb == '1)) begin // 未命中（rhit for all || whit for ll.w）的 cached 读请求
-              if((m2_q.sb_hit & sb_valid) == '0) fsm = S_MREFILL; // 如果命中 store buffer，等着就好了。
+              if(!m2_q.any_sbhit) fsm = S_MREFILL; // 如果命中 store buffer，等着就好了。
               m2_stall = '1;
               resp_valid = '0;
             end else if(!ENABLE_SC_UNCACHE && m2_q.uncache && m2_q.cacop == RD_ALLOC) begin // Uncached 读请求，且弱序
