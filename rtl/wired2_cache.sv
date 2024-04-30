@@ -520,7 +520,7 @@ always_comb begin
         resp_valid = m2_valid_q;
         if(resp_ready || !m2_valid_q) begin
           m2_stall = '0;
-          mod = m2_q.dbar ? M_DBAR : M_NORMAL;
+          mod = (m2_valid_q && m2_q.dbar) ? M_DBAR : M_NORMAL;
         end
       end
   end
