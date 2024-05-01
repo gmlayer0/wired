@@ -9,7 +9,7 @@ module wired_cache #(
     parameter int SRAM_WIDTH = 32,
     parameter int PKG_SIZE = 1,
     parameter int SB_SIZE = 4,
-    parameter int WKUPBUF_LEN = 4
+    parameter int WKUPBUF_LEN = 16
   )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -634,7 +634,8 @@ end
 
 // REQ 级检查 WKUP Slice，提前检查命中情况
 for(genvar i = 0 ; i < WKUPBUF_LEN ; i += 1) begin
-  assign req_regslice_hit[i] = lsu_req_i.vaddr[31:4] == wkup_regslice_q[31:4]/* && wkup_regslice_q[3]*/;
+  assign req_regslice_hit[i] = lsu_req_i.vaddr[31:4] == wkup_regslice_q[i][31:4]/* && wkup_regslice_q[3]*/;
+  // assign req_regslice_hit[i] = '1;
 end
 // 检查与 M1 比较的命中情况
 assign req_regslice_hit[WKUPBUF_LEN+0] = lsu_req_i.vaddr[31:4] == m1.vaddr[31:4] && m1_valid_q;
@@ -642,7 +643,7 @@ assign req_regslice_hit[WKUPBUF_LEN+0] = lsu_req_i.vaddr[31:4] == m1.vaddr[31:4]
 assign req_regslice_hit[WKUPBUF_LEN+1] = lsu_req_i.vaddr[31:4] == m2_q.vaddr[31:4] && m2_valid_q;
 
 // WKUP_VALID 信号生成
-assign wkup_valid_o = !g_stall && m1_valid_q && (|m1_wkup_hit_q) && m2_q.cacop == RD_ALLOC; // 排除 sc.w 的情况
+assign wkup_valid_o = !g_stall && m1_valid_q && (|m1_wkup_hit_q) && m1.cacop == RD_ALLOC; // 排除 sc.w 的情况
 assign wkup_rid_o = m1.wid;
 
 // 用于追踪 M2 级别唤醒是否进行过唤醒
