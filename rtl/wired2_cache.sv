@@ -8,7 +8,8 @@ module wired_cache #(
     parameter bit OUTPUT_BUF = 1, // 状态机输出到 lsu_resp 再打一拍
     parameter int SRAM_WIDTH = 32,
     parameter int PKG_SIZE = 1,
-    parameter int SB_SIZE = 4
+    parameter int SB_SIZE = 4,
+    parameter int WKUPBUF_LEN = 4
   )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -68,6 +69,18 @@ module wired_cache #(
   always_ff @(posedge clk) g_stall_q <= g_stall;
   assign lsu_req_ready_o = !g_stall;
 
+  // WKUP Slice，用于进行推测唤醒
+  logic[WKUPBUF_LEN-1:0][31:4] wkup_regslice_q; // 最低位是有效位
+  logic[WKUPBUF_LEN-1:0][31:4] wkup_regslice;
+  // WKUP CNT，循环计数
+  logic[$clog2(WKUPBUF_LEN)-1:0] wkup_upd_q;
+  logic[$clog2(WKUPBUF_LEN)-1:0] wkup_upd;
+  always_ff @(posedge clk) {wkup_regslice_q, wkup_upd_q} <= {wkup_regslice, wkup_upd};
+
+
+  // REQ 级检查 WKUP Slice，提前检查命中情况
+  logic[WKUPBUF_LEN+1:0] req_regslice_hit;
+
   // 连接 SRAM
   assign p_addr_o = lsu_req_i.vaddr;
 
@@ -102,26 +115,15 @@ always_ff @(posedge clk) begin
   end
 end
 
-// 用于追踪 M1 级别唤醒是否有效
-logic m1_wkup_valid_q;
-always_ff @(posedge clk) begin
-  if(!g_stall) begin
-    // 仅请求的第一个周期有效，如果请求遇到任何流水线暂停，转发都会错误。
-    m1_wkup_valid_q <= lsu_req_valid_i;
-  end else begin
-    m1_wkup_valid_q <= '0;
-  end
-end
-assign wkup_valid_o = m1_wkup_valid_q;
-assign wkup_rid_o = m1_req_q.wid;
-
 iq_lsu_req_t m1_req_q;
+logic[WKUPBUF_LEN+1:0] m1_wkup_hit_q;
 
 logic [PKG_SIZE-1:0] req_pkg_q;
 tlb_s_resp_t m1_tlb_resp;
 always_ff @(posedge clk) if(!g_stall) begin
   req_pkg_q <= lsu_pkg_i;
   m1_req_q <= lsu_req_i;
+  m1_wkup_hit_q <= req_regslice_hit;
 end
 wired_addr_trans # (
     .FETCH_ADDR(ICACHE)
@@ -258,6 +260,7 @@ always_comb begin
   sb_w.vaddr = m1.vaddr;
 `endif
 end
+// 用于追踪是否需要更新
 
 typedef struct packed {
   logic      [31:0] vaddr;    // 请求物理地址
@@ -280,6 +283,11 @@ typedef struct packed {
   logic       [3:0]  sb_strb;
   logic      [31:0] sb_rdata;
   logic [3:0][SRAM_WIDTH-1:0] data;    // sram data
+
+  // For wakeup
+  logic any_wkup_hit; // 这条指令已存在 wkup 表项，不需要更新 wkup 表
+  logic do_wkup;      // 这条指令发出了 wkup 请求
+
   logic found_excp;
   lsu_excp_t   d_excp;
   fetch_excp_t f_excp;
@@ -294,15 +302,6 @@ always_ff @(posedge clk) begin
     m2_valid_q <= '0;
   end else if(!m2_stall) begin
     m2_valid_q <= m1_valid_q && sb_ready;
-  end
-end
-
-// 用于追踪 M2 级别唤醒是否有效
-logic m2_wkup_valid_q;
-always_ff @(posedge clk) begin
-  if(!m2_stall) begin
-    // 仅请求的第一个周期有效，如果请求遇到任何流水线暂停，转发都会错误。
-    m2_wkup_valid_q <= m1_wkup_valid_q && sb_ready;
   end
 end
 
@@ -361,6 +360,8 @@ always_ff @(posedge clk) begin
   else mod_q <= mod;
 end
 
+logic m2_wkup_valid_q, m2_undergo_stall_q;
+
 // 输出接口
 logic resp_valid, resp_ready;
 iq_lsu_resp_t resp;
@@ -379,13 +380,19 @@ m2_var_t m2_var_q;
 // logic [31:0] sb_fwd_data;
 always_ff @(posedge clk) m2_var_q <= m2_var;
 always_comb begin
+  // wkup slice
+  wkup_regslice = wkup_regslice_q;
+  wkup_upd = wkup_upd_q;
+
   // 主要输出及 sb
   sb_inv = '0;     // sb 控制信号
   resp_valid = '0; // 主要输出握手
   resp = '0;       // 主要输出数据
   resp.excp = m2_q.d_excp;
-  // 这里主要看 m1 是否暂停过，若为暂停过，则检查在 m2 是否重填过
-  resp.wrong_forward = !m2_wkup_valid_q && (m2_q.cacop == RD_ALLOC || m2_q.llsc);
+  // 这里主要看 m1 是否发出 wkup 信号
+  // 若发出，则检查在 m2 是否经历过重填
+  // 注意：暂停无关紧要，数据一定按时发出
+  // resp.wrong_forward = m2_wkup_valid_q && m2_q.cacop == RD_ALLOC;
   resp.f_excp = m2_q.f_excp;
   resp.uncached = m2_q.uncache;
   resp.vaddr = m2_q.vaddr;
@@ -399,7 +406,8 @@ always_comb begin
   // sb_fwd_data = '0;
   if(mod_q == M_HANDLED) begin
     resp.rdata[SRAM_WIDTH-1:0] = m2_var_q.fsm_rdata; // 使用 fsm 缓存好的数据即可
-    resp.wrong_forward = m2_q.cacop == RD_ALLOC || m2_q.llsc;
+    // 在多核下，存在缓存中的表项被其它写者无效化的可能性
+    resp.wrong_forward = m2_wkup_valid_q;
   end
   if(ENABLE_STORE) begin
     // for(integer i = 0 ; i < SB_SIZE ; i += 1) begin
@@ -512,6 +520,11 @@ always_comb begin
             // 阻塞住下一条指令
             mod = M_DBAR;
           end
+          if(!m2_stall && m2_q.cacop == RD_ALLOC && !m2_q.uncache) begin
+            // 这里需要更新下 wkupbuf，是一个命中 Cache 的读请求
+            wkup_regslice[wkup_upd_q][31:4] = m2_q.vaddr[31:4];
+            wkup_upd = wkup_upd_q + 1;
+          end
         end else begin
           resp_valid = '0;
         end
@@ -617,6 +630,30 @@ end else begin
   assign lsu_resp_valid_o = resp_valid;
   assign lsu_resp_o = resp;
   assign lsu_pkg_o = resp_pkg;
+end
+
+// REQ 级检查 WKUP Slice，提前检查命中情况
+for(genvar i = 0 ; i < WKUPBUF_LEN ; i += 1) begin
+  assign req_regslice_hit[i] = lsu_req_i.vaddr[31:4] == wkup_regslice_q[31:4]/* && wkup_regslice_q[3]*/;
+end
+// 检查与 M1 比较的命中情况
+assign req_regslice_hit[WKUPBUF_LEN+0] = lsu_req_i.vaddr[31:4] == m1.vaddr[31:4] && m1_valid_q;
+// 检查与 M2 比较的命中情况
+assign req_regslice_hit[WKUPBUF_LEN+1] = lsu_req_i.vaddr[31:4] == m2_q.vaddr[31:4] && m2_valid_q;
+
+// WKUP_VALID 信号生成
+assign wkup_valid_o = !g_stall && m1_valid_q && (|m1_wkup_hit_q) && m2_q.cacop == RD_ALLOC; // 排除 sc.w 的情况
+assign wkup_rid_o = m1.wid;
+
+// 用于追踪 M2 级别唤醒是否进行过唤醒
+// 但是实际上没什么用
+always_ff @(posedge clk) begin
+  if(!m2_stall) begin
+    m2_wkup_valid_q <= wkup_valid_o;
+    m2_undergo_stall_q <= '0;
+  end else begin
+    m2_undergo_stall_q <= '1;
+  end
 end
 
   // Forward source
