@@ -9,7 +9,7 @@ module wired_cache #(
     parameter int SRAM_WIDTH = 32,
     parameter int PKG_SIZE = 1,
     parameter int SB_SIZE = 4,
-    parameter int WKUPBUF_LEN = 16
+    parameter int WKUPBUF_LEN = 4
   )(
     `_WIRED_GENERAL_DEFINE,
 

@@ -702,7 +702,7 @@ module wired_commit #(
                     end
                     // - TLBSRCH
                     if(h_entry_q[0].di.tlbsrch_en) begin
-                        csr.tlbidx[`_TLBIDX_INDEX] = h_tlb_srch_idx_q[`_TLBIDX_INDEX];
+                        if(h_tlb_srch_idx_q[$clog2(`_WIRED_PARAM_TLB_CNT)]) csr.tlbidx[`_TLBIDX_INDEX] = h_tlb_srch_idx_q[`_TLBIDX_INDEX];
                         csr.tlbidx[`_TLBIDX_NE] = !h_tlb_srch_idx_q[$clog2(`_WIRED_PARAM_TLB_CNT)];
                     end
                     // - TLBRD
