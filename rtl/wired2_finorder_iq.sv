@@ -220,7 +220,8 @@ module wired_finorder_iq #(
     pipeline_cdb_t cdb_raw;
     wired_fifo #(
         .DATA_WIDTH($bits(pipeline_cdb_t)), // rid, wdata, jumppc, jump
-        .DEPTH(16)
+        .DEPTH(2),
+        .BYPASS(0)
     ) wired_commit_fifo (
         .clk(clk),
         .rst_n(rst_n && !flush_i),

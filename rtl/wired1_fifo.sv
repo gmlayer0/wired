@@ -3,6 +3,7 @@
 module wired_fifo #(
     parameter int unsigned DATA_WIDTH = 32,
     parameter int unsigned DEPTH = 32,
+    parameter bit BYPASS = 0,
 
     // DO NOT MODIFY
     parameter type T = logic[DATA_WIDTH - 1 : 0],
@@ -22,14 +23,17 @@ module wired_fifo #(
     // 读写指针
     wire [ADDR_DEPTH-1:0] wptr, rptr;
     wire [ADDR_DEPTH:0] cnt;
+    wire empty;
 
     // 指针更新
     `_WIRED_FF_RSTABLE_EN(wptr, '0, '1)
     `_WIRED_FF_RSTABLE_EN(rptr, '0, '1)
     `_WIRED_FF_RSTABLE_EN(cnt, '0, '1)
+    `_WIRED_FF_RSTABLE_EN(empty, '0, '1)
     assign wptr = push ? (wptr_q + 1'd1) : wptr_q;
     assign rptr = pop  ? (rptr_q + 1'd1) : rptr_q;
     assign cnt  = cnt_q + (push ? 1'd1 : 1'd0) - (pop ? 1'd1 : 1'd0);
+    assign empty = BYPASS && (cnt == '0);
 
     // 握手信号
     wire ready, valid;
@@ -50,7 +54,7 @@ module wired_fifo #(
 
     // 接线
     assign inport_ready = ready_q;
-    assign outport_valid = valid_q;
-    assign outport_payload = data_q;
+    assign outport_valid = empty_q ? inport_valid : valid_q;
+    assign outport_payload = empty_q ? inport_payload : data_q;
 
 endmodule

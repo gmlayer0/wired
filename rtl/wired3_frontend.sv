@@ -257,7 +257,8 @@ module wired_frontend #(
   end
   wired_fifo #(
     .DATA_WIDTH($bits(f_t)),
-    .DEPTH(2)
+    .DEPTH(2),
+    .BYPASS(1)
   ) wired_fd_pipe_inst (
     .clk(clk),
     .rst_n(rst_n && !g_flush),
@@ -343,7 +344,8 @@ module wired_frontend #(
   // FIFO
   wired_fifo #(
                .DATA_WIDTH($bits(d_t)),
-               .DEPTH(8)
+               .DEPTH(8),
+               .BYPASS(1)
              )
              wired_pkg_fifo(
                .clk(clk),

@@ -187,7 +187,8 @@ module wired_mdu_iq #(
     logic[31:0] c_wdata;
     wired_fifo #(
         .DATA_WIDTH($bits(rob_rid_t) + 32), // rid, wdata, jumppc, jump
-        .DEPTH(2)
+        .DEPTH(2),
+        .BYPASS(0)
     )
     wired_commit_fifo(
         .clk(clk),

@@ -289,7 +289,8 @@ module wired_alu_iq #(
         logic[31:0] c_wdata;
         wired_fifo #(
             .DATA_WIDTH($bits(rob_rid_t) + 32 + 32 + 1), // rid, wdata, jumppc, jump
-            .DEPTH(2)
+            .DEPTH(2),
+            .BYPASS(1)
         )
         wired_commit_fifo(
             .clk(clk),

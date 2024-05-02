@@ -194,7 +194,8 @@ module wired_fooo_iq #(
     fp_excp_t c_fpexcp;
     wired_fifo #(
         .DATA_WIDTH($bits(rob_rid_t) + $bits(fp_excp_t) + 32), // rid, wdata, jumppc, jump
-        .DEPTH(2)
+        .DEPTH(2),
+        .BYPASS(0)
     )
     wired_commit_fifo(
         .clk(clk),
