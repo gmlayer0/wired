@@ -57,7 +57,7 @@ assign p_pc_o = pc;
 typedef struct packed {
   bpu_target_type_e target_type;
   logic conditional_jmp; // 0 / 1 condition
-  logic [4:0] history;
+  logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history;
   logic [6:0] tag;
 } branch_info_t;
 
@@ -86,16 +86,16 @@ logic [1:0]          info_n_we;
 branch_info_t [1:0] info_wdata;
 logic [1:0][1:0]        l2_cnt;
 wire l2_we = p_correct_i.true_conditional_jmp && p_correct_i.need_update;
-wire [4:0] l2_waddr = p_correct_i.history;
+wire [`_WIRED_PARAM_BHT_DATA_LEN-1:0] l2_waddr = {7'd0, p_correct_i.history[4:0]} ^ {p_correct_i.pc[9:3], 5'd0};
 wire [1:0] l2_wdata = gen_next_lphr(p_correct_i.lphr, p_correct_i.true_taken);
-(* ram_style = "distributed" *) reg [1:0] l2_ram [31:0];
+(* ram_style = "distributed" *) reg [1:0] l2_ram [(1 << `_WIRED_PARAM_BHT_DATA_LEN) - 1:0];
 always_ff @(posedge clk) begin
   if(l2_we) begin
     l2_ram[l2_waddr] <= l2_wdata;
   end
 end
-assign l2_cnt[0] = l2_ram[info_rdata[0].history];
-assign l2_cnt[1] = l2_ram[info_rdata[1].history];
+assign l2_cnt[0] = l2_ram[{7'd0, info_rdata[0].history[4:0]} ^ {pc[9:3], 5'd0}];
+assign l2_cnt[1] = l2_ram[{7'd0, info_rdata[1].history[4:0]} ^ {pc[9:3], 5'd0}];
 for(genvar p = 0 ; p < 2 ; p += 1) begin
   assign btb_rdata[p][1:0] = '0;
   wired_dpsram # (
@@ -150,23 +150,23 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
     info_p_we[p] = '0;
     info_n_we[p] = '0;
     info_wdata[p] = info_rdata[p];
-    info_wdata[p].history = {info_rdata[p].history[3:0], 1'b0};
+    info_wdata[p].history = {info_rdata[p].history[`_WIRED_PARAM_BHT_DATA_LEN-2:0], 1'b0};
     branch_need_jmp[p] = '0;
     if(info_rdata[p].target_type != BPU_TARGET_NPC && tag_match) begin
       info_n_we[p] = p_valid_o & p_mask_o[p];
       if(info_rdata[p].target_type != BPU_TARGET_IMM || !info_rdata[p].conditional_jmp) begin
         branch_need_jmp[p] = '1;
-        info_wdata[p].history = {info_rdata[p].history[3:0], 1'b1};
+        info_wdata[p].history = {info_rdata[p].history[`_WIRED_PARAM_BHT_DATA_LEN-2:0], 1'b1};
       end
       else begin
         branch_need_jmp[p] = l2_cnt[p][1];
-        info_wdata[p].history = {info_rdata[p].history[3:0], l2_cnt[p][1]};
+        info_wdata[p].history = {info_rdata[p].history[`_WIRED_PARAM_BHT_DATA_LEN-2:0], l2_cnt[p][1]};
       end
     end
     if(p_correct_i.need_update && p_correct_i.miss && p_correct_i.pc[2] == p[0]) begin
       info_wdata[p].target_type = p_correct_i.true_target_type;
       info_wdata[p].conditional_jmp = p_correct_i.true_conditional_jmp;
-      info_wdata[p].history = {p_correct_i.history[3:0], p_correct_i.true_taken};
+      info_wdata[p].history = {p_correct_i.history[`_WIRED_PARAM_BHT_DATA_LEN-2:0], p_correct_i.true_taken};
       info_wdata[p].tag = get_tag(p_correct_i.pc);
       info_p_we[p] = '1;
     end
