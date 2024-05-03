@@ -25,17 +25,30 @@ module wired_mdu_iq #(
     input pipeline_cdb_t [1:0] cdb_i,
 
     // 执行单元端口
-    output logic         ex_valid_o,
-    input  logic         ex_ready_i,
+    output logic         ex_mul_valid_o,
+    input  logic         ex_mul_ready_i,
+    output logic         ex_div_valid_o,
+    input  logic         ex_div_ready_i,
     output iq_mdu_req_t  ex_req_o,
 
-    input  logic         ex_valid_i,
-    output logic         ex_ready_o,
-    input  iq_mdu_resp_t ex_resp_i,
+    input  logic         ex_mul_valid_i,
+    output logic         ex_mul_ready_o,
+    input  iq_mdu_resp_t ex_mul_resp_i,
+    input  logic         ex_div_valid_i,
+    output logic         ex_div_ready_o,
+    input  iq_mdu_resp_t ex_div_resp_i,
 
     // FLUSH 端口
     input logic flush_i // 后端正在清洗管线，发射所有指令而不等待就绪
 );
+
+    // fake wires
+    wire ex_ready_i;
+    wire ex_valid_o;
+    wire ex_ready_o;
+    assign ex_mul_ready_o = ex_ready_o && !ex_div_valid_i;
+    assign ex_div_ready_o = ex_ready_o;
+
     logic [IQ_SIZE-1:0] empty_q; // 标识 IQ ENTRY 可被占用
     logic [IQ_SIZE-1:0] fire_rdy_q;  // 标识 IQ ENTRY 可发射
     // Todo: AGE-MAP BASED OPTIMIZATION
@@ -49,13 +62,13 @@ module wired_mdu_iq #(
     // UPD0: 0 1 2 3
     // UPD1: 3 2 1 0
     logic [IQ_SIZE-1:0] fire_sel_oh;
-    localparam integer FIREPIO [IQ_SIZE-1:0] = {1,0};
+    // localparam integer FIREPIO [IQ_SIZE-1:0] = {1,0};
     always_comb begin
         fire_sel_oh = '0;
         for(integer x = IQ_SIZE-1 ; x >= 0 ; x -= 1) begin
-            if(fire_rdy_q[FIREPIO[x]]) begin 
+            if(fire_rdy_q[/*FIREPIO[*/x/*]*/]) begin 
                 fire_sel_oh = '0;
-                fire_sel_oh[FIREPIO[x]] = '1;
+                fire_sel_oh[/*FIREPIO[*/x/*]*/] = '1;
             end
         end
     end
@@ -66,14 +79,14 @@ module wired_mdu_iq #(
     // UPD0: 0 1 2 3
     // UPD1: 3 2 1 0
     logic [1:0][IQ_SIZE-1:0] upd_sel_oh;
-    localparam integer UPDPIO [IQ_SIZE-1:0] = {1,0};
+    // localparam integer UPDPIO [IQ_SIZE-1:0] = {1,0};
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENUPD_PER_MDU
         always_comb begin
             upd_sel_oh[i] = '0;
             for(integer x = IQ_SIZE-1 ; x >= 0 ; x -= 1) begin
-                if(empty_q[(IQ_SIZE-1-2*UPDPIO[x])*i + UPDPIO[x]]) begin 
+                if(empty_q[(IQ_SIZE-1-2*/*UPDPIO[*/x/*]*/)*i + /*UPDPIO[*/x/*]*/]) begin 
                     upd_sel_oh[i] = '0;
-                    upd_sel_oh[i][(IQ_SIZE-1-2*UPDPIO[x])*i + UPDPIO[x]] = '1;
+                    upd_sel_oh[i][(IQ_SIZE-1-2*/*UPDPIO[*/x/*]*/)*i + /*UPDPIO[*/x/*]*/] = '1;
                 end
             end
         end
@@ -82,8 +95,8 @@ module wired_mdu_iq #(
     // CDB 接口上的 FIFO 队列， 不满的时候才可以以发射指令到 FU 执行，一旦有一个 FIFO 满，就阻止指令发射。
     // 这样保证在 ALU 中的两条指令起步走，转发的两个源头也是齐步走的
     wire excute_valid = |fire_sel_oh; // 标记 Excute 级的两个执行槽是否有效
-    logic [2:0] free_cnt_q;
-    wire  [2:0] free_cnt = free_cnt_q - p_valid_i[0] - p_valid_i[1] + (excute_ready&excute_valid);
+    logic [$clog2(IQ_SIZE):0] free_cnt_q;
+    wire  [$clog2(IQ_SIZE):0] free_cnt = free_cnt_q - p_valid_i[0] - p_valid_i[1] + (excute_ready&excute_valid);
     always_ff @(posedge clk) begin
         if(!rst_n || flush_i) begin
             free_cnt_q <= IQ_SIZE;
@@ -97,9 +110,10 @@ module wired_mdu_iq #(
 
     // Reserve station static entry 定义
     typedef struct packed {
-        decode_info_mdu_t di;
-        logic[31:0] pc; // 仅供调试用
+        logic[1:0] alu_op;
+        // logic[31:0] pc; // 仅供调试用
         rob_rid_t wreg;
+        logic div_inst;
     } iq_static_t;
     // 输入给 IQ 的 static 信息
     iq_static_t [1:0] p_static;
@@ -112,9 +126,10 @@ module wired_mdu_iq #(
     // 解包信息
     for(genvar i = 0 ; i < 2 ; i += 1) begin
         always_comb begin
-            p_static[i].di       = get_mdu_from_p(p_ctrl_i[i].di);
-            p_static[i].pc       = p_ctrl_i[i].pc;
+            p_static[i].alu_op   = p_ctrl_i[i].di.alu_op;
+            // p_static[i].pc       = p_ctrl_i[i].pc;
             p_static[i].wreg     = p_ctrl_i[i].wreg.rob_id;
+            p_static[i].div_inst = p_ctrl_i[i].di.div_inst;
         end
     end
 
@@ -176,8 +191,11 @@ module wired_mdu_iq #(
         end
     end
     // 连接到 MDU
-    assign ex_valid_o   = excute_valid_q;
-    assign ex_req_o.op  = sel_static_q.di.alu_op[1:0];
+    assign ex_valid_o   = excute_valid_q; // fake line
+    assign ex_ready_i   = sel_static_q.div_inst ? ex_div_ready_i : ex_mul_ready_i;
+    assign ex_mul_valid_o = !sel_static_q.div_inst && ex_valid_o;
+    assign ex_div_valid_o =  sel_static_q.div_inst && ex_valid_o;
+    assign ex_req_o.op  = sel_static_q.alu_op;
     assign ex_req_o.r0  = sel_data_q[0];
     assign ex_req_o.r1  = sel_data_q[1];
     assign ex_req_o.wid = sel_static_q.wreg;
@@ -193,9 +211,11 @@ module wired_mdu_iq #(
     wired_commit_fifo(
         .clk(clk),
         .rst_n(rst_n && !flush_i),
-        .inport_valid_i(ex_valid_i),
+        .inport_valid_i(ex_mul_valid_i | ex_div_valid_i),
         .inport_ready_o(ex_ready_o),
-        .inport_payload_i({ex_resp_i.wid, ex_resp_i.result}),
+        .inport_payload_i(ex_div_valid_i ? {
+             ex_div_resp_i.wid, ex_div_resp_i.result} : {
+             ex_mul_resp_i.wid, ex_mul_resp_i.result}),
         .outport_valid_o(cdb_o.valid),
         .outport_ready_i(cdb_ready_i),
         .outport_payload_o({c_rid, c_wdata})

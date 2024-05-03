@@ -50,13 +50,13 @@ module wired_alu_iq #(
 
     // 如示例：
     // IQ:   0 1 2 3 4 5 6 7
-    // ALU0: 0 1 2 3 4 5
-    // ALU1:     5 4 3 2 1 0
+    // ALU0: 0 1 2 3 4 5 6 7
+    // ALU1: 7 6 5 4 3 2 1 0
     // UPD0: 3 2 1 0 7 6 5 4
     // UPD1: 4 5 6 7 0 1 2 3
     logic [1:0][IQ_SIZE-1:0] fire_sel_oh;
     localparam integer FIREPIO [IQ_SIZE-1:0] = {7,6,5,4,3,2,1,0};
-    localparam integer FIRERANGE = 3 * IQ_SIZE / 4; // [IQ_SIZE/2, IQ_SIZE]
+    localparam integer FIRERANGE = 6 * IQ_SIZE / 8; // [IQ_SIZE/2, IQ_SIZE]
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENFIRE_PER_ALU
         always_comb begin
             fire_sel_oh[i] = '0;
@@ -187,8 +187,8 @@ module wired_alu_iq #(
                 end
             end
         end
-        assign excute_valid[0] = |fire_rdy_q[5:0];
-        assign excute_valid[1] = (|fire_rdy_q[7:2]) && (fire_sel_oh[0] != fire_sel_oh[1]);
+        assign excute_valid[0] = |fire_rdy_q[FIRERANGE-1:0];
+        assign excute_valid[1] = (|fire_rdy_q[IQ_SIZE-1:IQ_SIZE-FIRERANGE]) && (fire_sel_oh[0] != fire_sel_oh[1]);
     end
     always_ff @(posedge clk) begin
         if(excute_ready) begin

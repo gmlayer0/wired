@@ -199,8 +199,8 @@ module wired_backend #(
   /* 分发级 P */
   wire alu_ready;
   wire lsu_ready;
-  wire mul_ready;
-  wire div_ready;
+  wire mdu_ready;
+  // wire div_ready;
   wire fpu_ready;
   wire fcc_ready;
   wire [1:0] p_issue; // 是否有指令被提交
@@ -208,7 +208,7 @@ module wired_backend #(
   pipeline_data_t [1:0] p_data, p_data_q;
   logic [1:0] p_valid_mask_q;
   assign p_issue = p_valid_mask_q & {r_p_ready, r_p_ready} & {~c_flush, ~c_flush};
-  assign r_p_ready = alu_ready & lsu_ready & mul_ready & div_ready & fpu_ready & fcc_ready;
+  assign r_p_ready = alu_ready & lsu_ready & mdu_ready/* & div_ready*/ & fpu_ready & fcc_ready;
   always_ff @(posedge clk) begin
     if(!rst_n || c_flush) begin
       p_valid_mask_q <= '0;
@@ -306,13 +306,16 @@ module wired_backend #(
   always_ff @(posedge clk) wkup_bus_stack[1][2:0] <= wkup_bus_stack[0][2:0];
 
   // CDB 仲裁信号
-  localparam CDB_MAX_COUNT = 7;
+  localparam CDB_MAX_COUNT = 6;
   logic [CDB_MAX_COUNT-1:0] raw_cdb_ready;
   pipeline_cdb_t [CDB_MAX_COUNT-1:0]  raw_cdb;
   wire [1:0] ifet_excp = {(|p_pkg_q[1].excp), (|p_pkg_q[0].excp)};
   wire [1:0] lsu_valid = p_issue & {p_pkg_q[1].di.lsu_inst,p_pkg_q[0].di.lsu_inst} & ~ifet_excp;
-  wire [1:0] div_valid = p_issue & {p_pkg_q[1].di.div_inst,p_pkg_q[0].di.div_inst} & ~ifet_excp;
-  wire [1:0] mul_valid = p_issue & {p_pkg_q[1].di.mul_inst,p_pkg_q[0].di.mul_inst} & ~ifet_excp;
+  // wire [1:0] div_valid = p_issue & {p_pkg_q[1].di.div_inst,p_pkg_q[0].di.div_inst} & ~ifet_excp;
+  wire [1:0] mdu_valid = p_issue & (
+    {p_pkg_q[1].di.mul_inst,p_pkg_q[0].di.mul_inst} | 
+    {p_pkg_q[1].di.div_inst,p_pkg_q[0].di.div_inst}
+    ) & ~ifet_excp;
   wire fpu_valid = p_issue[0] & p_pkg_q[0].di.fpu_inst & ~ifet_excp[0];
   wire fcc_valid = p_issue[0] & p_pkg_q[0].di.fbranch_inst & ~ifet_excp[0];
   wire [1:0] alu_valid = p_issue & ({p_pkg_q[1].di.alu_inst,p_pkg_q[0].di.alu_inst} | ifet_excp); // 取指阶段存在异常的指令全部送入 ALU
@@ -454,48 +457,36 @@ module wired_backend #(
   // MDU 例化
   logic ex_mul_req_valid, ex_mul_req_ready, ex_mul_resp_valid, ex_mul_resp_ready;
   logic ex_div_req_valid, ex_div_req_ready, ex_div_resp_valid, ex_div_resp_ready;
-  iq_mdu_req_t ex_mul_req, ex_div_req;
+  iq_mdu_req_t ex_muldiv_req;
   iq_mdu_resp_t ex_mul_resp, ex_div_resp;
-  wired_mdu_iq wired_mul_iq_inst (
+  wired_mdu_iq wired_muldiv_iq_inst (
     `_WIRED_GENERAL_CONN,
     .p_ctrl_i(p_pkg_q),
     .p_data_i(p_data),
-    .p_valid_i(mul_valid),
-    .p_ready_o(mul_ready),
+    .p_valid_i(mdu_valid),
+    .p_ready_o(mdu_ready),
     .cdb_o(raw_cdb[3]),
     .cdb_ready_i(raw_cdb_ready[3]),
     .cdb_i(cdb),
     .flush_i(c_flush),
-    .ex_valid_o(ex_mul_req_valid),
-    .ex_ready_i(ex_mul_req_ready),
-    .ex_req_o(ex_mul_req),
-    .ex_valid_i(ex_mul_resp_valid),
-    .ex_ready_o(ex_mul_resp_ready),
-    .ex_resp_i(ex_mul_resp)
-  );
-  wired_mdu_iq wired_div_iq_inst (
-    `_WIRED_GENERAL_CONN,
-    .p_ctrl_i(p_pkg_q),
-    .p_data_i(p_data),
-    .p_valid_i(div_valid),
-    .p_ready_o(div_ready),
-    .cdb_o(raw_cdb[4]),
-    .cdb_ready_i(raw_cdb_ready[4]),
-    .cdb_i(cdb),
-    .flush_i(c_flush),
-    .ex_valid_o(ex_div_req_valid),
-    .ex_ready_i(ex_div_req_ready),
-    .ex_req_o(ex_div_req),
-    .ex_valid_i(ex_div_resp_valid),
-    .ex_ready_o(ex_div_resp_ready),
-    .ex_resp_i(ex_div_resp)
+    .ex_mul_valid_o(ex_mul_req_valid),
+    .ex_mul_ready_i(ex_mul_req_ready),
+    .ex_div_valid_o(ex_div_req_valid),
+    .ex_div_ready_i(ex_div_req_ready),
+    .ex_req_o(ex_muldiv_req),
+    .ex_mul_valid_i(ex_mul_resp_valid),
+    .ex_mul_ready_o(ex_mul_resp_ready),
+    .ex_mul_resp_i(ex_mul_resp),
+    .ex_div_valid_i(ex_div_resp_valid),
+    .ex_div_ready_o(ex_div_resp_ready),
+    .ex_div_resp_i(ex_div_resp)
   );
   wired_ex_muler wired_ex_muler_inst (
     `_WIRED_GENERAL_CONN,
     .flush_i(c_flush),
     .valid_i(ex_mul_req_valid),
     .ready_o(ex_mul_req_ready),
-    .req_i(ex_mul_req),
+    .req_i(ex_muldiv_req),
     .ready_i(ex_mul_resp_ready),
     .valid_o(ex_mul_resp_valid),
     .resp_o(ex_mul_resp)
@@ -505,7 +496,7 @@ module wired_backend #(
     .flush_i(c_flush),
     .valid_i(ex_div_req_valid),
     .ready_o(ex_div_req_ready),
-    .req_i(ex_div_req),
+    .req_i(ex_muldiv_req),
     .ready_i(ex_div_resp_ready),
     .valid_o(ex_div_resp_valid),
     .resp_o(ex_div_resp)
@@ -524,8 +515,8 @@ module wired_backend #(
     .p_data_i(p_data[0]),
     .p_valid_i(fpu_valid),
     .p_ready_o(fpu_ready),
-    .cdb_o(raw_cdb[5]),
-    .cdb_ready_i(raw_cdb_ready[5]),
+    .cdb_o(raw_cdb[4]),
+    .cdb_ready_i(raw_cdb_ready[4]),
     .cdb_i(cdb),
     .flush_i(c_flush),
     .ex_valid_o(ex_fpu_req_valid),
@@ -544,8 +535,8 @@ module wired_backend #(
     .p_data_i(p_data[0]),
     .p_valid_i(fcc_valid),
     .p_ready_o(fcc_ready),
-    .cdb_o(raw_cdb[6]),
-    .cdb_ready_i(raw_cdb_ready[6]),
+    .cdb_o(raw_cdb[5]),
+    .cdb_ready_i(raw_cdb_ready[5]),
     .cdb_i(cdb),
     .flush_i(c_flush),
     .ex_valid_o(ex_fcc_req_valid),
