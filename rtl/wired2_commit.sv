@@ -794,7 +794,7 @@ module wired_commit #(
                     l_retire = h_valid_inst_q;
                     l_commit = h_valid_inst_q;
                     fsm = S_NORMAL; // 对于 Uncached store ，不需要 refresh 流水线
-                    c_lsu_req_o.dbarrier_unlock = '1; // 但是需要解除 dbar
+                    if(`_WIRED_UNCACHE_DBAR) c_lsu_req_o.dbarrier_unlock = '1; // 但是需要解除 dbar
                     c_lsu_req_o.storebuf_commit = '1;
                 end
             end
@@ -1067,7 +1067,7 @@ end
                 // $display("%p", excute_cycle);
                 $display("succ: %d fail: %d, frac: %f", succ_cnt, fail_cnt, 100.0 * succ_cnt / (succ_cnt + fail_cnt));
                 $display("Flush count: %d", flush_cnt);
-                // $finish();
+                $finish();
             end
         end
         // 分支预测监视器

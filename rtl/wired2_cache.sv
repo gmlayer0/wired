@@ -316,7 +316,7 @@ always_comb begin
   m1_gat.wid       = m1.wid;     m1_gat.wreq      = m1.wreq;
   m1_gat.strb      = m1.strb;    m1_gat.wdata     = m1.wdata;
   m1_gat.uncache   = m1.uncache; m1_gat.cacop     = m1.cacop;
-  m1_gat.dbar      = m1.dbar || (m1.uncache && ENABLE_SC_UNCACHE);
+  m1_gat.dbar      = m1.dbar || (m1.uncache && ENABLE_SC_UNCACHE && `_WIRED_UNCACHE_DBAR);
   m1_gat.llsc      = m1.llsc;    m1_gat.hit       = m1_rhit;
   m1_gat.any_rhit  = |m1_rhit;   m1_gat.any_whit  = |m1_whit;
   m1_gat.sb_hit    = m1_sb_hit;  m1_gat.any_sbhit = |m1_sb_hit;
@@ -369,6 +369,7 @@ iq_lsu_resp_t resp;
 logic [PKG_SIZE-1:0] resp_pkg;
 // 状态机局部数据存储
 typedef struct packed {
+  logic      unc_pending;
   logic      unc_msigned;
   logic [1:0]  unc_msize;
   logic [31:0] unc_paddr;
@@ -379,7 +380,17 @@ m2_var_t m2_var_q;
 // logic [3:0]  sb_mhit_mask;
 // logic [3:0]  sb_fwd_mask;
 // logic [31:0] sb_fwd_data;
-always_ff @(posedge clk) m2_var_q <= m2_var;
+always_ff @(posedge clk) begin
+  if(!rst_n || flush_i) begin
+    m2_var_q.unc_pending <= '0; // the only signal that need tobe reset.
+    m2_var_q.unc_msigned <= m2_var_q.unc_msigned;
+    m2_var_q.unc_msize   <= m2_var_q.unc_msize;
+    m2_var_q.unc_paddr   <= m2_var_q.unc_paddr;
+    m2_var_q.fsm_rdata   <= m2_var_q.fsm_rdata;
+  end else begin
+    m2_var_q <= m2_var;
+  end
+end
 always_comb begin
   // wkup slice
   wkup_regslice = wkup_regslice_q;
@@ -492,9 +503,12 @@ always_comb begin
           m2_stall = !resp_ready; // resp 不 ready 的时候也得阻塞住
           resp_valid = '1;
           if(!m2_q.found_excp) begin
-            if(!m2_q.uncache && m2_q.cacop == RD_ALLOC && 
-            (!m2_q.any_rhit || (!m2_q.any_whit && m2_q.llsc)) && 
-             !(!m2_q.llsc && m2_q.any_sbhit && m2_q.sb_strb == '1)) begin // 未命中（rhit for all || whit for ll.w）的 cached 读请求
+            if(
+              !m2_q.uncache &&
+               m2_q.cacop == RD_ALLOC &&
+             (!m2_q.any_rhit || (!m2_q.any_whit && m2_q.llsc)) &&
+            !(!m2_q.llsc && m2_q.any_sbhit && m2_q.sb_strb == '1)
+            ) begin // 未命中（rhit for all || whit for ll.w）的 cached 读请求
               if(!m2_q.any_sbhit) fsm = S_MREFILL; // 如果命中 store buffer，等着就好了。
               m2_stall = '1;
               resp_valid = '0;
@@ -502,7 +516,19 @@ always_comb begin
               fsm = S_MUCLOAD;
               m2_stall = '1;
               resp_valid = '0;
-            end /*else if(m2_q.wreq && (sb_mhit_mask & m2_q.strb) != '0) begin // 重叠的写请求
+            end else if(ENABLE_SC_UNCACHE && m2_q.uncache) begin
+              if(m2_var_q.unc_pending) begin
+                m2_stall = '1; // 等待上一个 pending 的 uncached 请求处理完成
+                resp_valid = '0;
+              end else begin
+                m2_var.unc_msigned = m2_q.msigned;
+                m2_var.unc_msize = m2_q.msize;
+                m2_var.unc_paddr = m2_q.paddr;
+              end
+              if(!m2_stall) begin
+                m2_var.unc_pending = '1;
+              end
+            end/*else if(m2_q.wreq && (sb_mhit_mask & m2_q.strb) != '0) begin // 重叠的写请求
               // 由于这条指令在 M2 级别，也就是写入过 SB 的最新指令，后续指令在这条指令前进之前，不会写 SB。
               // mod = M_WAITSB;
               m2_stall = '1;
@@ -514,10 +540,6 @@ always_comb begin
             end
           end
           if(!m2_stall && m2_q.dbar) begin
-            // 记录产生阻塞效果指令的物理地址（主要是 uncached load/store）
-            m2_var.unc_msigned = m2_q.msigned;
-            m2_var.unc_msize = m2_q.msize;
-            m2_var.unc_paddr = m2_q.paddr;
             // 阻塞住下一条指令
             mod = M_DBAR;
           end
@@ -577,6 +599,7 @@ always_comb begin
       c_lsu_resp_o.ready = bus_resp_i.ready;
       if(bus_resp_i.ready) begin
           fsm = S_NORMAL;
+          m2_var.unc_pending = '0;
       end
   end
   S_CUCSTRD: begin
@@ -586,6 +609,7 @@ always_comb begin
       c_lsu_resp_o.ready = bus_resp_i.ready;
       if(bus_resp_i.ready) begin
           fsm = S_NORMAL;
+          m2_var.unc_pending = '0;
       end
   end
   S_CREFILL: begin

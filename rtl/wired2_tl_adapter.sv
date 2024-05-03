@@ -267,6 +267,25 @@ module wired_tl_adapter import tl_pkg::*; #(
                 fsm_q <= fsm;
             end
         end
+        logic ustore_fifo_valid, ustore_fifo_ready;
+        logic ustore_valid, ustore_ready;
+        logic[31:0] ustore_addr, ustore_data;
+        logic[1:0]  ustore_size;
+        wired_fifo #(
+            .DATA_WIDTH(32+32+2), // size, addr, data
+            .DEPTH(16),
+            .BYPASS(1)
+        )
+        wired_ustore_fifo(
+            .clk(clk),
+            .rst_n(rst_n),
+            .inport_valid_i(ustore_fifo_valid),
+            .inport_ready_o(ustore_fifo_ready),
+            .inport_payload_i({bus_req_i.size,bus_req_i.target_paddr,bus_req_i.wdata}),
+            .outport_valid_o(ustore_valid),
+            .outport_ready_i(ustore_ready),
+            .outport_payload_o({ustore_size, ustore_addr, ustore_data})
+        );
         typedef struct packed {
             logic  [1:0] size;
             logic [31:0] addr; // 目标地址
@@ -287,6 +306,9 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
         end
         always_comb begin
+            // FIFO Controll
+            ustore_fifo_valid = '0;
+            ustore_ready = '0;
             fsm = fsm_q;
             d   = q;
             // inv call
@@ -324,18 +346,20 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
             case (fsm_q)
             /*S_FREE*/default:begin
+                ustore_fifo_valid = bus_req_i.uncached_store_req;
+                ustore_ready = '1;
                 if(bus_req_i.valid) begin
                     if(bus_req_i.uncached_load_req) begin
                             fsm = S_ULD;
                             d.size = bus_req_i.size;
                             d.addr = bus_req_i.target_paddr;
                     end
-                    if(bus_req_i.uncached_store_req) begin
+                    if(ustore_valid) begin
                             fsm = S_UST;
                             bus_resp_o.ready = '1; // 立即返回
-                            d.size = bus_req_i.size;
-                            d.addr = bus_req_i.target_paddr;
-                            d.data[31:0] = bus_req_i.wdata;
+                            d.size = ustore_size;
+                            d.addr = ustore_addr;
+                            d.data[31:0] = ustore_data;
                     end
                     if(bus_req_i.inv_req != NOT_VALID_INV_PARM) begin
                             fsm = S_INV;
@@ -355,8 +379,18 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_UST: begin
                 crq_unc_cal = '1;
                 crq_unc_wreq = '1;
+                ustore_fifo_valid = bus_req_i.uncached_store_req;
+                bus_resp_o.ready = bus_req_i.uncached_store_req && ustore_fifo_ready;
                 if(crq_unc_ret) begin
-                    fsm = S_FREE;
+                    ustore_ready = '1;
+                    if(ustore_valid) begin
+                        // FIFO 中还有请求
+                        d.size = ustore_size;
+                        d.addr = ustore_addr;
+                        d.data[31:0] = ustore_data;
+                    end else begin
+                        fsm = S_FREE;
+                    end
                 end
             end
             S_INV: begin

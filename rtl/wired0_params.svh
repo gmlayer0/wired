@@ -33,6 +33,8 @@
 
 `define _WIRED_TDP_ARF // 使用真双口寄存器堆实现 ARF/RENAME ，以实现更高效率的后端流水线
 
+`define _WIRED_UNCACHE_DBAR 0 // 定义 USTORE 指令是否会产生 Barrier 效果
+
 // TLB RELATED
 `define _WIRED_PARAM_TLB_CNT 32
 
