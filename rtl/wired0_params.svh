@@ -5,7 +5,8 @@
 
 // Frontend
 `define _WIRED_PARAM_RAS_ADDR_LEN 3
-`define _WIRED_PARAM_BHT_DATA_LEN 12
+`define _WIRED_PARAM_BHT_HISTORY_LEN 5
+`define _WIRED_PARAM_BHT_PC_LEN 8
 
 // Backend
 `define _WIRED_PARAM_ENABLE_FPU

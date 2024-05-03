@@ -22,7 +22,7 @@ typedef struct packed {
     // logic pc_off;
     logic [                31:0]           predict_pc ;
     logic [                 1:0]           lphr       ;
-    logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history    ;
+    logic [`_WIRED_PARAM_BHT_HISTORY_LEN-1:0] history  ;
     bpu_target_type_e                      target_type;
     logic                                  dir_type   ;
     logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0] ras_ptr;
@@ -36,7 +36,7 @@ typedef struct packed {
     logic [31:0]                           true_target;
     logic [31:0]                            btb_target;
     logic [1:0]                            lphr       ;
-    logic [`_WIRED_PARAM_BHT_DATA_LEN-1:0] history    ;
+    logic [`_WIRED_PARAM_BHT_HISTORY_LEN-1:0] history ;
     bpu_target_type_e                 true_target_type;
     logic                         true_conditional_jmp;
     logic [`_WIRED_PARAM_RAS_ADDR_LEN-1:0]     ras_ptr;
