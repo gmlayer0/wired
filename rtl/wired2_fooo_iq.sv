@@ -7,7 +7,7 @@
 // 注意，此模块乱序发出浮点指令，cvfpu 也是乱序执行，先执行结束的先返回，尽可能的挖掘指令潜在的并行性。
 
 module wired_fooo_iq #(
-    parameter int IQ_SIZE = 4 // 不用很大，4 项即可
+    parameter int IQ_SIZE = 2 // 不用很大，2 项即可
 )(
     `_WIRED_GENERAL_DEFINE,
 
@@ -51,7 +51,7 @@ module wired_fooo_iq #(
     // UPD0: 0 1 2 3
     // UPD1: 3 2 1 0
     logic [IQ_SIZE-1:0] fire_sel_oh;
-    localparam integer FIREPIO [IQ_SIZE-1:0] = {3,2,1,0};
+    localparam integer FIREPIO [IQ_SIZE-1:0] = {1,0};
     always_comb begin
         fire_sel_oh = '0;
         for(integer x = IQ_SIZE-1 ; x >= 0 ; x -= 1) begin
@@ -68,7 +68,7 @@ module wired_fooo_iq #(
     // UPD0: 0 1 2 3
     // UPD1: 3 2 1 0
     logic [1:0][IQ_SIZE-1:0] upd_sel_oh;
-    localparam integer UPDPIO [IQ_SIZE-1:0] = {3,2,1,0};
+    localparam integer UPDPIO [IQ_SIZE-1:0] = {1,0};
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENUPD_PER_MDU
         always_comb begin
             upd_sel_oh[i] = '0;

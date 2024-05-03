@@ -159,6 +159,7 @@ module wired_lsu_iq #(
             .empty_o(empty_q[i]),
             .ready_mask_i('0),
             .ready_o(fire_rdy_q[i]),
+            .data_ready_o(),
             .data_o(iq_data[i]),
             .payload_o(iq_static[i])
         );

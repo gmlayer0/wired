@@ -49,7 +49,7 @@ module wired_mdu_iq #(
     // UPD0: 0 1 2 3
     // UPD1: 3 2 1 0
     logic [IQ_SIZE-1:0] fire_sel_oh;
-    localparam integer FIREPIO [IQ_SIZE-1:0] = {3,2,1,0};
+    localparam integer FIREPIO [IQ_SIZE-1:0] = {1,0};
     always_comb begin
         fire_sel_oh = '0;
         for(integer x = IQ_SIZE-1 ; x >= 0 ; x -= 1) begin
@@ -66,7 +66,7 @@ module wired_mdu_iq #(
     // UPD0: 0 1 2 3
     // UPD1: 3 2 1 0
     logic [1:0][IQ_SIZE-1:0] upd_sel_oh;
-    localparam integer UPDPIO [IQ_SIZE-1:0] = {3,2,1,0};
+    localparam integer UPDPIO [IQ_SIZE-1:0] = {1,0};
     for(genvar i = 0 ; i < 2 ; i += 1) begin : GENUPD_PER_MDU
         always_comb begin
             upd_sel_oh[i] = '0;

@@ -3,7 +3,7 @@
 // Fuction module for Wired project
 // FPU inorder issue queue
 module wired_finorder_iq #(
-    parameter int IQ_SIZE = 4, // 不用很大，4 项即可
+    parameter int IQ_SIZE = 2, // 不用很大，2 项即可
     parameter int WAKEUP_SRC_CNT = 1
 )(
     `_WIRED_GENERAL_DEFINE,
