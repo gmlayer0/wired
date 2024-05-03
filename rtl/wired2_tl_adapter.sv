@@ -273,7 +273,7 @@ module wired_tl_adapter import tl_pkg::*; #(
         logic[1:0]  ustore_size;
         wired_fifo #(
             .DATA_WIDTH(32+32+2), // size, addr, data
-            .DEPTH(16),
+            .DEPTH(`_WIRED_USTORE_DEPTH),
             .BYPASS(1)
         )
         wired_ustore_fifo(

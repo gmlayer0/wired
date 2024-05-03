@@ -35,6 +35,8 @@
 
 `define _WIRED_UNCACHE_DBAR 0 // 定义 USTORE 指令是否会产生 Barrier 效果
 
+`define _WIRED_USTORE_DEPTH 32
+
 // TLB RELATED
 `define _WIRED_PARAM_TLB_CNT 32
 
