@@ -8,7 +8,7 @@ module tl_axi_adapter import tl_pkg::*; #(
   parameter  int unsigned DataWidth   = 64,
   parameter  int unsigned AddrWidth   = 56,
   parameter  int unsigned SourceWidth = 1,
-  parameter  int unsigned MaxSize     = 6,
+  parameter  int unsigned MaxSize     = 4,
   parameter  int unsigned IdWidth     = SourceWidth
 ) (
   input  logic clk_i,
@@ -240,7 +240,7 @@ module tl_axi_adapter import tl_pkg::*; #(
     device_aw = 'x;
     device_aw.burst  = wired_axi_pkg::BURST_INCR;
     device_aw.lock   = '0;
-    device_aw.cache  = '0;
+    device_aw.cache  = (host_a.size == MaxSize) ? '1 : '0;
     device_aw.prot   = '0;
     device_aw.qos    = '0;
     device_aw.region = '0;
@@ -250,7 +250,7 @@ module tl_axi_adapter import tl_pkg::*; #(
     device_ar = 'x;
     device_ar.burst  = wired_axi_pkg::BURST_INCR;
     device_ar.lock   = '0;
-    device_ar.cache  = '0;
+    device_ar.cache  = (host_a.size == MaxSize) ? '1 : '0;
     device_ar.prot   = '0;
     device_ar.qos    = '0;
     device_ar.region = '0;
