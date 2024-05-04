@@ -552,7 +552,7 @@ module wired_backend #(
                 '{6, 8, 3, 3, 3}, // ADDMUL
                 '{default: 21}, // DIVSQRT
                 '{default: 3}, // NONCOMP
-                '{default: 3}}, // CONV
+                '{default: 10}}, // CONV
     UnitTypes: '{'{default: fpnew_pkg::MERGED},   // ADDMUL
                 '{default: fpnew_pkg::MERGED},   // DIVSQRT
                 '{default: fpnew_pkg::PARALLEL}, // NONCOMP
