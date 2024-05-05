@@ -307,7 +307,7 @@ always_ff @(posedge clk) begin
 end
 
 m2_pack_t m1_gat; // 收集(gather) M1 侧的数据，生成 m2 数据
-(*mark_debug="true"*)m2_pack_t m2_q;
+m2_pack_t m2_q;
 always_ff @(posedge clk) if(!m2_stall) m2_q <= m1_gat;
 always_comb begin
   m1_gat = '0;

@@ -855,7 +855,7 @@ module wired_commit #(
     assign csr_o = csr_q;
 
     // 连接差分测试
-    (*mark_debug="true"*) rob_entry_t [1:0] df_entry_q;
+    rob_entry_t [1:0] df_entry_q;
     always_ff @(posedge clk) df_entry_q <= h_entry_q;
 if(ENABLE_DIFFTEST) begin
   logic[63:0][31:0] ref_regs;
