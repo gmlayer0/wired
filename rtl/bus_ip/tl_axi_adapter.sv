@@ -322,7 +322,7 @@ module tl_axi_adapter import tl_pkg::*; #(
       host_d_mult[HostDIdxR].param = 0;
       host_d_mult[HostDIdxR].size = tracker_info_q[device_r.id];
       host_d_mult[HostDIdxR].source = device_r.id;
-      host_d_mult[HostDIdxR].denied = device_r.resp[1];
+      host_d_mult[HostDIdxR].denied = /*device_r.resp[1]*/'0;
       host_d_mult[HostDIdxR].corrupt = 1'b0;
       host_d_mult[HostDIdxR].data = device_r.data;
     end
@@ -340,7 +340,7 @@ module tl_axi_adapter import tl_pkg::*; #(
       host_d_mult[HostDIdxB].param = 0;
       host_d_mult[HostDIdxB].size = tracker_info_q[device_b.id];
       host_d_mult[HostDIdxB].source = device_b.id;
-      host_d_mult[HostDIdxB].denied = device_b.resp[1];
+      host_d_mult[HostDIdxB].denied = /*device_b.resp[1]*/'0;
       host_d_mult[HostDIdxB].corrupt = 1'b0;
       host_d_mult[HostDIdxB].data = 'x;
     end

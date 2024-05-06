@@ -1,31 +1,31 @@
 `include "wired0_defines.svh"
 
-module opram_64x1(
+module opram_32x2(
     input  wire        CLK,
     input  wire        CEN, 
     input  wire        WEN,
-    input  wire [5:0] A0,
-    input  wire [5:0] A1,
-    input  wire [5:0] A2,
-    input  wire [5:0] A3,
-    input  wire [5:0] A4,
-    input  wire [5:0] A5,
-    input  wire [5:0] A6,
-    input  wire [5:0] AW,
-    input  wire       DI,
-    output wire       Q0,
-    output wire       Q1,
-    output wire       Q2,
-    output wire       Q3,
-    output wire       Q4,
-    output wire       Q5,
-    output wire       Q6
+    input  wire [4:0] A0,
+    input  wire [4:0] A1,
+    input  wire [4:0] A2,
+    input  wire [4:0] A3,
+    input  wire [4:0] A4,
+    input  wire [4:0] A5,
+    input  wire [4:0] A6,
+    input  wire [4:0] AW,
+    input  wire [1:0] DI,
+    output wire [1:0] Q0,
+    output wire [1:0] Q1,
+    output wire [1:0] Q2,
+    output wire [1:0] Q3,
+    output wire [1:0] Q4,
+    output wire [1:0] Q5,
+    output wire [1:0] Q6
 );
 
 wire Q7; // Not used
 
 `ifdef _FPGA
-RAM64M8 #(
+  RAM32M16 #(
    .INIT_A(64'h0000000000000000), // Initial contents of A Port
    .INIT_B(64'h0000000000000000), // Initial contents of B Port
    .INIT_C(64'h0000000000000000), // Initial contents of C Port
@@ -35,7 +35,7 @@ RAM64M8 #(
    .INIT_G(64'h0000000000000000), // Initial contents of G Port
    .INIT_H(64'h0000000000000000), // Initial contents of H Port
    .IS_WCLK_INVERTED(1'b0)        // Specifies active high/low WCLK
-) RAM64M8_inst (
+) RAM32M16_inst (
    .DOA(Q0),     // Read port A 1-bit output
    .DOB(Q1),     // Read port B 1-bit output
    .DOC(Q2),     // Read port C 1-bit output
@@ -67,7 +67,7 @@ RAM64M8 #(
 
 `ifndef _FPGA
 
-    reg ram [63:0];
+    reg [1:0] ram [31:0];
     assign Q0 = ram[A0];
     assign Q1 = ram[A1];
     assign Q2 = ram[A2];

@@ -1,6 +1,6 @@
 // THIS MODULE IS FPGA ONLY
-
-module fpga_ram_3r1w_32d#(
+`include "wired0_defines.svh"
+module fpga_ram_3r1w_64d#(
     parameter int WIDTH = 32
 )( 
     input                          clk,
@@ -15,7 +15,7 @@ module fpga_ram_3r1w_32d#(
     input                          wea
 );
 
-    for(genvar i = 0 ; i < WIDTH; i++) begin
+    for(genvar i = 0 ; i < WIDTH; i++) begin : gen_qpram
         qpram_64x1 qpram_inst(
             .CLK(clk),
             .CEN(1'b1), 

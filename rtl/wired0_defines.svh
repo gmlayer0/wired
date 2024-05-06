@@ -3,6 +3,7 @@
 
 `define _VERILATOR
 // `define _ASIC
+// `define _FPGA
 
 `include "fpnew_pkg.svh"
 `include "wired0_params.svh"

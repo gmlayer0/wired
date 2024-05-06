@@ -36,7 +36,7 @@
 
 `define _WIRED_UNCACHE_DBAR 1 // 定义 USTORE 指令是否会产生 Barrier 效果
 
-`define _WIRED_USTORE_DEPTH 2
+`define _WIRED_USTORE_DEPTH 1 // 注意，对于内存序要求高的场景一定要配置为 0 ，否则有概率卡死
 
 // TLB RELATED
 `define _WIRED_PARAM_TLB_CNT 32

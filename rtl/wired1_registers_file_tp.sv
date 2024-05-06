@@ -4,7 +4,7 @@ module wired_registers_file_tp #(
     parameter int unsigned DATA_WIDTH = 32,
     parameter int unsigned DEPTH = 32,
     parameter int unsigned R_PORT_COUNT = 2,
-    parameter REGISTERS_FILE_TYPE = "ff", // optional: ff, latch
+    parameter int unsigned REGISTERS_FILE_TYPE = 0, // optional: 0:ff, 1:latch
     parameter bit NEED_RESET = 0,
     parameter bit NEED_FORWARD = 0,
     parameter logic[DEPTH-1:0][DATA_WIDTH-1:0] RESET_VAL = '0,
@@ -22,7 +22,7 @@ module wired_registers_file_tp #(
 );
 
     wire [DEPTH-1:0][DATA_WIDTH-1:0] regfiles;
-    if(REGISTERS_FILE_TYPE == "ff") begin
+    if(REGISTERS_FILE_TYPE == 0 || REGISTERS_FILE_TYPE == 1) begin
         wired_registers_file_ff_tp #(
             .DATA_WIDTH(DATA_WIDTH),
             .DEPTH(DEPTH),

@@ -346,17 +346,17 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
             case (fsm_q)
             /*S_FREE*/default:begin
-                ustore_fifo_valid = bus_req_i.uncached_store_req;
-                ustore_ready = '1;
+                if(`_WIRED_USTORE_DEPTH != 1) ustore_fifo_valid = bus_req_i.uncached_store_req;
+                if(`_WIRED_USTORE_DEPTH != 1) ustore_ready = '1;
                 if(bus_req_i.valid) begin
                     if(bus_req_i.uncached_load_req) begin
                             fsm = S_ULD;
                             d.size = bus_req_i.size;
                             d.addr = bus_req_i.target_paddr;
                     end
-                    if(ustore_valid) begin
+                    if(bus_req_i.uncached_store_req) begin
                             fsm = S_UST;
-                            bus_resp_o.ready = '1; // 立即返回
+                            if(`_WIRED_USTORE_DEPTH != 1) bus_resp_o.ready = '1; // 内存序要求不高时可以直接返回
                             d.size = ustore_size;
                             d.addr = ustore_addr;
                             d.data[31:0] = ustore_data;
@@ -379,17 +379,18 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_UST: begin
                 crq_unc_cal = '1;
                 crq_unc_wreq = '1;
-                ustore_fifo_valid = bus_req_i.uncached_store_req;
-                bus_resp_o.ready = bus_req_i.uncached_store_req && ustore_fifo_ready;
+                if(`_WIRED_USTORE_DEPTH != 1) ustore_fifo_valid = bus_req_i.uncached_store_req;
+                if(`_WIRED_USTORE_DEPTH != 1) bus_resp_o.ready = bus_req_i.uncached_store_req && ustore_fifo_ready;
                 if(crq_unc_ret) begin
-                    ustore_ready = '1;
-                    if(ustore_valid) begin
+                    if(`_WIRED_USTORE_DEPTH != 1) ustore_ready = '1;
+                    if(`_WIRED_USTORE_DEPTH != 1 && ustore_valid) begin
                         // FIFO 中还有请求
                         d.size = ustore_size;
                         d.addr = ustore_addr;
                         d.data[31:0] = ustore_data;
                     end else begin
                         fsm = S_FREE;
+                        if(`_WIRED_USTORE_DEPTH == 1) bus_resp_o.ready = '1;
                     end
                 end
             end
@@ -748,10 +749,11 @@ module wired_tl_adapter import tl_pkg::*; #(
             end
             S_TLD: begin
                 d.data = acq_d.data;
-                acq_d_ready = '1;
                 d.sink = acq_d.sink; // 记录 sink 给 E 通道使用
-                if(acq_d_valid && acq_d.opcode == tl_pkg::GrantData) begin
-                    fsm = S_WRAM;
+                if(acq_d_valid && acq_d.opcode inside {tl_pkg::GrantData, tl_pkg::Grant}) begin
+                    acq_d_ready = '1;
+                    if(acq_d.opcode == tl_pkg::Grant) fsm = S_TLA;
+                    else fsm = S_WRAM;
                 end
             end
             S_WRAM: begin

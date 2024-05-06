@@ -137,13 +137,14 @@ module wired_rob (
   wired_registers_file_banked # (
                                 .DATA_WIDTH($bits(rob_entry_static_t)),
                                 .DEPTH(1 << `_WIRED_PARAM_ROB_LEN),
-                                .R_PORT_COUNT(2),
+                                .R_PORT_COUNT(3),
                                 .W_PORT_COUNT(2),
+                                .REGISTERS_FILE_TYPE(2),
                                 .NEED_RESET(0)
                               )
                               rob_static (
                                 `_WIRED_GENERAL_CONN,
-                                .raddr_i(c_rrrid_i),
+                                .raddr_i({`_WIRED_PARAM_ROB_LEN'd0, c_rrrid_i}),
                                 .rdata_o(c_rob_entry_static),
                                 .waddr_i(p_wrrid_i),
                                 .we_i(p_valid_i),
@@ -158,6 +159,7 @@ module wired_rob (
                                 .DEPTH(1 << `_WIRED_PARAM_ROB_LEN),
                                 .R_PORT_COUNT(7),
                                 .W_PORT_COUNT(2),
+                                .REGISTERS_FILE_TYPE(2),
                                 .NEED_RESET(0)
                               )
                               rob_data (
@@ -187,13 +189,14 @@ module wired_rob (
   wired_registers_file_banked # (
                                 .DATA_WIDTH($bits(rob_entry_dynamic_t)),
                                 .DEPTH(1 << `_WIRED_PARAM_ROB_LEN),
-                                .R_PORT_COUNT(2),
+                                .R_PORT_COUNT(3),
                                 .W_PORT_COUNT(2),
+                                .REGISTERS_FILE_TYPE(2),
                                 .NEED_RESET(0)
                               )
                               rob_dynamic (
                                 `_WIRED_GENERAL_CONN,
-                                .raddr_i(c_rrrid_i),
+                                .raddr_i({`_WIRED_PARAM_ROB_LEN'd0, c_rrrid_i}),
                                 .rdata_o(c_rob_entry_dynamic),
                                 .waddr_i({cdb_i[1].wid, cdb_i[0].wid}),
                                 .we_i({cdb_i[1].valid, cdb_i[0].valid}),
@@ -213,6 +216,7 @@ module wired_rob (
                                 .DEPTH(1 << `_WIRED_PARAM_ROB_LEN),
                                 .R_PORT_COUNT(9),
                                 .W_PORT_COUNT(2),
+                                .REGISTERS_FILE_TYPE(2),
                                 .NEED_RESET(0)
                               )
                               rob_valid_p (
@@ -228,6 +232,7 @@ module wired_rob (
                                 .DEPTH(1 << `_WIRED_PARAM_ROB_LEN),
                                 .R_PORT_COUNT(9),
                                 .W_PORT_COUNT(2),
+                                .REGISTERS_FILE_TYPE(2),
                                 .NEED_RESET(0)
                               )
                               rob_valid_c (
