@@ -323,7 +323,7 @@ module tl_broadcast import tl_pkg::*; #(
   state_e state_d;
   (*mark_debug="true"*) tl_a_op_e opcode_q;
   tl_a_op_e opcode_d;
-  logic [AddrWidth-1:0] address_q;
+  (*mark_debug="true"*) logic [AddrWidth-1:0] address_q;
   logic [AddrWidth-1:0] address_d;
   (*mark_debug="true"*) logic [1:0] xact_type_q;
   logic [1:0] xact_type_d;
@@ -428,9 +428,9 @@ module tl_broadcast import tl_pkg::*; #(
 
       // Wait for all probes to be acked.
       StateInv: begin
-        if (probe_ack_complete || probe_ack_data_complete) begin
-          probe_ack_pending_d = probe_ack_pending_q - 1;
-        end
+        // if (probe_ack_complete || probe_ack_data_complete) begin
+          probe_ack_pending_d = probe_ack_pending_q - probe_ack_complete - probe_ack_data_complete;
+        // end
 
         if (probe_ack_pending_d == 0) begin
           // We can return to the caller.
