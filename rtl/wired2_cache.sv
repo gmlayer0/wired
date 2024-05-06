@@ -342,7 +342,7 @@ typedef enum logic[3:0] {
   S_CUCSTRD, // Uncached store
   S_CREFILL  // Store miss(SC exclude) REFILL
 } fsm_e;
-(*mark_debug="true"*) fsm_e fsm_q;
+/*(*mark_debug="true"*)*/ fsm_e fsm_q;
 fsm_e fsm;
 always_ff @(posedge clk) begin
   if(!rst_n) fsm_q <= S_NORMAL;
@@ -354,7 +354,7 @@ typedef enum logic[1:0] {
   M_DBAR     // 阻塞 LSU 后续请求，但响应 CPU 请求
 //M_WAITSB    // Storebuffer Multihit
 } mod_e;
-(*mark_debug="true"*) mod_e mod_q;
+/*(*mark_debug="true"*)*/ mod_e mod_q;
 mod_e mod;
 always_ff @(posedge clk) begin
   if(!rst_n || flush_i) mod_q <= M_NORMAL;

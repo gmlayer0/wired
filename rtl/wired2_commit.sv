@@ -23,7 +23,7 @@ module wired_commit #(
 
     // Part 3: ARF / Rename 更新端口
     output      logic        [1:0] l_retire_o, // FOR RENAME
-    (*mark_debug="true"*) output      logic        [1:0] l_commit_o, // FOR ARF
+    /*(*mark_debug="true"*)*/ output      logic        [1:0] l_commit_o, // FOR ARF
     output     word_t        [1:0] l_data_o,
     output arch_rid_t        [1:0] l_warid_o,
     output  rob_rid_t        [1:0] l_wrrid_o,
@@ -316,7 +316,7 @@ module wired_commit #(
     // S_WAIT_FLUSH,    // 这个是用来刷流水线的
     S_WAIT_INTERRUPT // 这个是用来等待中断的
     } commit_fsm_e;
-    (*mark_debug="true"*)commit_fsm_e fsm_q;
+    /*(*mark_debug="true"*)*/commit_fsm_e fsm_q;
     commit_fsm_e fsm;
     logic h_tid;
     logic h_tid_q; // 跳转使用的 id 标识

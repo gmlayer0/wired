@@ -195,7 +195,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_INV // Call inv
         } fsm_e;
         fsm_e fsm;
-        (*mark_debug="true"*)fsm_e fsm_q;
+        /*(*mark_debug="true"*)*/fsm_e fsm_q;
         typedef struct packed {
             logic [31:0] addr;
             logic [2:0] parm;
@@ -259,7 +259,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_RET  // Return value
         } fsm_e;
         fsm_e fsm;
-        (*mark_debug="true"*)fsm_e fsm_q;
+        /*(*mark_debug="true"*)*/fsm_e fsm_q;
         always_ff @(posedge clk) begin
             if(!rst_n) begin
                 fsm_q <= S_FREE;
@@ -449,7 +449,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_TLD     // TL-D
         } fsm_e;
         fsm_e fsm;
-        (*mark_debug="true"*)fsm_e fsm_q;
+        /*(*mark_debug="true"*)*/fsm_e fsm_q;
         typedef struct packed {
             logic     prb_sel; // 选择来自 prb 的请求
             logic [31:0] addr;
@@ -672,7 +672,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_TLE    // Issue E response
         } fsm_e;
         fsm_e fsm;
-        (*mark_debug="true"*)fsm_e fsm_q;
+        /*(*mark_debug="true"*)*/fsm_e fsm_q;
         typedef struct packed {
             logic [3:0][31:0]      data;
             logic [31:0]           addr;
@@ -791,7 +791,7 @@ module wired_tl_adapter import tl_pkg::*; #(
             S_RTLD   // Wait AccessAck / AccessAckData
         } fsm_e;
         fsm_e fsm;
-        (*mark_debug="true"*)fsm_e fsm_q;
+        /*(*mark_debug="true"*)*/fsm_e fsm_q;
         typedef struct packed {
             logic [31:0] addr;
             logic        wreq;
