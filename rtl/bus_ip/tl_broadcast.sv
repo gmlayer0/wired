@@ -319,17 +319,26 @@ module tl_broadcast import tl_pkg::*; #(
     StateWait
   } state_e;
 
-  state_e state_q = StateIdle, state_d;
-  tl_a_op_e opcode_q, opcode_d;
-  logic [AddrWidth-1:0] address_q, address_d;
-  logic [1:0] xact_type_q, xact_type_d;
-  logic [HostSourceWidth-1:0] source_q, source_d;
-  logic [2:0] inv_param_q, inv_param_d;
+  (*mark_debug="true"*) state_e state_q = StateIdle;
+  state_e state_d;
+  (*mark_debug="true"*) tl_a_op_e opcode_q;
+  tl_a_op_e opcode_d;
+  logic [AddrWidth-1:0] address_q;
+  logic [AddrWidth-1:0] address_d;
+  (*mark_debug="true"*) logic [1:0] xact_type_q;
+  logic [1:0] xact_type_d;
+  (*mark_debug="true"*) logic [HostSourceWidth-1:0] source_q;
+  logic [HostSourceWidth-1:0] source_d;
+  (*mark_debug="true"*) logic [2:0] inv_param_q;
+  logic [2:0] inv_param_d;
 
   // Tracking pending handshakes
-  logic [NumCachedHosts-1:0] probe_ack_pending_q, probe_ack_pending_d;
-  logic ack_done_q, ack_done_d;
-  logic grant_done_q, grant_done_d;
+  (*mark_debug="true"*) logic [NumCachedHosts-1:0] probe_ack_pending_q;
+  logic [NumCachedHosts-1:0] probe_ack_pending_d;
+  (*mark_debug="true"*) logic ack_done_q;
+  logic ack_done_d;
+  (*mark_debug="true"*) logic grant_done_q;
+  logic  grant_done_d;
 
   // Interfacing with probe sequencer
   logic                      probe_ready;
@@ -492,8 +501,10 @@ module tl_broadcast import tl_pkg::*; #(
   ////////////////////////////
 
   // Probes yet to be sent.
-  logic [NumCachedHosts-1:0] probe_pending_q, probe_pending_d;
-  logic [2:0]                probe_param_q, probe_param_d;
+  (*mark_debug="true"*) logic [NumCachedHosts-1:0] probe_pending_q;
+  logic [NumCachedHosts-1:0] probe_pending_d;
+  (*mark_debug="true"*) logic [2:0] probe_param_q;
+  logic [2:0]                probe_param_d;
 
   assign host_b_valid = |probe_pending_q;
   assign host_b.opcode = ProbeBlock;
