@@ -8,7 +8,7 @@ module wired_registers_file_banked #(
     parameter int unsigned DEPTH = 32,
     parameter int unsigned R_PORT_COUNT = 2,
     parameter int unsigned W_PORT_COUNT = 2,
-    parameter REGISTERS_FILE_TYPE = "ff", // optional: ff, latch
+    parameter REGISTERS_FILE_TYPE = "ff", // optional: ff, latch, fpga
     parameter bit NEED_RESET = 0,
     parameter bit NEED_FORWARD = 0,
     parameter logic[DEPTH-1:0][DATA_WIDTH-1:0] RESET_VAL = '0,

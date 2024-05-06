@@ -1044,31 +1044,31 @@ end
     // end
     reset_counter <= reset_counter + 1;
     for(integer i = 0 ; i < 2 ; i += 1) begin
-        // if((reset_counter >= 100) && l_commit[i]) begin
+        if((reset_counter >= 100) && l_commit[i]) begin
                 // Performance Counter
-            //     excute_cnt[h_entry_q[i].pc]   = excute_cnt[h_entry_q[i].pc] + 1;
-            //     excute_cycle[h_entry_q[i].pc] = excute_cycle[h_entry_q[i].pc] + cyc_counter;
-            //     cyc_counter = 0;
-            // if(h_entry_q[i].pc == 32'h1c000100) begin
-            //     $fdisplay(handle,"{\"freq\": {");
-            //     first = 1;
-            //     foreach(excute_cnt[i]) begin
-            //         $fdisplay(handle,"%s\"%x\": %d", first ? " " : ",", i, excute_cnt[i]);
-            //         first = 0;
-            //     end
-            //     // $display("%p", excute_cnt);
-            //     first = 1;
-            //     $fdisplay(handle,"},\"cyc\": {");
-            //     foreach(excute_cnt[i]) begin
-            //         $fdisplay(handle,"%s\"%x\": %d", first ? " " : ",", i, excute_cycle[i]);
-            //         first = 0;
-            //     end
-                // $fdisplay(handle,"}}");
-                // $display("%p", excute_cycle);
-                // $display("succ: %d fail: %d, frac: %f", succ_cnt, fail_cnt, 100.0 * succ_cnt / (succ_cnt + fail_cnt));
-                // $display("Flush count: %d", flush_cnt);
-                // $finish();
-            // end
+                excute_cnt[h_entry_q[i].pc]   = excute_cnt[h_entry_q[i].pc] + 1;
+                excute_cycle[h_entry_q[i].pc] = excute_cycle[h_entry_q[i].pc] + cyc_counter;
+                cyc_counter = 0;
+            if(h_entry_q[i].pc == 32'h1c000100) begin
+                $fdisplay(handle,"{\"freq\": {");
+                first = 1;
+                foreach(excute_cnt[i]) begin
+                    $fdisplay(handle,"%s\"%x\": %d", first ? " " : ",", i, excute_cnt[i]);
+                    first = 0;
+                end
+                // $display("%p", excute_cnt);
+                first = 1;
+                $fdisplay(handle,"},\"cyc\": {");
+                foreach(excute_cnt[i]) begin
+                    $fdisplay(handle,"%s\"%x\": %d", first ? " " : ",", i, excute_cycle[i]);
+                    first = 0;
+                end
+                $fdisplay(handle,"}}");
+                $display("%p", excute_cycle);
+                $display("succ: %d fail: %d, frac: %f", succ_cnt, fail_cnt, 100.0 * succ_cnt / (succ_cnt + fail_cnt));
+                $display("Flush count: %d", flush_cnt);
+                $finish();
+            end
         end
         // 分支预测监视器
         if(l_commit[i] && h_entry_q[i].pc == 32'h1c001d08) begin
