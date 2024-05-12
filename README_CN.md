@@ -77,24 +77,20 @@ Wired 使用 Systemverilog 实现，全部硬件源码，包括第三方开源 I
 ```
 
   描述了如下图的一个流水线关系：
-![Alt text](https://g.gravizo.com/source/graph_mark000?https%3A%2F%2Fraw.githubusercontent.com%2gmlayer0%2Fwired%2Fmaster%2FREADME.md)
-<details> 
-<summary></summary>
-    graph_mark000
-    digraph G {
-    start -> d;
-    d->p;
-    p->alu;
-    p->rob;
-    rob->c;
-    c->c_alu_common;
-    alu->c_alu_common;
-    c_alu_common->end;
-    start [shape=Mdiamond];
-    end [shape=Msquare];
-    }
-graph_mark000
-</details>
+![Alt text](https://g.gravizo.com/svg?
+digraph G {
+  start -> d;
+  d->p;
+  p->alu;
+  p->rob;
+  rob->c;
+  c->c_alu_common;
+  alu->c_alu_common;
+  c_alu_common->end;
+  start [shape=Mdiamond];
+  end [shape=Msquare];
+}
+)
 
   关于流水线控制信号定义，也使用一个键值对的格式描述，如：
 ```json
@@ -136,5 +132,3 @@ graph_mark000
     "slot0": 1
 }
 ```
-
-### 核心代码说明
