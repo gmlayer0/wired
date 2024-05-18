@@ -10,7 +10,7 @@ module wired_alu (
 
     output  logic [31:0] res_o
   );
-  logic [31:0] bw_result, li_result, int_result, sft_result, count_result;
+  logic [31:0] bw_result, li_result, int_result, sft_result, count_result, misc_result;
 
   always_comb
   begin
@@ -34,6 +34,10 @@ module wired_alu (
       `_ALU_GTYPE_COUNT :
       begin
         res_o = count_result;
+      end
+      `_ALU_GTYPE_MISC :
+      begin
+        res_o = misc_result;
       end
     endcase
   end
@@ -141,6 +145,34 @@ begin
     begin
       sft_result = (r1_i >> r0_i[4:0]) | (r1_i << (32-r0_i[4:0]));
     end
+  endcase
+end
+
+// MISC Area
+always_comb begin
+  misc_result = '0;
+  case(op_i)
+  default/*`_ALU_STYPE_EXTB*/: begin
+    misc_result = {{24{r0_i[7]}},r0_i[7:0]};
+  end
+  `_ALU_STYPE_EXTH: begin
+    misc_result = {{16{r0_i[15]}},r0_i[15:0]};
+  end
+  `_ALU_STYPE_BYTEPICK: begin
+    
+  end
+  `_ALU_STYPE_MASKNEZ: begin
+    misc_result = !(r0_i == 0) ? '0 : r1_i;
+  end
+  `_ALU_STYPE_MASKEQZ: begin
+    misc_result =  (r0_i == 0) ? '0 : r1_i;
+  end
+  `_ALU_STYPE_BSTRPICK: begin
+    
+  end
+  `_ALU_STYPE_BSTRINS: begin
+    
+  end
   endcase
 end
 
