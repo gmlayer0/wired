@@ -975,6 +975,30 @@ module wired_decoder(
                 is_o.alu_grand_op = `_ALU_GTYPE_COUNT;
                 is_o.alu_op = `_ALU_STYPE_CTZ;
             end
+            32'b0000000000000000001100??????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.alu_grand_op = `_ALU_GTYPE_REV;
+                is_o.alu_op = `_ALU_STYPE_REV;
+            end
+            32'b0000000000000000010010??????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.alu_grand_op = `_ALU_GTYPE_REV;
+                is_o.alu_op = `_ALU_STYPE_BITREV4B;
+            end
+            32'b0000000000000000010100??????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.alu_grand_op = `_ALU_GTYPE_REV;
+                is_o.alu_op = `_ALU_STYPE_BITREVW;
+            end
             32'b0000000000000000010110??????????: begin
                 decode_err_o = 1'b0;
                 is_o.alu_inst = 1'd1;

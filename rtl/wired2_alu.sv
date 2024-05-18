@@ -11,7 +11,7 @@ module wired_alu (
 
     output  logic [31:0] res_o
   );
-  logic [31:0] bw_result, li_result, int_result, sft_result, count_result, misc_result;
+  logic [31:0] bw_result, li_result, int_result, sft_result, count_result, misc_result, rev_result;
 
   always_comb
   begin
@@ -39,6 +39,10 @@ module wired_alu (
       `_ALU_GTYPE_MISC :
       begin
         res_o = misc_result;
+      end
+      `_ALU_GTYPE_REV :
+      begin
+        res_o = rev_result;
       end
     endcase
   end
@@ -157,7 +161,6 @@ wire[4:0] lsbw = selimm_i[ 4:0];
 wire[2:0] sa2  = selimm_i[ 6:5];
 
 always_comb begin
-  misc_result = '0;
   case(op_i)
   default/*`_ALU_STYPE_EXTB*/: begin
     misc_result = {{24{r0_i[7]}},r0_i[7:0]};
@@ -220,6 +223,27 @@ cv_lzc #(
 
 assign count_result = {26'd0, op_i[1] ? {tc[5], {5{~tc[5]}} & tc[4:0]} : {lc[5], {5{~lc[5]}} & lc[4:0]}};
 
-
+// REV Area
+always_comb begin
+  case(op_i)
+    default/*`_ALU_STYPE_REV*/: begin // revb.2h
+      rev_result[15:0] =  {r1_i[ 7: 0], r1_i[15: 8]};
+      rev_result[31:16] = {r1_i[23:16], r1_i[31:24]};
+    end
+    `_ALU_STYPE_BITREV4B: begin // bitrev.4b
+      for(integer i = 0 ; i < 8 ; i += 1) begin
+        rev_result[ 0+i] = r1_i[ 7-i];
+        rev_result[ 8+i] = r1_i[15-i];
+        rev_result[16+i] = r1_i[23-i];
+        rev_result[24+i] = r1_i[31-i];
+      end
+    end
+    `_ALU_STYPE_BITREVW: begin // bitrev.w
+      for(integer i = 0 ; i < 32 ; i += 1) begin
+        rev_result[i] = r1_i[31-i];
+      end
+    end
+  endcase
+end
 
 endmodule
