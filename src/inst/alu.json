@@ -514,6 +514,7 @@
             "reg_type_r0": "`_REG_RJ",
             "reg_type_r1": "`_REG_RK",
             "reg_type_w": "`_REG_W_RD",
+            "addr_imm_type": "`_ADDR_IMM_S26",
             "alu_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
@@ -524,6 +525,7 @@
             "reg_type_r0": "`_REG_RD",
             "reg_type_r1": "`_REG_RJ",
             "reg_type_w": "`_REG_W_RD",
+            "addr_imm_type": "`_ADDR_IMM_S26",
             "alu_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         },
@@ -533,6 +535,7 @@
             "alu_op":"`_ALU_STYPE_BSTRPICK",
             "reg_type_r1": "`_REG_RJ",
             "reg_type_w": "`_REG_W_RD",
+            "addr_imm_type": "`_ADDR_IMM_S26",
             "alu_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
         }

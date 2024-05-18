@@ -5,6 +5,7 @@ module wired_alu (
     input   logic [31:0] r0_i,
     input   logic [31:0] r1_i,
     input   logic [31:0] pc_i,
+    input   logic [11:0] selimm_i,
     input   logic [2:0] grand_op_i,
     input   logic [2:0] op_i,
 
@@ -149,6 +150,12 @@ begin
 end
 
 // MISC Area
+
+// decode inst nums
+wire[4:0] msbw = selimm_i[10:6];
+wire[4:0] lsbw = selimm_i[ 4:0];
+wire[2:0] sa2  = selimm_i[ 6:5];
+
 always_comb begin
   misc_result = '0;
   case(op_i)
@@ -158,20 +165,37 @@ always_comb begin
   `_ALU_STYPE_EXTH: begin
     misc_result = {{16{r0_i[15]}},r0_i[15:0]};
   end
-  `_ALU_STYPE_BYTEPICK: begin
-    
-  end
   `_ALU_STYPE_MASKNEZ: begin
     misc_result = !(r0_i == 0) ? '0 : r1_i;
   end
   `_ALU_STYPE_MASKEQZ: begin
     misc_result =  (r0_i == 0) ? '0 : r1_i;
   end
-  `_ALU_STYPE_BSTRPICK: begin
-    
+  `_ALU_STYPE_BYTEPICK: begin
+    case(sa2)
+    2'b00: misc_result = r1_i[31:0];
+    2'b01: misc_result = {r1_i[23:0], r0_i[31:24]};
+    2'b10: misc_result = {r1_i[15:0], r0_i[31:16]};
+    2'b11: misc_result = {r1_i[ 7:0], r0_i[31: 8]};
+    endcase
   end
   `_ALU_STYPE_BSTRINS: begin
-    
+    for(integer i = 0 ; i < 32 ; i += 1) begin
+      if(i[4:0] < lsbw || i[4:0] > msbw) begin
+        misc_result[i] = r0_i[i];
+      end else begin
+        misc_result[i] = r1_i[i[4:0] - lsbw[4:0]];
+      end
+    end
+  end
+  `_ALU_STYPE_BSTRPICK: begin
+    for(integer i = 0 ; i < 32 ; i += 1) begin
+      if(i[4:0] <= msbw - lsbw) begin
+        misc_result[i] = r1_i[i[4:0] + lsbw[4:0]];
+      end else begin
+        misc_result[i] = 1'b0;
+      end
+    end
   end
   endcase
 end

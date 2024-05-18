@@ -256,6 +256,7 @@ module wired_alu_iq #(
             .r0_i(real_data[p][0]),
             .r1_i(real_data[p][1]),
             .pc_i(sel_static_q[p].pc),
+            .selimm_i(sel_static_q[p].addr_imm[13:2]),
             .grand_op_i(sel_static_q[p].di.alu_grand_op),
             .op_i(sel_static_q[p].di.alu_op),
             .res_o(ex_wdata[p])

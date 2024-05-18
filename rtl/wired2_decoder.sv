@@ -543,6 +543,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_RJ;
                 is_o.reg_type_r1 = `_REG_RK;
                 is_o.reg_type_w = `_REG_W_RD;
+                is_o.addr_imm_type = `_ADDR_IMM_S26;
                 is_o.alu_grand_op = `_ALU_GTYPE_MISC;
                 is_o.alu_op = `_ALU_STYPE_BYTEPICK;
             end
@@ -804,6 +805,7 @@ module wired_decoder(
                 is_o.reg_type_r0 = `_REG_RD;
                 is_o.reg_type_r1 = `_REG_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
+                is_o.addr_imm_type = `_ADDR_IMM_S26;
                 is_o.alu_grand_op = `_ALU_GTYPE_MISC;
                 is_o.alu_op = `_ALU_STYPE_BSTRINS;
             end
@@ -812,6 +814,7 @@ module wired_decoder(
                 is_o.alu_inst = 1'd1;
                 is_o.reg_type_r1 = `_REG_RJ;
                 is_o.reg_type_w = `_REG_W_RD;
+                is_o.addr_imm_type = `_ADDR_IMM_S26;
                 is_o.alu_grand_op = `_ALU_GTYPE_MISC;
                 is_o.alu_op = `_ALU_STYPE_BSTRPICK;
             end
