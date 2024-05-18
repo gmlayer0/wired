@@ -86,6 +86,19 @@
             "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
             "slot0": 1
         },
+        "beqz": {
+            "opcode": "010000",
+            "target_type": "`_TARGET_REL",
+            "cmp_type": "`_CMP_E",
+            "reg_type_r0": "`_REG_ZERO",
+            "reg_type_r1": "`_REG_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S21",
+            "reg_type_w": "`_REG_W_NONE",
+            "jump_inst": 1,
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
+            "slot0": 1
+        },
         "bne": {
             "opcode": "010111",
             "target_type": "`_TARGET_REL",
@@ -93,6 +106,19 @@
             "reg_type_r0": "`_REG_RD",
             "reg_type_r1": "`_REG_RJ",
             "addr_imm_type": "`_ADDR_IMM_S16",
+            "reg_type_w": "`_REG_W_NONE",
+            "jump_inst": 1,
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %05x=%d\",rj, rd, I16<<2, $signed(I16)",
+            "slot0": 1
+        },
+        "bnez": {
+            "opcode": "010001",
+            "target_type": "`_TARGET_REL",
+            "cmp_type": "`_CMP_NE",
+            "reg_type_r0": "`_REG_ZERO",
+            "reg_type_r1": "`_REG_RJ",
+            "addr_imm_type": "`_ADDR_IMM_S21",
             "reg_type_w": "`_REG_W_NONE",
             "jump_inst": 1,
             "alu_inst": 1,

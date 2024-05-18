@@ -126,7 +126,7 @@ module wired_mdu_iq #(
     // 解包信息
     for(genvar i = 0 ; i < 2 ; i += 1) begin
         always_comb begin
-            p_static[i].alu_op   = p_ctrl_i[i].di.alu_op;
+            p_static[i].alu_op   = p_ctrl_i[i].di.alu_op[1:0];
             // p_static[i].pc       = p_ctrl_i[i].pc;
             p_static[i].wreg     = p_ctrl_i[i].wreg.rob_id;
             p_static[i].div_inst = p_ctrl_i[i].di.div_inst;
@@ -195,7 +195,7 @@ module wired_mdu_iq #(
     assign ex_ready_i   = sel_static_q.div_inst ? ex_div_ready_i : ex_mul_ready_i;
     assign ex_mul_valid_o = !sel_static_q.div_inst && ex_valid_o;
     assign ex_div_valid_o =  sel_static_q.div_inst && ex_valid_o;
-    assign ex_req_o.op  = sel_static_q.alu_op;
+    assign ex_req_o.op  = sel_static_q.alu_op[1:0];
     assign ex_req_o.r0  = sel_data_q[0];
     assign ex_req_o.r1  = sel_data_q[1];
     assign ex_req_o.wid = sel_static_q.wreg;

@@ -5,8 +5,8 @@ module wired_alu (
     input   logic [31:0] r0_i,
     input   logic [31:0] r1_i,
     input   logic [31:0] pc_i,
-    input   logic [1:0] grand_op_i,
-    input   logic [1:0] op_i,
+    input   logic [2:0] grand_op_i,
+    input   logic [2:0] op_i,
 
     output  logic [31:0] res_o
   );
@@ -53,6 +53,14 @@ module wired_alu (
       begin
         bw_result = r1_i ^ r0_i;
       end
+      `_ALU_STYPE_ANDN :
+      begin
+        bw_result = r1_i & (~r0_i);
+      end
+      `_ALU_STYPE_ORN :
+      begin
+        bw_result = r1_i | (~r0_i);
+      end
     endcase
   end
 
@@ -60,16 +68,24 @@ module wired_alu (
   begin
     case (op_i)
       default:
-      begin  // 2'b01 == `_ALU_STYPE_LUI
+      begin  // `_ALU_STYPE_LUI
         li_result = {r0_i[19:0], 12'd0};
       end
       `_ALU_STYPE_PCPLUS4:
-      begin  // 2'b10
+      begin
         li_result = 32'd4 + pc_i;
       end
-      `_ALU_STYPE_PCADDUI:
-      begin  // 2'b11
+      `_ALU_STYPE_PCADDU12I:
+      begin
         li_result = {r0_i[19:0], 12'd0} + pc_i;
+      end
+      `_ALU_STYPE_PCADDI:
+      begin
+        li_result = {{10{r0_i[19]}}, r0_i[19:0], 2'd0} + pc_i;
+      end
+      `_ALU_STYPE_PCALAU12I:
+      begin
+        li_result = {{r0_i[19:0], 12'd0} + pc_i} & 32'hfffff000;
       end
     endcase
   end
@@ -116,6 +132,10 @@ begin
     `_ALU_STYPE_SLL:
     begin
       sft_result = r1_i << r0_i[4:0];
+    end
+    `_ALU_STYPE_ROTR:
+    begin
+      sft_result = (r1_i >> r0_i[4:0]) | (r1_i << (32-r0_i[4:0]));
     end
   endcase
 end

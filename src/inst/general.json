@@ -75,7 +75,7 @@
             "default_value": "`_IMM_U5"
         },
         "addr_imm_type": {
-            "length": 2,
+            "length": 3,
             "stage": "d",
             "default_value": "`_ADDR_IMM_S26"
         },
@@ -134,9 +134,10 @@
         "_IMM_F1"  : "3'd4",
         "_IMM_S21" : "3'd5",
 
-        "_ADDR_IMM_S26": "2'd0",
-        "_ADDR_IMM_S12": "2'd1",
-        "_ADDR_IMM_S14": "2'd2",
-        "_ADDR_IMM_S16": "2'd3"
+        "_ADDR_IMM_S26": "3'd0",
+        "_ADDR_IMM_S12": "3'd1",
+        "_ADDR_IMM_S14": "3'd2",
+        "_ADDR_IMM_S16": "3'd3",
+        "_ADDR_IMM_S21": "3'd4"
     }
 }

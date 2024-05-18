@@ -142,6 +142,9 @@ case (addr_imm_type)
   `_ADDR_IMM_S26 : begin
     mkimm_addr = {raw_imm[9:0],raw_imm[25:10],2'b00};
   end
+  `_ADDR_IMM_S21 : begin
+    mkimm_addr = {{5{raw_imm[4]}}, raw_imm[4:0],raw_imm[25:10],2'b00};
+  end
 endcase
 endfunction
 
