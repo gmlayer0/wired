@@ -200,6 +200,9 @@ always_comb begin
       end
     end
   end
+  `_ALU_STYPE_ALSL: begin
+    misc_result = (r1_i << (sa2 + 1)) + r0_i;
+  end
   endcase
 end
 

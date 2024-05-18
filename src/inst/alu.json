@@ -39,6 +39,7 @@
         "_ALU_STYPE_EXTB"    : "3'b000",
         "_ALU_STYPE_EXTH"    : "3'b001",
         "_ALU_STYPE_BYTEPICK": "3'b010",
+        "_ALU_STYPE_ALSL"    : "3'B011",
 
         "_ALU_STYPE_MASKNEZ" : "3'b100",
         "_ALU_STYPE_MASKEQZ" : "3'b101",
@@ -90,6 +91,17 @@
             "reg_type_w": "`_REG_W_RD",
             "alu_inst": 1,
             "das": "\"$r%02x, $r%02x, $r%02x\",rd, rj, rk"
+        },
+        "alsl.w": {
+            "opcode": "00000000000001",
+            "alu_grand_op":"`_ALU_GTYPE_MISC",
+            "alu_op":"`_ALU_STYPE_ALSL",
+            "reg_type_r0": "`_REG_RK",
+            "reg_type_r1": "`_REG_RJ",
+            "reg_type_w": "`_REG_W_RD",
+            "addr_imm_type": "`_ADDR_IMM_S26",
+            "alu_inst": 1,
+            "das": "\"$r%02x, $r%02x, %03x\",rd, rj, I12"
         },
         "slt": {
             "opcode": "00000000000100100",

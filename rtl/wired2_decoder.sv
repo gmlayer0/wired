@@ -537,6 +537,16 @@ module wired_decoder(
                 is_o.fr1 = 1'd1;
                 is_o.fw = 1'd1;
             end
+            32'b00000000000001??????????????????: begin
+                decode_err_o = 1'b0;
+                is_o.alu_inst = 1'd1;
+                is_o.reg_type_r0 = `_REG_RK;
+                is_o.reg_type_r1 = `_REG_RJ;
+                is_o.reg_type_w = `_REG_W_RD;
+                is_o.addr_imm_type = `_ADDR_IMM_S26;
+                is_o.alu_grand_op = `_ALU_GTYPE_MISC;
+                is_o.alu_op = `_ALU_STYPE_ALSL;
+            end
             32'b00000000000010??????????????????: begin
                 decode_err_o = 1'b0;
                 is_o.alu_inst = 1'd1;
