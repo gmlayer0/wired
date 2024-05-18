@@ -10,7 +10,7 @@ module wired_alu (
 
     output  logic [31:0] res_o
   );
-  logic [31:0] bw_result, li_result, int_result, sft_result;
+  logic [31:0] bw_result, li_result, int_result, sft_result, count_result;
 
   always_comb
   begin
@@ -30,6 +30,10 @@ module wired_alu (
       `_ALU_GTYPE_SFT :
       begin
         res_o = sft_result;
+      end
+      `_ALU_GTYPE_COUNT :
+      begin
+        res_o = count_result;
       end
     endcase
   end
@@ -139,5 +143,27 @@ begin
     end
   endcase
 end
+
+// Count area
+wire [5:0] lc, tc; 
+cv_lzc #(
+  .WIDTH(32),.MODE(1)
+) leading_count (
+  .in_i(op_i[0] ? r0_i : ~r0_i),
+  .cnt_o(lc[4:0]),
+  .empty_o(lc[5])
+);
+
+cv_lzc #(
+  .WIDTH(32),.MODE(0)
+) trailing_count (
+  .in_i(op_i[0] ? r0_i : ~r0_i),
+  .cnt_o(tc[4:0]),
+  .empty_o(tc[5])
+);
+
+assign count_result = {26'd0, op_i[1] ? {tc[5], {5{~tc[5]}} & tc[4:0]} : {lc[5], {5{~lc[5]}} & lc[4:0]}};
+
+
 
 endmodule

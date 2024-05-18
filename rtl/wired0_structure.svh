@@ -127,7 +127,7 @@ typedef struct packed {
 
 // 输入到 disPatch(P) 级的指令流
 
-function automatic logic[27:0] mkimm_addr(input logic[1:0] addr_imm_type, input logic[25:0] raw_imm);
+function automatic logic[27:0] mkimm_addr(input logic[2:0] addr_imm_type, input logic[25:0] raw_imm);
 case (addr_imm_type)
   default : /*`_ADDR_IMM_S12:*/
     begin
