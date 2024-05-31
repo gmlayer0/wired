@@ -21,8 +21,9 @@ function automatic logic[6:0] get_tag(input logic[31:0] addr);
   return addr[18:12];
 endfunction
 
-function automatic logic[8:0] get_hash(input logic[31:0] addr);
-  return {{addr[12],addr[13],addr[14]} ^ addr[11:9], addr[8:6], addr[5:3]};
+function automatic logic[`_WIRED_PARAM_BINFO_LEN-1:0] get_hash(input logic[31:0] addr);
+  // return {{addr[12],addr[13],addr[14]} ^ addr[11:9], addr[8:6], addr[5:3]};
+  return addr[`_WIRED_PARAM_BINFO_LEN-1+3:3] ^ addr[`_WIRED_PARAM_BINFO_LEN-1+`_WIRED_PARAM_BINFO_LEN+3:`_WIRED_PARAM_BINFO_LEN+3];
 endfunction
 
 // 这是 Wired 项目的 PC GEN，实际上是一个两级分支预测器。
@@ -100,13 +101,13 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
   assign btb_rdata[p][1:0] = '0;
   wired_dpsram # (
     .DATA_WIDTH(30),
-    .DATA_DEPTH(512),
+    .DATA_DEPTH(1<<(`_WIRED_PARAM_BINFO_LEN)),
     .BYTE_SIZE(30)
   )
   btb_sram (
     .clk0(clk),
     .rst_n0(rst_n),
-    .addr0_i(npc[11:3]),
+    .addr0_i(get_hash(npc)),
     .en0_i(p_ready_i),
     .we0_i('0),
     .wdata0_i('0),
@@ -114,7 +115,7 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
 
     .clk1(clk),
     .rst_n1(rst_n),
-    .addr1_i(p_correct_i.pc[11:3]),
+    .addr1_i(get_hash(p_correct_i.pc)),
     .en1_i('1),
     .we1_i(p_correct_i.need_update && 
           (p_correct_i.true_target_type inside {BPU_TARGET_CALL, BPU_TARGET_IMM}) &&
@@ -123,11 +124,11 @@ for(genvar p = 0 ; p < 2 ; p += 1) begin
     .wdata1_i(p_correct_i.btb_target[31:2]),
     .rdata1_o(/* NOCONNECT */)
   );
-  wire [8:0] info_raddr = get_hash(npc);
-  wire [8:0] info_waddr = get_hash(info_p_we[p] ? p_correct_i.pc : pc);
+  wire [`_WIRED_PARAM_BINFO_LEN-1:0] info_raddr = get_hash(npc);
+  wire [`_WIRED_PARAM_BINFO_LEN-1:0] info_waddr = get_hash(info_p_we[p] ? p_correct_i.pc : pc);
   branch_info_t info_raw;
   branch_info_t info_raw_q;
-  (* ram_style = "distributed" *) branch_info_t info_ram [511:0];
+  (* ram_style = "distributed" *) branch_info_t info_ram [(1<<(`_WIRED_PARAM_BINFO_LEN))-1:0];
   always_ff @(posedge clk) begin
     if(info_p_we[p] | info_n_we[p]) begin
       info_ram[info_waddr] <= info_wdata[p];
