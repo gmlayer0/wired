@@ -42,4 +42,8 @@
 // TLB RELATED
 `define _WIRED_PARAM_TLB_CNT 32
 
+// Word length
+`define _WIRED_VALEN  48
+`define _WIRED_REGLEN 64
+
 `endif

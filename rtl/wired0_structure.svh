@@ -4,8 +4,9 @@
 // 此文件中声明了 WIRED 工程将要使用到的全部 structure
 
 `include "wired0_decoder.svh"
+`include "wired0_params.svh"
 
-typedef logic[31:0] word_t;
+typedef logic[`_WIRED_REGLEN:0] word_t;
 
 // Frontend Begin
 // BPU
@@ -20,7 +21,7 @@ typedef struct packed {
     logic tid;  // 跳转生命周期 ID，后端仅接受有效的 Tier ID。每次重定向控制流的时候，也会修改前后端的 tier id。
                 // 注意，对于重命名模块，在 flush 状态下 Tier ID 不一致的会被直接接受并丢弃，对于 Tier ID 一致的结果，会拉低 ready 等待。
     // logic pc_off;
-    logic [                31:0]           predict_pc ;
+    logic [   `_WIRED_VALEN-1:0]           predict_pc ;
     logic [                 1:0]           lphr       ;
     logic [`_WIRED_PARAM_BHT_HISTORY_LEN-1:0] history  ;
     bpu_target_type_e                      target_type;
@@ -32,9 +33,9 @@ typedef struct packed {
     logic                                  tid        ; // 重定向后的 Tier ID，复位一致默认为 0
     logic                                  true_taken ;
     logic                                  miss       ;
-    logic [31:0]                           pc         ;
-    logic [31:0]                           true_target;
-    logic [31:0]                            btb_target;
+    logic [`_WIRED_VALEN-1:0]              pc         ;
+    logic [`_WIRED_VALEN-1:0]              true_target;
+    logic [`_WIRED_VALEN-1:0]               btb_target;
     logic [1:0]                            lphr       ;
     logic [`_WIRED_PARAM_BHT_HISTORY_LEN-1:0] history ;
     bpu_target_type_e                 true_target_type;
@@ -109,10 +110,10 @@ typedef struct packed{
 
 // 输入到 Pack 级的指令流
 typedef struct packed {
-  decode_info_d_t        di;
-  logic                 ine; // 解码产生
-  reg_info_t             ri;
-  logic[31:0]            pc;
+  decode_info_d_t          di;
+  logic                   ine; // 解码产生
+  reg_info_t               ri;
+  logic[`_WIRED_VALEN-1:0] pc;
   bpu_predict_t bpu_predict;
   fetch_excp_t   fetch_excp;
 } pipeline_ctrl_pack_t;
