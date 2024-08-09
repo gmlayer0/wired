@@ -63,7 +63,7 @@ module wired_decoder(
         is_o.mem_cacop = 1'd0;
         is_o.llsc_inst = 1'd0;
         is_o.dbarrier = 1'd0;
-        unique casez(inst_i)
+        casez(inst_i)
             32'b010000??????????????????????????: begin
                 decode_err_o = 1'b0;
                 is_o.alu_inst = 1'd1;

@@ -111,7 +111,7 @@ class design_parser:
                 signal_value = str(self.signal_list[signal]['length']) + "\'d" + str(signal_value)
             str_builder += self.gen_blank(depth) + 'is_o.' + signal + ' = ' + signal_value + ';\n'
         # str_builder += self.gen_blank(depth) + 'inst_string_o = {' + ' ,'.join(['8\'d' + str(ord(s)) for s in 'NONEVALID']) + '}; //' + 'NONEVALID' + '\n'
-        str_builder += self.gen_blank(depth) + "unique casez(inst_i)\n"
+        str_builder += self.gen_blank(depth) + "casez(inst_i)\n"
         depth += 1
         opcode_len = 0
         while len(inst_list_dict_order) != 0 and opcode_len != 32:
@@ -212,7 +212,7 @@ class design_parser:
 
         inst_list_dict_order = [inst_name for inst_name in self.inst_list]
         inst_list_dict_order.sort(key=cmp_to_key(self.dict_order_cmp))
-        str_builder += "    unique casez(inst_i)\n"
+        str_builder += "    casez(inst_i)\n"
         opcode_len = 0
         while len(inst_list_dict_order) != 0 and opcode_len != 32:
             if len(inst_list_dict_order) != 0 and len(self.inst_list[inst_list_dict_order[0]]['opcode']) > opcode_len:
