@@ -2,20 +2,25 @@
 
 ## Wired 简介
 
-Wired 是一个由 @gmlayer0 设计实现的，基于 Loongarch32-Reduced 指令集的 CPU 核。Wired 核对先进微架构设计及对称多处理器（SMP）设计进行了尝试和探索，成功地实现了乱序多发射且支持硬件缓存一致性的内核微架构。
+Wired 是一个由 [gmlayer0](https://github.com/gmlayer0) 设计实现的，基于 Loongarch32 完整指令集的 CPU 核。Wired 核对先进微架构设计及对称多处理器（SMP）设计进行了尝试和探索，成功地实现了乱序双发射且支持硬件缓存一致性的内核微架构。
 
-本核心已验证可以通过 Chiplab（Verilator）进行仿真，或者通过 Xilinx Vivado 综合到 FPGA 平台进行验证。
+本核心已验证可以通过 Chiplab（Verilator）进行仿真，并通过 Xilinx Vivado 综合到 FPGA 平台进行验证。
 
-Wired 核心整体基于 Tomasulo 算法的思路实现动态调度，采用基于 ROB 的寄存器重命名策略，并实现了分支预测，数据旁路，推测唤醒等机制以提高流水线效率。 Wired 完整实现了 Loongarch32-Reduced 指令集中的所有整数指令及绝大部分单精度浮点指令，提供单精度浮点执行支持。对于部分特殊单精度浮点指令(frsqrt.s、fmina.s、fmaxa.s)经检查在默认配置下不会被编译器生成，也没有进行相应的实现。
+经过 FPGA 验证，可以四核心启动 SMP Linux。
 
-Wired 在龙芯杯提供的性能测试中，可以取得 0.92 的几何平均 IPC ，并在 6 / 10 个测试点中取得 1.0 以上的绝对 IPC。在 CRC32 测试下，处理器核达到了 1.48 的 IPC，在 SHA 测试中则取得了 1.35 的 IPC 。对于分支较稀疏的计算密集程序， Wired 核可以有较为良好的表现。在最理想的指令流下，IPC 可以达到 2。
+龙芯提供的 LA32R 版 Linux 尚未引入对 SMP 的完整支持。若要启动 SMP Linux，需要使用此[修改版本](https://github.com/gmlayer0/la32r-smp-linux)。
 
+Wired 核心支持浮点指令及所有 LA32 指令，而龙芯教育仅提供了 LA32R 软浮点环境下的编译器。若想发挥本处理器的全部性能，需要自行编译支持 LA32 和单精度硬件浮点的编译器工具链。
+
+Wired 核心整体基于 Tomasulo 算法的思路实现动态调度，采用基于 ROB 的寄存器重命名策略，并实现了分支预测、数据旁路、推测唤醒等机制以提高流水线效率。 Wired 完整实现了 Loongarch32 指令集中的所有整数指令及绝大部分单精度浮点指令，提供单精度浮点执行支持。对于部分特殊单精度浮点指令 (frsqrt.s、fmina.s、fmaxa.s) 没有进行相应的实现，而这部分也不会被编译器生成。
+
+Wired 在龙芯杯提供的性能测试中，可以取得 0.92 的几何平均 IPC ，并在 6 / 10 个测试点中取得 1.0 以上的绝对 IPC。在 CRC32 测试下，处理器核达到了 1.48 的 IPC，在 SHA 测试中则取得了 1.35 的 IPC 。对于分支较稀疏的计算密集程序， Wired 核可以有较为良好的表现。
 
 ## 快速上手
 
-### Chiplab 仿真说明
+### 仿真说明
 
-核心支持使用 Chiplab（Verilator）进行仿真。若要使用 Chiplab 仿真，请参考 [Chiplab官方仓库](https://gitee.com/loongson-edu/chiplab) 完成环境配置，之后设置 `CHIPLAB_HOME` 变量到 chiplab 家目录。
+核心支持使用 Chiplab 进行单核仿真。若要使用 Chiplab 仿真，请参考 [Chiplab官方仓库](https://gitee.com/loongson-edu/chiplab) 完成环境配置，之后设置 `CHIPLAB_HOME` 变量到 chiplab 家目录。
 
 进入 ./src 目录，执行 ./compile_project.py 脚本，即可将本核心自动化部署到 Chiplab 环境之中，之后即可参考官方使用说明运行仿真程序。
 
@@ -25,7 +30,7 @@ Wired 在龙芯杯提供的性能测试中，可以取得 0.92 的几何平均 I
 
 ## 仓库结构说明
 
-Wired 使用 Systemverilog 实现，全部硬件源码，包括第三方开源 IP ，均存放在 ./rtl 目录之下。
+Wired 使用 SystemVerilog 实现。所有硬件源码，包括第三方开源 IP，均存放在 ./rtl 目录之下。
 
 而在 ./src 目录之下存放了一些工具脚本，这里对其代码结构进行简单介绍。
 
@@ -137,4 +142,14 @@ graph_mark000
 }
 ```
 
-### 核心代码说明
+## TODO
+
+对于分支较为密集且难以预测的排序类测试， Wired 核心尚不支持检查点机制，因此分支预测惩罚高，性能一般。
+
+对于 streamcopy 测试， Wired 核心尚未实现乱序访存及非阻塞缓存，并且对 store 指令的发射逻辑没有进行专门优化。
+
+核心前端取值能力偏弱，无法满足后端需求。
+
+## 第三方 IP 说明
+
+本核心使用了来自 [muntjac](https://github.com/lowRISC/muntjac) 项目的 Tilelink 及 AXI 总线组件、来自 [cvfpu](https://github.com/openhwgroup/cvfpu) 项目的浮点 FPU 部件和 [cva5](https://github.com/openhwgroup/cva5) 项目的部分组件。
